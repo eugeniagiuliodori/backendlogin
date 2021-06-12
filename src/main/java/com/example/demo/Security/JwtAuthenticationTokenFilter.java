@@ -16,7 +16,8 @@ import org.springframework.security.web.authentication.AbstractAuthenticationPro
 public class JwtAuthenticationTokenFilter extends AbstractAuthenticationProcessingFilter {
 
 	public JwtAuthenticationTokenFilter() {
-		super("/api/**");
+
+		super("/token/**");
 	}
 
 	@Override

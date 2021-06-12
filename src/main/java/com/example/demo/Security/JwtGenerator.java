@@ -8,9 +8,11 @@ import com.example.demo.Constants.Constants;
 import org.springframework.stereotype.Component;
 
 @Component
+
 public class JwtGenerator {
 
     public String generate(JwtUser jwtUser) {
+
         //put in claims, the payload of the client
         Claims claims = Jwts.claims()
                 .setSubject(jwtUser.getUserName());

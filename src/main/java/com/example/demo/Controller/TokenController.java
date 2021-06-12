@@ -5,6 +5,7 @@ import com.example.demo.Model.JwtUser;
 import com.example.demo.Security.JwtGenerator;
 import com.example.demo.Service.IUserService;
 import com.example.demo.Service.UserServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/token")
+@Slf4j
 public class TokenController {
 
     private JwtGenerator jwtGenerator;
@@ -22,9 +24,10 @@ public class TokenController {
         this.jwtGenerator=jwtGenerator;
     }
 
-    @PostMapping
+    @RequestMapping(value = "/value", method = RequestMethod.POST)
     //if user exist in BD, first generate payload and with payload generate the token using the secret
     public ResponseEntity<?> generate(@RequestBody final EUser user){
+        log.info("inicia?");
         JwtUser jwtuser = existUser(user);
         if(jwtuser != null){
             List<String> list = new ArrayList<>();
@@ -32,6 +35,7 @@ public class TokenController {
             return new ResponseEntity<List<String>>(list, HttpStatus.OK);
         }
         else{
+            log.info("pasa por aca?");
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
@@ -39,6 +43,7 @@ public class TokenController {
     private JwtUser existUser(EUser user){
         IUserService service = new UserServiceImpl();
         EUser userDB = service.findByNameAndPassword(user.getName(),user.getPassword());
+
         if(userDB!=null){
             JwtUser jwtuser = new JwtUser();
             jwtuser.setUserName(user.getName());
