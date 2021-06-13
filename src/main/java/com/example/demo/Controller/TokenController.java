@@ -11,12 +11,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 @RestController
 @RequestMapping("/token")
 @Slf4j
+
 public class TokenController {
+
 
     private JwtGenerator jwtGenerator;
 

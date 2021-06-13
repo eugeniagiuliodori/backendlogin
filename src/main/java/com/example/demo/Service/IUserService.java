@@ -9,7 +9,7 @@ public interface IUserService {
 
     public EUser findByNameAndPassword(String name, String password);
 
-    public List<EUser> findAll();
+    public Iterable<EUser> findAll();
 
 
 }

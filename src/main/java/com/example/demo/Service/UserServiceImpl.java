@@ -23,7 +23,7 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EUser> findAll(){
+    public Iterable<EUser> findAll(){
         return userDao.findAll();
     }
 
