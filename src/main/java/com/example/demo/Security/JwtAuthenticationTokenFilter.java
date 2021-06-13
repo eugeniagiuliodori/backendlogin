@@ -17,13 +17,13 @@ public class JwtAuthenticationTokenFilter extends AbstractAuthenticationProcessi
 
 	public JwtAuthenticationTokenFilter() {
 
-		super("/token/**");
+		super("/token/validate/**");
 	}
 
 	@Override
 	public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
 			throws AuthenticationException, IOException, ServletException {
-		
+
 		String header = request.getHeader(Constants.AUTHORIZATION_HEADER);
 		
 		if(header == null || !header.startsWith(Constants.BEARER_TOKEN)) {

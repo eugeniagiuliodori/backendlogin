@@ -24,18 +24,19 @@ public class TokenController {
         this.jwtGenerator=jwtGenerator;
     }
 
-    @RequestMapping(value = "/value", method = RequestMethod.POST)
+    //@RequestMapping(value = "/value", method = RequestMethod.POST)
+    @PostMapping
     //if user exist in BD, first generate payload and with payload generate the token using the secret
     public ResponseEntity<?> generate(@RequestBody final EUser user){
-        log.info("inicia?");
+        log.info("A");
         JwtUser jwtuser = existUser(user);
+        log.info("B");
         if(jwtuser != null){
             List<String> list = new ArrayList<>();
             list.add(jwtGenerator.generate(jwtuser));
             return new ResponseEntity<List<String>>(list, HttpStatus.OK);
         }
         else{
-            log.info("pasa por aca?");
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
