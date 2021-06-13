@@ -2,10 +2,10 @@ package com.example.demo.config;
 
 import java.util.Collections;
 
-import com.example.demo.Security.JwtAuthenticationEntryPoint;
-import com.example.demo.Security.JwtAuthenticationProvider;
-import com.example.demo.Security.JwtAuthenticationTokenFilter;
-import com.example.demo.Security.JwtSuccessHandler;
+import com.example.demo.security.JwtAuthenticationEntryPoint;
+import com.example.demo.security.JwtAuthenticationProvider;
+import com.example.demo.security.JwtAuthenticationTokenFilter;
+import com.example.demo.security.JwtSuccessHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -46,7 +46,7 @@ public class JwtSecurityConfig extends WebSecurityConfigurerAdapter {
 	@Override
 	protected void configure(HttpSecurity http) throws Exception{
 		http.csrf().disable()
-		.authorizeRequests().antMatchers("**/token/**").authenticated()
+		.authorizeRequests().antMatchers("**/token/validate/**").authenticated()
 		.and()
 		.exceptionHandling().authenticationEntryPoint(entryPoint)
 		.and()

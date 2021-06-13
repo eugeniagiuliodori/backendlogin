@@ -21,5 +21,12 @@ public class UserServiceImpl implements IUserService {
         return userDao.findByNameAndPassword(name,password);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<EUser> findAll(){
+        return userDao.findAll();
+    }
+
+
 
 }

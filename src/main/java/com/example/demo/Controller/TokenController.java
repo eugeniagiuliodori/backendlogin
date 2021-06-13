@@ -2,7 +2,7 @@ package com.example.demo.Controller;
 
 import com.example.demo.Entity.EUser;
 import com.example.demo.Model.JwtUser;
-import com.example.demo.Security.JwtGenerator;
+import com.example.demo.security.JwtGenerator;
 import com.example.demo.Service.IUserService;
 import com.example.demo.Service.UserServiceImpl;
 import lombok.extern.slf4j.Slf4j;

@@ -1,4 +1,4 @@
-package com.example.demo.Security;
+package com.example.demo.security;
 
 import com.example.demo.Constants.Constants;
 import com.example.demo.Model.JwtUser;

@@ -10,4 +10,6 @@ public interface IUserDao extends CrudRepository<EUser,Long> {
 
     public EUser findByNameAndPassword(String name, String password);
 
+    public List<EUser> findAll();
+
 }
