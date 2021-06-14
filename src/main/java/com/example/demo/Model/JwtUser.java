@@ -1,10 +1,14 @@
 package com.example.demo.Model;
 
+import com.example.demo.Entity.ERole;
+
+import java.util.List;
+
 public class JwtUser { //payload of token
 
     private String userName;
     private Long id;
-    private String role;
+    private List<ERole> roles;
 
     public String getUserName() {
         return userName;
@@ -22,11 +26,11 @@ public class JwtUser { //payload of token
         this.id = id;
     }
 
-    public String getRole() {
-        return role;
+    public List<ERole> getRoles() {
+        return roles;
     }
 
-    public void setRole(String role) {
-        this.role = role;
+    public void setRoles(List<ERole> roles) {
+        this.roles = roles;
     }
 }

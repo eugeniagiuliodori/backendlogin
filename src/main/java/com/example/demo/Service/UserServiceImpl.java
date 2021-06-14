@@ -36,20 +36,38 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     @Transactional
-    public EUser addUser(EUser user){
-        if((user.getId()==null)||(userDao.findById(user.getId()).isPresent())){
-            return userDao.save(user);
+    public boolean addUser(EUser user){
+        if(user !=null){
+            EUser euser = new EUser();
+            euser.setName(user.getName());
+            euser.setPassword(user.getPassword());
+            euser.setRoles(user.getRoles());
+            userDao.save(euser);
+            return true;
         }
         else{
-            return null;
+            return false;
         }
     }
 
     @Override
     @Transactional
     public EUser updateUser(EUser user){
-        if((user.getId()!=null)&&!userDao.findById(user.getId()).isPresent()){
-            return userDao.save(user);
+        if(user != null){
+            Optional<EUser> oldUser = userDao.findById(user.getId());
+            if(!oldUser.isPresent()) {
+                EUser euser = new EUser();
+                euser.setId(user.getId());
+                euser.setDate(user.getDate());
+                euser.setName(user.getName());
+                euser.setPassword(user.getPassword());
+                euser.setRoles(user.getRoles());
+                userDao.save(euser);
+                return oldUser.get();
+            }
+            else{
+                return null;
+            }
         }
         else{
             return null;
@@ -59,10 +77,12 @@ public class UserServiceImpl implements IUserService {
     @Override
     @Transactional
     public EUser deleteUser(Long id){
-        Optional<EUser> user = findById(id);
-        if(!user.isPresent()){
+        Optional<EUser> delUser = userDao.findById(id);
+        if(!delUser.isPresent()){
+            EUser euser = new EUser();
+            euser.setId(id);
             userDao.deleteById(id);
-            return user.get();
+            return delUser.get();
         }
         else{
             return null;
@@ -71,19 +91,16 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     @Transactional
-    public EUser deleteUser(EUser user){
-        if(user.getId()!=null){
-            Optional<EUser> userfind = findById(user.getId());
-            if(!userfind.isPresent()){
-                userDao.deleteById(user.getId());
-                return userfind.get();
-            }
-            else{
-                return null;
-            }
+    public boolean deleteUser(EUser user){
+        Optional<EUser> delUser = userDao.findById(user.getId());
+        if(!delUser.isPresent()){
+            EUser euser = new EUser();
+            euser.setId(user.getId());
+            userDao.deleteById(user.getId());
+            return true;
         }
         else{
-            return null;
+            return false;
         }
     }
 
@@ -99,8 +116,5 @@ public class UserServiceImpl implements IUserService {
     public long count(){
         return userDao.count();
     }
-
-
-
 
 }

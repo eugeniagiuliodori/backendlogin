@@ -10,19 +10,20 @@ import org.springframework.web.bind.annotation.*;
 import javax.persistence.PostUpdate;
 
 @RestController
-@RequestMapping("/services")
-public class SecurityController {
+@RequestMapping("/user")
+public class UserController {
 
     @Autowired
     IUserService userService;
 
     @PostMapping("/add")
     public ResponseEntity<?> addUser(@RequestBody final EUser user){
-        if(userService.addUser(user)!=null){
+        if(user !=null){
+            userService.addUser(user);
             return new ResponseEntity<>(HttpStatus.CREATED);
         }
         else{
-            return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 

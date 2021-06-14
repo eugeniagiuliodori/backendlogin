@@ -1,5 +1,6 @@
 package com.example.demo.Controller;
 
+import com.example.demo.Entity.ERole;
 import com.example.demo.Entity.EUser;
 import com.example.demo.Model.JwtUser;
 import com.example.demo.security.JwtGenerator;
@@ -36,12 +37,12 @@ public class TokenController {
     public ResponseEntity<?> generate(@RequestBody final EUser user){
         JwtUser jwtuser = existUser(user);
         if(jwtuser != null){
-            List<String> list = new ArrayList<>();
-            list.add(jwtGenerator.generate(jwtuser));
-            return new ResponseEntity<List<String>>(list, HttpStatus.OK);
+            List<String> token = new ArrayList<>();
+            token.add(jwtGenerator.generate(jwtuser));
+            return new ResponseEntity<List<String>>(token, HttpStatus.OK);
         }
         else{
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
@@ -55,9 +56,9 @@ public class TokenController {
             jwtuser.setUserName(user.getName());
             Long id = userDB.getId();
             jwtuser.setId(id);
-            //if(!userDB.getRoles().isEmpty()) {
-              //  jwtuser.setRole(userDB.getRoles().iterator().next().getNameRole());//the first role of the user if the user have more than one role
-            //}
+            if(!userDB.getRoles().isEmpty()) {
+                jwtuser.setRoles(new LinkedList<ERole>(userDB.getRoles()));
+            }
             return jwtuser;
         }
         return null;

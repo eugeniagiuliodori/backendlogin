@@ -14,13 +14,13 @@ public interface IUserService {
 
     public Optional<EUser> findById(Long id);
 
-    public EUser addUser(EUser user);
+    public boolean addUser(EUser user);
 
-    public EUser updateUser(EUser user);
+    public EUser updateUser(EUser user); //return the user with de old values
 
-    public EUser deleteUser(Long id);
+    public EUser deleteUser(Long id); //return the deleted user
 
-    public EUser deleteUser(EUser user);
+    public boolean deleteUser(EUser user);
 
     public boolean deleteAllUsers();
 

@@ -1,7 +1,10 @@
 package com.example.demo.security;
 
+import java.util.LinkedList;
 import java.util.List;
 
+import com.example.demo.Entity.ERole;
+import com.example.demo.Model.AuthorityList;
 import com.example.demo.Model.JwtUser;
 import com.example.demo.Model.JwtAuthenticationToken;
 import com.example.demo.Model.JwtUserDetails;
@@ -38,9 +41,9 @@ public class JwtAuthenticationProvider extends AbstractUserDetailsAuthentication
 		if(jwtUser == null) {
 			throw new RuntimeException("Jwt es incorrecto");
 		}
-		
+
 		List<GrantedAuthority> grantedAuthorities = AuthorityUtils
-				.commaSeparatedStringToAuthorityList(jwtUser.getRole());
+				.commaSeparatedStringToAuthorityList("role");
 		
 		return new JwtUserDetails(jwtUser.getUserName(), jwtUser.getId(), token, grantedAuthorities);
 	

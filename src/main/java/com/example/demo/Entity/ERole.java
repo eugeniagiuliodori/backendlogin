@@ -28,8 +28,8 @@ public class ERole implements Serializable {
 
     @ManyToMany
     @JoinTable(name = "eusers_eroles",
-            joinColumns = @JoinColumn(name = "euser_id", referencedColumnName = "id"),
-            inverseJoinColumns = @JoinColumn(name = "erole_id", referencedColumnName = "id"))
+            joinColumns = @JoinColumn(name = "erole_id", referencedColumnName = "id"),
+            inverseJoinColumns = @JoinColumn(name = "euser_id", referencedColumnName = "id"))
     private Set<EUser> users = new HashSet<EUser>();
 
     @PrePersist

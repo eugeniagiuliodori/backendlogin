@@ -29,8 +29,8 @@ public class EUser implements Serializable {
     @ManyToMany(cascade = CascadeType.ALL)
     @JsonBackReference
     @JoinTable(name = "eusers_eroles",
-            joinColumns = @JoinColumn(name = "erole_id", referencedColumnName = "id"),
-            inverseJoinColumns = @JoinColumn(name = "euser_id", referencedColumnName = "id"))
+            joinColumns = @JoinColumn(name = "euser_id", referencedColumnName = "id"),
+            inverseJoinColumns = @JoinColumn(name = "erole_id", referencedColumnName = "id"))
     private Set<ERole> roles = new HashSet<ERole>();
 
     public Date getDate() {
