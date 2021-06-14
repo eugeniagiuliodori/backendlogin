@@ -57,7 +57,7 @@ public class JwtSecurityConfig extends WebSecurityConfigurerAdapter {
 	@Override
 	protected void configure(HttpSecurity http) throws Exception{
 		http.csrf().disable()
-		.authorizeRequests().antMatchers("**/token/validate/**").authenticated()
+		.authorizeRequests().antMatchers("**/services/**").authenticated()
 		.and()
 		.exceptionHandling().authenticationEntryPoint(entryPoint)
 		.and()
@@ -83,21 +83,16 @@ public class JwtSecurityConfig extends WebSecurityConfigurerAdapter {
 	private List<User> permitedUsers(){
         IUserService service = new UserServiceImpl();
 		List<User> users = new LinkedList();
-        if(service==null){
-        	log.info("ES NULL SERVICE");
-		}
-        else {
-			List<EUser> eusers = getUserList();
-			if (eusers != null) {
-				for (int i = 0; i < eusers.size(); i++) {
-					EUser euser = (EUser) eusers.get(i);
-					String principalRole = new String("");
-					if (euser.getRoles().iterator().hasNext()) {
-						principalRole = euser.getRoles().iterator().next().getNameRole();
-					}
-					User user = new User(euser.getName(), euser.getPassword(), principalRole);
-					users.add(user);
+		List<EUser> eusers = getUserList();
+		if (eusers != null) {
+			for (int i = 0; i < eusers.size(); i++) {
+				EUser euser = (EUser) eusers.get(i);
+				String principalRole = new String("");
+				if (euser.getRoles().iterator().hasNext()) {
+					principalRole = euser.getRoles().iterator().next().getNameRole();
 				}
+				User user = new User(euser.getName(), euser.getPassword(), principalRole);
+				users.add(user);
 			}
 		}
         return users;

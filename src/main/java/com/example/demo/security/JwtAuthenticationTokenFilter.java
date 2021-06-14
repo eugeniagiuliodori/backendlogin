@@ -17,7 +17,7 @@ public class JwtAuthenticationTokenFilter extends AbstractAuthenticationProcessi
 
 	public JwtAuthenticationTokenFilter() {
 
-		super("/token/validate/**");
+		super("/services/**");
 	}
 
 	@Override
