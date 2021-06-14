@@ -67,9 +67,9 @@ public class JwtSecurityConfig extends WebSecurityConfigurerAdapter {
 		http.headers().cacheControl();
 
 	}
-	
-	@Autowired
-	public void configureGlobalSecurity(AuthenticationManagerBuilder auth) throws Exception{
+
+	@Override
+	public void configure(AuthenticationManagerBuilder auth) throws Exception{
         List<User> users = permitedUsers();
         if(users!=null) {
 			for (int i = 0; i < users.size(); i++) {
