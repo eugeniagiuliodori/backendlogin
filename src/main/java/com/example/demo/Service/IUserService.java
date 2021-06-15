@@ -14,15 +14,15 @@ public interface IUserService {
 
     public Optional<EUser> findById(Long id);
 
-    public boolean addUser(EUser user);
+    public boolean addUser(EUser user) throws Exception;
 
-    public EUser updateUser(EUser user); //return the user with de old values
+    public EUser updateUser(EUser user) throws Exception; //return the user with de old values
 
-    public EUser deleteUser(Long id); //return the deleted user
+    public EUser deleteUser(Long id) throws Exception; //return the deleted user
 
-    public boolean deleteUser(EUser user);
+    public void deleteUser(EUser user) throws Exception;
 
-    public boolean deleteAllUsers();
+    public boolean deleteAllUsers() throws Exception;
 
     public long count();
 

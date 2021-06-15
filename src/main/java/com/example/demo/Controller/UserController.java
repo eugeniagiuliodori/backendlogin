@@ -1,7 +1,9 @@
 package com.example.demo.Controller;
 
 import com.example.demo.Entity.EUser;
+import com.example.demo.Model.*;
 import com.example.demo.Service.IUserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +13,7 @@ import javax.persistence.PostUpdate;
 
 @RestController
 @RequestMapping("/user")
+@Slf4j
 public class UserController {
 
     @Autowired
@@ -18,55 +21,128 @@ public class UserController {
 
     @PostMapping("/add")
     public ResponseEntity<?> addUser(@RequestBody final EUser user){
-        if(userService.addUser(user)){
-            return new ResponseEntity<>(HttpStatus.CREATED);
+        MsgeError error = new MsgeError();
+        error.setName("ERROR");
+        error.setDescription("IN ADD USER");
+        try {
+            if (userService.addUser(user)) {
+                return new ResponseEntity<Void>(HttpStatus.CREATED);
+            }
+            else {
+                if (user == null) {
+                    error.setName("NULL");
+                    error.setDescription("REQUIRED PARAMETER IS NULL");
+                }
+                if(((user.getName()==null)||(user.getName().isEmpty()))&&((user.getPassword()==null)&&(user.getPassword().isEmpty()))){
+                    error.setName("NULL OR EMPTY");
+                    error.setDescription("USER NAME AND PASSWORD, EMPTY OR NULL");
+                }
+                else{
+                    if(((user.getName()==null)||(user.getName().isEmpty()))){
+                        error.setName("NULL OR EMPTY");
+                        error.setDescription("USER NAME, EMPTY OR NULL");
+                    }
+                    if(((user.getPassword()==null)||(user.getPassword().isEmpty()))){
+                        error.setName("NULL OR EMPTY");
+                        error.setDescription("USER PASSWORD, EMPTY OR NULL");
+                    }
+                }
+            }
+            return new ResponseEntity<>(error,HttpStatus.NOT_ACCEPTABLE);
         }
-        else{
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        catch(Exception e){
+            if (user.getId() != null && userService.findById(user.getId()) != null) {
+                error.setName("DUPLICATE");
+                error.setDescription("USER ID ALREADY EXISTS (THE 'ID' ISN'T REQUIRED BEACOUSE ADD USER)");
+            }
+            return new ResponseEntity<>(error,HttpStatus.NOT_ACCEPTABLE);
         }
     }
 
     @PutMapping("/update")
     public ResponseEntity<?> updateUser(@RequestBody final EUser user){
-        EUser oldUser = userService.updateUser(user);
-        //if the method is other than update, you could use oldUser
-        if(oldUser!=null){
+        MsgeError error = new MsgeError();
+        error.setName("ERROR");
+        error.setDescription("IN UPDATE USER");
+        try{
+            EUser oldUser = userService.updateUser(user);
             return new ResponseEntity<>(HttpStatus.OK);
         }
-        else{
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        catch(Exception e){
+            if(e instanceof IDRoleExpectedException){
+                error.setName("ERROR");
+                error.setDescription("EXPECTED USER ID ROLE");
+            }
+            if(e instanceof IDRoleNotFoundException){
+                error.setName("ERROR");
+                error.setDescription("NOT FOUND USER ID ROLE");
+            }
+            if(e instanceof UserNotFoundException){
+                if(((UserNotFoundException) e).getMsge().equals("NULL USER")){
+                    error.setName("ERROR");
+                    error.setDescription("USER PARAMETER IS NULL");
+                }
+                if(((UserNotFoundException) e).getMsge().equals("INCORRECT OR NULL ID USER")){
+                    error.setName("ERROR");
+                    error.setDescription(((UserNotFoundException) e).getMsge());
+                }
+            }
+            return new ResponseEntity<>(error,HttpStatus.NOT_ACCEPTABLE);
         }
+
     }
 
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable(value="id") Long idUser){
-        EUser delUser = userService.deleteUser(idUser);
-        //if the method is other than delete, you could use delUser
-        if(delUser!=null){
+        MsgeError error = new MsgeError();
+        error.setName("ERROR");
+        error.setDescription("IN DELETE USER");
+        try{
+            EUser delUser = userService.deleteUser(idUser);
             return new ResponseEntity<>(HttpStatus.OK);
         }
-        else{
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        catch(Exception e){
+            if(e instanceof UserNotFoundException){
+                error.setName("ERROR");
+                error.setDescription("INCORRECT ID USER");
+            }
+            if(e instanceof IDUserExpectedException){
+                error.setName("ERROR");
+                error.setDescription("ID USER PARAMETER IS NULL");
+            }
+            return new ResponseEntity<>(error,HttpStatus.NOT_ACCEPTABLE);
         }
     }
 
     @DeleteMapping("/deleteAll")
     public ResponseEntity<?> deleteAllUsers(){
-        if(userService.deleteAllUsers()){
-            return new ResponseEntity<>(HttpStatus.OK);
+        MsgeError error = new MsgeError();
+        error.setName("ERROR");
+        error.setDescription("IN DELETE ALL USERS");
+        try{
+            userService.deleteAllUsers();
+            return new ResponseEntity<Void>(HttpStatus.OK);
         }
-        else{
-            return new ResponseEntity<>(HttpStatus.CONFLICT);
+        catch(Exception e){
+            return new ResponseEntity<>(error,HttpStatus.CONFLICT);
         }
+
     }
 
-    @PostMapping("/delete")
+    @DeleteMapping("/delete")
     public ResponseEntity<?> deleteUser(@RequestBody final EUser user){
-        if(userService.deleteUser(user)){
-            return new ResponseEntity<>(HttpStatus.OK);
+        MsgeError error = new MsgeError();
+        error.setName("ERROR");
+        error.setDescription("IN DELETE USER");
+        try{
+            return deleteUser(user.getId());
         }
-        else{
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        catch(Exception e){
+            if(e instanceof UserNotFoundException){
+                error.setName("ERROR");
+                error.setDescription("USER PARAMETER IS NULL");
+            }
+            return new ResponseEntity<>(error,HttpStatus.NOT_FOUND);
         }
     }
 }

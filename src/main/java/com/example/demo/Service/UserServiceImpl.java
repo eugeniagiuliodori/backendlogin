@@ -3,6 +3,7 @@ package com.example.demo.Service;
 import com.example.demo.Entity.EUser;
 import com.example.demo.Dao.IUserDao;
 import com.example.demo.Entity.ERole;
+import com.example.demo.Model.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,7 @@ public class UserServiceImpl implements IUserService {
     private IUserDao userDao;
 
     @Autowired
-    private IRoleService rolesDao;
+    private IRoleService rolesService;
 
     @Override
     @Transactional(readOnly = true)
@@ -39,8 +40,8 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    @Transactional
-    public boolean addUser(EUser user){
+    @Transactional(rollbackFor = Exception.class)
+    public boolean addUser(EUser user) throws Exception{
         if(user !=null){
             EUser euser = new EUser();
             //minimal parameters to add: name and password
@@ -61,8 +62,8 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    @Transactional
-    public EUser updateUser(EUser user){
+    @Transactional(rollbackFor = Exception.class)
+    public EUser updateUser(EUser user) throws Exception{
         if(user != null){
             Optional<EUser> oldUser = userDao.findById(user.getId());
             if(oldUser.isPresent() && user.getId()!=null) {
@@ -90,7 +91,7 @@ public class UserServiceImpl implements IUserService {
                 for (int i=0;i<rolesUpdate.size();i++){
                     Long roleID = ((ERole)rolesUpdate.get(i)).getId();
                     if(roleID!=null){
-                        Optional<ERole> currRole =  rolesDao.findById(roleID);
+                        Optional<ERole> currRole =  rolesService.findById(roleID);//aca va una query mas compleja porque el usuario te puede dar un id de role que existe para otro user
                         if(currRole.isPresent()){
                             if(((ERole)rolesUpdate.get(i)).getNameRole()==null){
                                 ((ERole)rolesUpdate.get(i)).setNameRole(currRole.get().getNameRole());
@@ -110,11 +111,11 @@ public class UserServiceImpl implements IUserService {
                             }
                         }
                         else{
-                            return null;
+                            throw new IDRoleNotFoundException();
                         }
                     }
                     else {
-                        return null;
+                        throw new IDRoleExpectedException();
                     }
                 }
                 Set<ERole> setRoles = new HashSet(rolesUpdate);
@@ -123,52 +124,58 @@ public class UserServiceImpl implements IUserService {
                 return oldUser.get();
             }
             else{
-                return null;
+                UserNotFoundException exc = new UserNotFoundException();
+                exc.setMsge("INCORRECT OR NULL ID USER");
+                throw exc;
             }
         }
         else{
-            return null;
+            UserNotFoundException exc = new UserNotFoundException();
+            exc.setMsge("NULL USER");
+            throw exc;
         }
     }
 
     @Override
-    @Transactional
-    public EUser deleteUser(Long id){
+    @Transactional(rollbackFor = Exception.class)
+    public EUser deleteUser(Long id) throws Exception{
         if(id!=null) {
             Optional<EUser> delUser = userDao.findById(id);
             if (delUser.isPresent()) {
                 userDao.deleteById(id);
                 return delUser.get();
-            } else {
-                return null;
+            }
+            else {
+                throw new UserNotFoundException();
             }
         }
         else{
-            return null;
+            throw new IDUserExpectedException();
         }
     }
 
     @Override
-    @Transactional
-    public boolean deleteUser(EUser user){
-        if(user!=null && user.getId()!=null) {
-            if(deleteUser(user.getId())!=null){
-                return true;
-            }
-            else{
-                return false;
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteUser(EUser user) throws Exception{
+        try {
+            deleteUser(user.getId());
+        }
+        catch(Exception e){
+            if(user == null) {
+                UserNotFoundException exc = new UserNotFoundException();
+                exc.setMsge("NULL USER");
+                throw exc;
             }
         }
-        else{
-            return false;
-        }
+
+
     }
 
     @Override
-    @Transactional
-    public boolean deleteAllUsers(){
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteAllUsers() throws Exception{
         userDao.deleteAll();
-        return count()==0;
+        return count() == 0;
     }
 
     @Override

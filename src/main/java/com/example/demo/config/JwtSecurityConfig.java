@@ -4,8 +4,8 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.example.demo.Entity.ERole;
 import com.example.demo.Entity.EUser;
-import com.example.demo.Model.User;
 import com.example.demo.Service.IUserService;
 import com.example.demo.Service.UserServiceImpl;
 import com.example.demo.security.JwtAuthenticationEntryPoint;
@@ -70,33 +70,17 @@ public class JwtSecurityConfig extends WebSecurityConfigurerAdapter {
 
 	@Override
 	public void configure(AuthenticationManagerBuilder auth) throws Exception{
-        List<User> users = permitedUsers();
+        List<EUser> users = getUserList();
         if(users!=null) {
 			for (int i = 0; i < users.size(); i++) {
-				User currUser = users.get(i);
-				auth.inMemoryAuthentication().withUser(currUser.getName()).password(currUser.getPassword()).roles(currUser.getRole());
+				EUser currUser = users.get(i);
+				for (int j = 0; j < currUser.getRoles().size(); j++) {
+					List<ERole> userRoles = new LinkedList<ERole>(currUser.getRoles());
+					auth.inMemoryAuthentication().withUser(currUser.getName()).password(currUser.getPassword()).roles(userRoles.get(j).getNameRole());
+				}
 			}
 		}
 	}
-
-
-	private List<User> permitedUsers(){
-        IUserService service = new UserServiceImpl();
-		List<User> users = new LinkedList();
-		List<EUser> eusers = getUserList();
-		if (eusers != null) {
-			for (int i = 0; i < eusers.size(); i++) {
-				EUser euser = (EUser) eusers.get(i);
-				String principalRole = new String("");
-				if (euser.getRoles().iterator().hasNext()) {
-					principalRole = euser.getRoles().iterator().next().getNameRole();
-				}
-				User user = new User(euser.getName(), euser.getPassword(), principalRole);
-				users.add(user);
-			}
-		}
-        return users;
-    }
 
 	private List<EUser> getUserList() {
 		IUserService service = new UserServiceImpl();
