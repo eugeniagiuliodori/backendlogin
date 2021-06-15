@@ -7,9 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class UserServiceImpl implements IUserService {
@@ -84,7 +82,7 @@ public class UserServiceImpl implements IUserService {
                     euser.setName(oldUser.get().getPassword());
                 }
                 else{
-                    euser.setName(user.getPassword());
+                    euser.setPassword(user.getPassword());
                 }
                 List<ERole> rolesUpdate = new LinkedList<ERole>(user.getRoles());//apunta a user.getRoles()
                 for (int i=0;i<rolesUpdate.size();i++){
@@ -104,6 +102,9 @@ public class UserServiceImpl implements IUserService {
                             if(((ERole)rolesUpdate.get(i)).getDescription()==null){
                                 ((ERole)rolesUpdate.get(i)).setDescription(currRole.get().getDescription());
                             }
+                            if(((ERole)rolesUpdate.get(i)).getUsers()==null){
+                                ((ERole)rolesUpdate.get(i)).setUsers(currRole.get().getUsers());
+                            }
                         }
                         else{
                             return null;
@@ -113,7 +114,8 @@ public class UserServiceImpl implements IUserService {
                         return null;
                     }
                 }
-                euser.setRoles(user.getRoles());
+                Set<ERole> setRoles = new HashSet(rolesUpdate);
+                euser.setRoles(setRoles);
                 userDao.save(euser);
                 return oldUser.get();
             }
