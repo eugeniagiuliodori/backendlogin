@@ -77,12 +77,14 @@ public class UserServiceImpl implements IUserService {
     @Override
     @Transactional
     public EUser deleteUser(Long id){
-        Optional<EUser> delUser = userDao.findById(id);
-        if(!delUser.isPresent()){
-            EUser euser = new EUser();
-            euser.setId(id);
-            userDao.deleteById(id);
-            return delUser.get();
+        if(id!=null) {
+            Optional<EUser> delUser = userDao.findById(id);
+            if (!delUser.isPresent()) {
+                userDao.deleteById(id);
+                return delUser.get();
+            } else {
+                return null;
+            }
         }
         else{
             return null;
@@ -94,8 +96,6 @@ public class UserServiceImpl implements IUserService {
     public boolean deleteUser(EUser user){
         Optional<EUser> delUser = userDao.findById(user.getId());
         if(!delUser.isPresent()){
-            EUser euser = new EUser();
-            euser.setId(user.getId());
             userDao.deleteById(user.getId());
             return true;
         }
