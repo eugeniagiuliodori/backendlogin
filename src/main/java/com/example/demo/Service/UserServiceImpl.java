@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,6 +16,9 @@ public class UserServiceImpl implements IUserService {
 
     @Autowired
     private IUserDao userDao;
+
+    @Autowired
+    private IRoleService rolesDao;
 
     @Override
     @Transactional(readOnly = true)
@@ -39,11 +43,17 @@ public class UserServiceImpl implements IUserService {
     public boolean addUser(EUser user){
         if(user !=null){
             EUser euser = new EUser();
-            euser.setName(user.getName());
-            euser.setPassword(user.getPassword());
-            euser.setRoles(user.getRoles());
-            userDao.save(euser);
-            return true;
+            //minimal parameters to add: name and password
+            if(user.getName()!=null && user.getPassword() != null && !user.getName().isEmpty() && !user.getPassword().isEmpty() ) {
+                euser.setName(user.getName());
+                euser.setPassword(user.getPassword());
+                euser.setRoles(user.getRoles());
+                userDao.save(euser);
+                return true;
+            }
+            else{
+                return false;
+            }
         }
         else{
             return false;
@@ -55,12 +65,54 @@ public class UserServiceImpl implements IUserService {
     public EUser updateUser(EUser user){
         if(user != null){
             Optional<EUser> oldUser = userDao.findById(user.getId());
-            if(!oldUser.isPresent()) {
+            if(oldUser.isPresent() && user.getId()!=null) {
                 EUser euser = new EUser();
                 euser.setId(user.getId());
-                euser.setDate(user.getDate());
-                euser.setName(user.getName());
-                euser.setPassword(user.getPassword());
+                if(user.getDate()==null){
+                    euser.setDate(oldUser.get().getDate());
+                }
+                else{
+                    euser.setDate(user.getDate());
+                }
+                if(user.getName()==null ){
+                    euser.setName(oldUser.get().getName());
+                }
+                else{
+                    euser.setName(user.getName());
+                }
+                if(user.getPassword()==null ){
+                    euser.setName(oldUser.get().getPassword());
+                }
+                else{
+                    euser.setName(user.getPassword());
+                }
+                List<ERole> rolesUpdate = new LinkedList<ERole>(user.getRoles());//apunta a user.getRoles()
+                for (int i=0;i<rolesUpdate.size();i++){
+                    Long roleID = ((ERole)rolesUpdate.get(i)).getId();
+                    if(roleID!=null){
+                        Optional<ERole> currRole =  rolesDao.findById(roleID);
+                        if(currRole.isPresent()){
+                            if(((ERole)rolesUpdate.get(i)).getNameRole()==null){
+                                ((ERole)rolesUpdate.get(i)).setNameRole(currRole.get().getNameRole());
+                            }
+                            if(((ERole)rolesUpdate.get(i)).getId()==null){
+                                ((ERole)rolesUpdate.get(i)).setId(currRole.get().getId());
+                            }
+                            if(((ERole)rolesUpdate.get(i)).getDate()==null){
+                                ((ERole)rolesUpdate.get(i)).setDate(currRole.get().getDate());
+                            }
+                            if(((ERole)rolesUpdate.get(i)).getDescription()==null){
+                                ((ERole)rolesUpdate.get(i)).setDescription(currRole.get().getDescription());
+                            }
+                        }
+                        else{
+                            return null;
+                        }
+                    }
+                    else {
+                        return null;
+                    }
+                }
                 euser.setRoles(user.getRoles());
                 userDao.save(euser);
                 return oldUser.get();
@@ -79,7 +131,7 @@ public class UserServiceImpl implements IUserService {
     public EUser deleteUser(Long id){
         if(id!=null) {
             Optional<EUser> delUser = userDao.findById(id);
-            if (!delUser.isPresent()) {
+            if (delUser.isPresent()) {
                 userDao.deleteById(id);
                 return delUser.get();
             } else {
@@ -94,10 +146,13 @@ public class UserServiceImpl implements IUserService {
     @Override
     @Transactional
     public boolean deleteUser(EUser user){
-        Optional<EUser> delUser = userDao.findById(user.getId());
-        if(!delUser.isPresent()){
-            userDao.deleteById(user.getId());
-            return true;
+        if(user!=null && user.getId()!=null) {
+            if(deleteUser(user.getId())!=null){
+                return true;
+            }
+            else{
+                return false;
+            }
         }
         else{
             return false;

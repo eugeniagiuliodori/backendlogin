@@ -18,8 +18,7 @@ public class UserController {
 
     @PostMapping("/add")
     public ResponseEntity<?> addUser(@RequestBody final EUser user){
-        if(user !=null){
-            userService.addUser(user);
+        if(userService.addUser(user)){
             return new ResponseEntity<>(HttpStatus.CREATED);
         }
         else{
@@ -29,7 +28,9 @@ public class UserController {
 
     @PutMapping("/update")
     public ResponseEntity<?> updateUser(@RequestBody final EUser user){
-        if(userService.updateUser(user)!=null){
+        EUser oldUser = userService.updateUser(user);
+        //if the method is other than update, you could use oldUser
+        if(oldUser!=null){
             return new ResponseEntity<>(HttpStatus.OK);
         }
         else{
@@ -39,7 +40,9 @@ public class UserController {
 
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable(value="id") Long idUser){
-        if(userService.deleteUser(idUser)!=null){
+        EUser delUser = userService.deleteUser(idUser);
+        //if the method is other than delete, you could use delUser
+        if(delUser!=null){
             return new ResponseEntity<>(HttpStatus.OK);
         }
         else{
@@ -59,7 +62,7 @@ public class UserController {
 
     @PostMapping("/delete")
     public ResponseEntity<?> deleteUser(@RequestBody final EUser user){
-        if(userService.deleteUser(user)!=null){
+        if(userService.deleteUser(user)){
             return new ResponseEntity<>(HttpStatus.OK);
         }
         else{
