@@ -3,6 +3,7 @@ package com.example.demo.Service;
 import com.example.demo.Entity.EUser;
 import com.example.demo.Dao.IUserDao;
 import com.example.demo.Entity.ERole;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 
 @Service
+@Slf4j
 public class UserServiceImpl implements IUserService {
 
     @Autowired
@@ -102,7 +104,8 @@ public class UserServiceImpl implements IUserService {
                             if(((ERole)rolesUpdate.get(i)).getDescription()==null){
                                 ((ERole)rolesUpdate.get(i)).setDescription(currRole.get().getDescription());
                             }
-                            if(((ERole)rolesUpdate.get(i)).getUsers()==null){
+                            if(((ERole)rolesUpdate.get(i)).getUsers().isEmpty()){
+                                //log.info("SIZE:"+currRole.get().getUsers().size());
                                 ((ERole)rolesUpdate.get(i)).setUsers(currRole.get().getUsers());
                             }
                         }
