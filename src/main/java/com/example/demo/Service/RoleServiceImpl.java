@@ -25,4 +25,10 @@ public class RoleServiceImpl implements IRoleService {
     public Optional<ERole> findById(Long id){
         return roleDao.findById(id);
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ERole save(ERole role) throws Exception{
+        return roleDao.save(role);
+    }
 }

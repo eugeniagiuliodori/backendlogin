@@ -1,15 +1,21 @@
 package com.example.demo.Controller;
 
+import com.example.demo.Entity.ERole;
 import com.example.demo.Entity.EUser;
 import com.example.demo.Model.*;
+import com.example.demo.Service.IRoleService;
 import com.example.demo.Service.IUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import javax.persistence.PostUpdate;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/user")
@@ -18,6 +24,9 @@ public class UserController {
 
     @Autowired
     IUserService userService;
+
+    @Autowired
+    IRoleService roleService;
 
     @PostMapping("/add")
     public ResponseEntity<?> addUser(@RequestBody final EUser user){
@@ -50,12 +59,12 @@ public class UserController {
             }
             return new ResponseEntity<>(error,HttpStatus.NOT_ACCEPTABLE);
         }
-        catch(Exception e){
+        catch(Exception e) {
             if (user.getId() != null && userService.findById(user.getId()) != null) {
                 error.setName("DUPLICATE");
                 error.setDescription("USER ID ALREADY EXISTS (THE 'ID' ISN'T REQUIRED BEACOUSE ADD USER)");
             }
-            return new ResponseEntity<>(error,HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>(error, HttpStatus.NOT_ACCEPTABLE);
         }
     }
 

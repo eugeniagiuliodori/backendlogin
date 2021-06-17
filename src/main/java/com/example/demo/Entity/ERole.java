@@ -20,7 +20,7 @@ public class ERole implements Serializable {
     @Temporal(TemporalType.DATE)
     private Date date;
 
-    @Column(name="role")
+    @Column(name="role", unique = true, nullable = false)
     private String nameRole;
 
     @Column(name="description")

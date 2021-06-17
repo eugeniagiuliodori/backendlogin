@@ -10,4 +10,7 @@ public interface IRoleDao extends CrudRepository<ERole,Long> {
     public ERole findByNameRole(String nameRole);
 
     public Optional<ERole> findById(Long id);
+
+    public ERole save(ERole role);
+
 }

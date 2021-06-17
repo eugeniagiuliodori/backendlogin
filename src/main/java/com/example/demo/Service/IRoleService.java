@@ -9,4 +9,6 @@ public interface IRoleService {
     public ERole findByNameRole(String nameRole);
 
     public Optional<ERole> findById(Long id);
+
+    public ERole save(ERole role) throws Exception;
 }

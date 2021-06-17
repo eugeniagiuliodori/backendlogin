@@ -49,7 +49,12 @@ public class UserServiceImpl implements IUserService {
                 euser.setName(user.getName());
                 euser.setPassword(user.getPassword());
                 euser.setRoles(user.getRoles());
-                userDao.save(euser);
+                try {
+                    userDao.save(euser);
+                }
+                catch (Exception e){
+                    e.printStackTrace();
+                }
                 return true;
             }
             else{

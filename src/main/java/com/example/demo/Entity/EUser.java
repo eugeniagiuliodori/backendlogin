@@ -20,10 +20,10 @@ public class EUser implements Serializable {
     @Temporal(TemporalType.DATE)
     private Date date;
 
-    @Column(name="name", unique = true)
+    @Column(name="name", unique = true, nullable=false)
     private String name;
 
-    @Column(name="password")
+    @Column(name="password", nullable=false)
     private String password;
 
     @ManyToMany(cascade = CascadeType.ALL)
