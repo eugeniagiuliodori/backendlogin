@@ -34,7 +34,8 @@ public class UserController {
         error.setName("ERROR");
         error.setDescription("IN ADD USER");
         try {
-            if (userService.addUser(user)) {
+            boolean b = userService.addUser(user);
+            if (b) {
                 return new ResponseEntity<Void>(HttpStatus.CREATED);
             }
             else {
@@ -60,6 +61,7 @@ public class UserController {
             return new ResponseEntity<>(error,HttpStatus.NOT_ACCEPTABLE);
         }
         catch(Exception e) {
+           e.printStackTrace();
             if (user.getId() != null && userService.findById(user.getId()) != null) {
                 error.setName("DUPLICATE");
                 error.setDescription("USER ID ALREADY EXISTS (THE 'ID' ISN'T REQUIRED BEACOUSE ADD USER)");

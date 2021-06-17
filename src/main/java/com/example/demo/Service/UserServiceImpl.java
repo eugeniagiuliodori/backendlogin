@@ -1,5 +1,6 @@
 package com.example.demo.Service;
 
+import com.example.demo.Dao.IRoleDao;
 import com.example.demo.Entity.EUser;
 import com.example.demo.Dao.IUserDao;
 import com.example.demo.Entity.ERole;
@@ -19,7 +20,7 @@ public class UserServiceImpl implements IUserService {
     private IUserDao userDao;
 
     @Autowired
-    private IRoleService rolesService;
+    private IRoleDao rolesDao;
 
     @Override
     @Transactional(readOnly = true)
@@ -48,13 +49,14 @@ public class UserServiceImpl implements IUserService {
             if(user.getName()!=null && user.getPassword() != null && !user.getName().isEmpty() && !user.getPassword().isEmpty() ) {
                 euser.setName(user.getName());
                 euser.setPassword(user.getPassword());
-                euser.setRoles(user.getRoles());
-                try {
-                    userDao.save(euser);
+                List<ERole> roles = new LinkedList<ERole>(user.getRoles());
+                for(int i=0;i<roles.size();i++){
+                    roles.get(i).getUsers().add(user);
+
                 }
-                catch (Exception e){
-                    e.printStackTrace();
-                }
+                Set<ERole> setRoles = new HashSet<ERole>(roles);
+                euser.setRoles(setRoles);
+                userDao.save(euser);
                 return true;
             }
             else{
@@ -96,7 +98,7 @@ public class UserServiceImpl implements IUserService {
                 for (int i=0;i<rolesUpdate.size();i++){
                     Long roleID = ((ERole)rolesUpdate.get(i)).getId();
                     if(roleID!=null){
-                        Optional<ERole> currRole =  rolesService.findById(roleID);//aca va una query mas compleja porque el usuario te puede dar un id de role que existe para otro user
+                        Optional<ERole> currRole =  rolesDao.findById(roleID);//aca va una query mas compleja porque el usuario te puede dar un id de role que existe para otro user
                         if(currRole.isPresent()){
                             if(((ERole)rolesUpdate.get(i)).getNameRole()==null){
                                 ((ERole)rolesUpdate.get(i)).setNameRole(currRole.get().getNameRole());
