@@ -51,10 +51,22 @@ public class UserServiceImpl implements IUserService {
                 euser.setPassword(user.getPassword());
                 List<ERole> roles = new LinkedList<ERole>(user.getRoles());
                 for(int i=0;i<roles.size();i++){
-                    roles.get(i).getUsers().add(user);
-
+                    //roles.get(i).getUsers().add(user);
+                    if(roles.get(i).getId() != null){
+                        if(!rolesDao.findById(roles.get(i).getId()).isPresent()){
+                            rolesDao.saveAndFlush(roles.get(i));
+                        }
+                    }
+                    else{
+                        rolesDao.saveAndFlush(roles.get(i));
+                    }
                 }
                 Set<ERole> setRoles = new HashSet<ERole>(roles);
+                euser.setRoles(setRoles);
+                userDao.saveAndFlush(euser);
+                for(int i=0;i<roles.size();i++) {
+                    roles.get(i).getUsers().add(user);
+                }
                 euser.setRoles(setRoles);
                 userDao.save(euser);
                 return true;
@@ -66,6 +78,12 @@ public class UserServiceImpl implements IUserService {
         else{
             return false;
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public EUser saveAndFlush(EUser user)  throws Exception{
+        return userDao.saveAndFlush(user);
     }
 
     @Override

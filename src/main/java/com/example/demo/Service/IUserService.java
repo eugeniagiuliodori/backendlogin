@@ -16,6 +16,8 @@ public interface IUserService {
 
     public boolean addUser(EUser user) throws Exception;
 
+    public EUser saveAndFlush(EUser user)  throws Exception;
+
     public EUser updateUser(EUser user) throws Exception; //return the user with de old values
 
     public EUser deleteUser(Long id) throws Exception; //return the deleted user

@@ -31,4 +31,10 @@ public class RoleServiceImpl implements IRoleService {
     public ERole save(ERole role) throws Exception{
         return roleDao.save(role);
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ERole saveAndFlush(ERole role) throws Exception{
+        return roleDao.saveAndFlush(role);
+    }
 }

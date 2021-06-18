@@ -11,4 +11,6 @@ public interface IRoleService {
     public Optional<ERole> findById(Long id);
 
     public ERole save(ERole role) throws Exception;
+
+    public ERole saveAndFlush(ERole role) throws Exception;
 }
