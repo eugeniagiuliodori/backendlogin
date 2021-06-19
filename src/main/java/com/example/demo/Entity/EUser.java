@@ -26,7 +26,7 @@ public class EUser implements Serializable {
     @Column(name="password", nullable=false)
     private String password;
 
-    @ManyToMany(cascade = {CascadeType.MERGE,CascadeType.REMOVE})
+    @ManyToMany(cascade = CascadeType.ALL)
     @JsonBackReference
     @JoinTable(name = "eusers_eroles",
             joinColumns = @JoinColumn(name = "euser_id", referencedColumnName = "id"),

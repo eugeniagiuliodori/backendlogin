@@ -50,23 +50,26 @@ public class UserServiceImpl implements IUserService {
                 euser.setName(user.getName());
                 euser.setPassword(user.getPassword());
                 List<ERole> roles = new LinkedList<ERole>(user.getRoles());
+                List<ERole> rolesExisting = new LinkedList<ERole>();
+                List<ERole> rolesNotExisting = new LinkedList<ERole>();
                 for(int i=0;i<roles.size();i++){
                     //roles.get(i).getUsers().add(user);
                     if(roles.get(i).getId() != null){
-                        if(!rolesDao.findById(roles.get(i).getId()).isPresent()){
-                            rolesDao.saveAndFlush(roles.get(i));
+                        if(rolesDao.findByNameRole(roles.get(i).getNameRole())!=null){
+                            rolesExisting.add(roles.get(i));
+                        }
+                        else{
+                            rolesNotExisting.add(roles.get(i));
                         }
                     }
                     else{
-                        rolesDao.saveAndFlush(roles.get(i));
+                        rolesNotExisting.add(roles.get(i));
                     }
                 }
-                Set<ERole> setRoles = new HashSet<ERole>(roles);
+                Set<ERole> setRoles = new HashSet<ERole>(rolesNotExisting);
                 euser.setRoles(setRoles);
-                userDao.saveAndFlush(euser);
-                for(int i=0;i<roles.size();i++) {
-                    roles.get(i).getUsers().add(user);
-                }
+                euser = userDao.save(euser);//the assigment permit id value
+                setRoles = new HashSet<ERole>(roles);
                 euser.setRoles(setRoles);
                 userDao.save(euser);
                 return true;
@@ -85,54 +88,61 @@ public class UserServiceImpl implements IUserService {
     public EUser saveAndFlush(EUser user)  throws Exception{
         return userDao.saveAndFlush(user);
     }
+    @Override
+    @Transactional(readOnly = true)
+    public EUser findByName(String name){
+        return userDao.findByName(name);
+    }
+
+
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public EUser updateUser(EUser user) throws Exception{
         if(user != null){
-            Optional<EUser> oldUser = userDao.findById(user.getId());
-            if(oldUser.isPresent() && user.getId()!=null) {
+            EUser oldUser = findByName(user.getName());
+            if(oldUser != null) {
                 EUser euser = new EUser();
                 euser.setId(user.getId());
                 if(user.getDate()==null){
-                    euser.setDate(oldUser.get().getDate());
+                    euser.setDate(oldUser.getDate());
                 }
                 else{
                     euser.setDate(user.getDate());
                 }
                 if(user.getName()==null ){
-                    euser.setName(oldUser.get().getName());
+                    euser.setName(oldUser.getName());
                 }
                 else{
                     euser.setName(user.getName());
                 }
                 if(user.getPassword()==null ){
-                    euser.setName(oldUser.get().getPassword());
+                    euser.setName(oldUser.getPassword());
                 }
                 else{
                     euser.setPassword(user.getPassword());
                 }
                 List<ERole> rolesUpdate = new LinkedList<ERole>(user.getRoles());//apunta a user.getRoles()
                 for (int i=0;i<rolesUpdate.size();i++){
-                    Long roleID = ((ERole)rolesUpdate.get(i)).getId();
-                    if(roleID!=null){
-                        Optional<ERole> currRole =  rolesDao.findById(roleID);//aca va una query mas compleja porque el usuario te puede dar un id de role que existe para otro user
-                        if(currRole.isPresent()){
+                    String roleName = ((ERole)rolesUpdate.get(i)).getNameRole();
+                    if(roleName!=null){
+                        ERole currRole =  rolesDao.findByNameRole(roleName);//aca va una query mas compleja porque el usuario te puede dar un id de role que existe para otro user
+                        if(currRole != null){
                             if(((ERole)rolesUpdate.get(i)).getNameRole()==null){
-                                ((ERole)rolesUpdate.get(i)).setNameRole(currRole.get().getNameRole());
+                                ((ERole)rolesUpdate.get(i)).setNameRole(currRole.getNameRole());
                             }
                             if(((ERole)rolesUpdate.get(i)).getId()==null){
-                                ((ERole)rolesUpdate.get(i)).setId(currRole.get().getId());
+                                ((ERole)rolesUpdate.get(i)).setId(currRole.getId());
                             }
                             if(((ERole)rolesUpdate.get(i)).getDate()==null){
-                                ((ERole)rolesUpdate.get(i)).setDate(currRole.get().getDate());
+                                ((ERole)rolesUpdate.get(i)).setDate(currRole.getDate());
                             }
                             if(((ERole)rolesUpdate.get(i)).getDescription()==null){
-                                ((ERole)rolesUpdate.get(i)).setDescription(currRole.get().getDescription());
+                                ((ERole)rolesUpdate.get(i)).setDescription(currRole.getDescription());
                             }
                             if(((ERole)rolesUpdate.get(i)).getUsers().isEmpty()){
                                 //log.info("SIZE:"+currRole.get().getUsers().size());
-                                ((ERole)rolesUpdate.get(i)).setUsers(currRole.get().getUsers());
+                                ((ERole)rolesUpdate.get(i)).setUsers(currRole.getUsers());
                             }
                         }
                         else{
@@ -146,7 +156,7 @@ public class UserServiceImpl implements IUserService {
                 Set<ERole> setRoles = new HashSet(rolesUpdate);
                 euser.setRoles(setRoles);
                 userDao.save(euser);
-                return oldUser.get();
+                return oldUser;
             }
             else{
                 UserNotFoundException exc = new UserNotFoundException();
@@ -166,7 +176,7 @@ public class UserServiceImpl implements IUserService {
     public EUser deleteUser(Long id) throws Exception{
         if(id!=null) {
             Optional<EUser> delUser = userDao.findById(id);
-            if (delUser.isPresent()) {
+            if (delUser != null) {
                 userDao.deleteById(id);
                 return delUser.get();
             }
@@ -181,9 +191,27 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public EUser deleteUser(String name) throws Exception{
+        if(name!=null) {
+            EUser delUser = userDao.findByName(name);
+            if (delUser != null) {
+                userDao.deleteByName(name);
+                return delUser;
+            }
+            else {
+                throw new UserNotFoundException();
+            }
+        }
+        else{
+            throw new IDUserExpectedException();
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteUser(EUser user) throws Exception{
         try {
-            deleteUser(user.getId());
+            deleteUser(user.getName());
         }
         catch(Exception e){
             if(user == null) {

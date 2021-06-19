@@ -125,6 +125,37 @@ public class UserController {
         }
     }
 
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteUser(@RequestBody final EUser user){
+        MsgeError error = new MsgeError();
+        error.setName("ERROR");
+        error.setDescription("IN DELETE USER");
+        try {
+            if (user.getId() == null) {
+                 return deleteUser(user.getName());
+            }
+            else {
+                ResponseEntity<?> response = deleteUser(user.getId());
+                HttpStatus status =  response.getStatusCode() ;//id not store in BD
+                if(status.isError()){
+                    error.setName("ERROR");
+                    error.setDescription("IN DELETE USER");
+                    return deleteUser(user.getName());
+                }
+                else{
+                    return response;
+                }
+            }
+        }
+        catch(Exception e){
+            if(e instanceof UserNotFoundException){
+                error.setName("ERROR");
+                error.setDescription("USER PARAMETER IS NULL");
+            }
+            return new ResponseEntity<>(error,HttpStatus.NOT_FOUND);
+        }
+    }
+
     @DeleteMapping("/deleteAll")
     public ResponseEntity<?> deleteAllUsers(){
         MsgeError error = new MsgeError();
@@ -140,20 +171,24 @@ public class UserController {
 
     }
 
-    @DeleteMapping("/delete")
-    public ResponseEntity<?> deleteUser(@RequestBody final EUser user){
+    private ResponseEntity<?> deleteUser(String name){
         MsgeError error = new MsgeError();
         error.setName("ERROR");
         error.setDescription("IN DELETE USER");
         try{
-            return deleteUser(user.getId());
+            EUser delUser = userService.deleteUser(name);
+            return new ResponseEntity<>(HttpStatus.OK);
         }
         catch(Exception e){
             if(e instanceof UserNotFoundException){
                 error.setName("ERROR");
-                error.setDescription("USER PARAMETER IS NULL");
+                error.setDescription("INCORRECT NAME USER");
             }
-            return new ResponseEntity<>(error,HttpStatus.NOT_FOUND);
+            if(e instanceof IDUserExpectedException){
+                error.setName("ERROR");
+                error.setDescription("NAME USER PARAMETER IS NULL");
+            }
+            return new ResponseEntity<>(error,HttpStatus.NOT_ACCEPTABLE);
         }
     }
 }

@@ -12,6 +12,8 @@ public interface IUserDao extends JpaRepository<EUser,Long> {
 
     public EUser findByNameAndPassword(String name, String password);
 
+    public EUser findByName(String name);
+
     public List<EUser> findAll();
 
     public Optional<EUser> findById(Long id);
@@ -21,6 +23,8 @@ public interface IUserDao extends JpaRepository<EUser,Long> {
     public EUser saveAndFlush(EUser user);
 
     public void delete(EUser user);
+
+    public void deleteByName(String name);
 
     public void deleteById(Long id);
 
