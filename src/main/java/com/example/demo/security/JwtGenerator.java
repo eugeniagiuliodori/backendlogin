@@ -18,6 +18,12 @@ public class JwtGenerator {
                 .setSubject(jwtUser.getUserName());
         claims.put(Constants.USER_ID, String.valueOf(jwtUser.getId()));
         claims.put(Constants.ROLE, jwtUser.getRoles());
+        if(jwtUser.getRoles() != null){
+            String str="";
+        }
+        else{
+            String str="";//ESTA ENTRANDO POR NULL
+        }
 
         //With claims, the codification algorithm and the secret, generate token
         return Jwts.builder()

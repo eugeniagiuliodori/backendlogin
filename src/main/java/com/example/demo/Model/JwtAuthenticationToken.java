@@ -6,6 +6,8 @@ public class JwtAuthenticationToken extends UsernamePasswordAuthenticationToken 
 
     String token;
 
+
+
     public JwtAuthenticationToken(String token) {
         super(null, null);
         this.token=token;
