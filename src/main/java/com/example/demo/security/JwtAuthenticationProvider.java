@@ -54,10 +54,12 @@ public class JwtAuthenticationProvider extends AbstractUserDetailsAuthentication
 		}
 
 		String str = new String("");
-		for(int i = 0; i< jwtUser.getRoles().size();i++){
-			str = str + jwtUser.getRoles().get(i);
-			if((i+1) != jwtUser.getRoles().size()){
-				str = str+",";
+		if(jwtUser.getRoles() != null) {
+			for (int i = 0; i < jwtUser.getRoles().size(); i++) {
+				str = str + jwtUser.getRoles().get(i);
+				if ((i + 1) != jwtUser.getRoles().size()) {
+					str = str + ",";
+				}
 			}
 		}
 		List<GrantedAuthority> grantedAuthorities = AuthorityUtils

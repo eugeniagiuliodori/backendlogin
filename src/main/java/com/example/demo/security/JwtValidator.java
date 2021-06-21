@@ -22,10 +22,10 @@ public class JwtValidator {
 					.getBody();
 			
 			jwtUser = new JwtUser();
+			String s = body.getSubject();
 			jwtUser.setUserName(body.getSubject());
 			jwtUser.setId(Long.parseLong((String) body.get(Constants.USER_ID)));
 			LinkedList<ERole> roles = (LinkedList<ERole>)body.get(Constants.ROLE);
-			int i = roles.size();
 			if(roles.get(0) != null){
 				if(roles.get(0).getNameRole() != null){
 					String str = roles.get(0).getNameRole();

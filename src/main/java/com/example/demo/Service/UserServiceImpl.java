@@ -101,9 +101,10 @@ public class UserServiceImpl implements IUserService {
     public EUser updateUser(EUser user) throws Exception{
         if(user != null){
             EUser oldUser = findByName(user.getName());
+            String s = user.getName();
             if(oldUser != null) {
                 EUser euser = new EUser();
-                euser.setId(user.getId());
+                euser.setId(oldUser.getId());
                 if(user.getDate()==null){
                     euser.setDate(oldUser.getDate());
                 }
@@ -127,26 +128,26 @@ public class UserServiceImpl implements IUserService {
                     String roleName = ((ERole)rolesUpdate.get(i)).getNameRole();
                     if(roleName!=null){
                         ERole currRole =  rolesDao.findByNameRole(roleName);//aca va una query mas compleja porque el usuario te puede dar un id de role que existe para otro user
-                        if(currRole != null){
-                            if(((ERole)rolesUpdate.get(i)).getNameRole()==null){
-                                ((ERole)rolesUpdate.get(i)).setNameRole(currRole.getNameRole());
-                            }
-                            if(((ERole)rolesUpdate.get(i)).getId()==null){
-                                ((ERole)rolesUpdate.get(i)).setId(currRole.getId());
-                            }
-                            if(((ERole)rolesUpdate.get(i)).getDate()==null){
-                                ((ERole)rolesUpdate.get(i)).setDate(currRole.getDate());
-                            }
-                            if(((ERole)rolesUpdate.get(i)).getDescription()==null){
-                                ((ERole)rolesUpdate.get(i)).setDescription(currRole.getDescription());
-                            }
-                            if(((ERole)rolesUpdate.get(i)).getUsers().isEmpty()){
-                                //log.info("SIZE:"+currRole.get().getUsers().size());
-                                ((ERole)rolesUpdate.get(i)).setUsers(currRole.getUsers());
-                            }
+                        if(currRole == null){
+                            currRole = (ERole)rolesUpdate.get(i);
                         }
-                        else{
-                            throw new IDRoleNotFoundException();
+                        else {
+                            if (((ERole) rolesUpdate.get(i)).getNameRole() == null) {
+                                ((ERole) rolesUpdate.get(i)).setNameRole(currRole.getNameRole());
+                            }
+                            if (((ERole) rolesUpdate.get(i)).getId() == null) {
+                                ((ERole) rolesUpdate.get(i)).setId(currRole.getId());
+                            }
+                            if (((ERole) rolesUpdate.get(i)).getDate() == null) {
+                                ((ERole) rolesUpdate.get(i)).setDate(currRole.getDate());
+                            }
+                            if (((ERole) rolesUpdate.get(i)).getDescription() == null) {
+                                ((ERole) rolesUpdate.get(i)).setDescription(currRole.getDescription());
+                            }
+                            if (((ERole) rolesUpdate.get(i)).getUsers().isEmpty()) {
+                                //log.info("SIZE:"+currRole.get().getUsers().size());
+                                ((ERole) rolesUpdate.get(i)).setUsers(currRole.getUsers());
+                            }
                         }
                     }
                     else {

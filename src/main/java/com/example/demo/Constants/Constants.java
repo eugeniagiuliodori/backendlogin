@@ -6,7 +6,7 @@ public class Constants {
 
     public final static String USER_ID= "id";
 
-    public final static String ROLE = "role";
+    public final static String ROLE = "roles";
 
     public final static String AUTHORIZATION_HEADER = "Authorization";
 
