@@ -2,13 +2,17 @@ package com.example.demo.Model;
 
 import com.example.demo.Entity.ERole;
 
+import java.util.LinkedList;
 import java.util.List;
 
 public class JwtUser { //payload of token
 
     private String userName;
+
     private Long id;
-    private List<ERole> roles;
+
+    private LinkedList<ERole> roles;
+
 
     public String getUserName() {
         return userName;
@@ -26,11 +30,11 @@ public class JwtUser { //payload of token
         this.id = id;
     }
 
-    public List<ERole> getRoles() {
+    public LinkedList<ERole> getRoles() {
         return roles;
     }
 
-    public void setRoles(List<ERole> roles) {
+    public void setRoles(LinkedList<ERole> roles) {
         this.roles = roles;
     }
 }

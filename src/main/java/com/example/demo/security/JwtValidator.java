@@ -24,15 +24,20 @@ public class JwtValidator {
 			jwtUser = new JwtUser();
 			String s = body.getSubject();
 			jwtUser.setUserName(body.getSubject());
-			jwtUser.setId(Long.parseLong((String) body.get(Constants.USER_ID)));
-			LinkedList<ERole> roles = (LinkedList<ERole>)body.get(Constants.ROLE);
-			if(roles.get(0) != null){
-				if(roles.get(0).getNameRole() != null){
-					String str = roles.get(0).getNameRole();
+			Long id = Long.parseLong((String) body.get(Constants.USER_ID));
+			jwtUser.setId(id);
+			String roles = (String) body.get(Constants.ROLE);
+			LinkedList<ERole> listRoles = new LinkedList<ERole>();
+			if(roles != null) {
+				String[] arrayRoles = roles.split(",");
+				for(int i=0; i< arrayRoles.length;i++){
+					ERole role = new ERole();
+					role.setNameRole(arrayRoles[i]);
+					listRoles.add(role);
 				}
 			}
 
-			jwtUser.setRoles(roles);
+			jwtUser.setRoles(listRoles);
 			
 		}catch(Exception e) {
 			System.out.println(e);

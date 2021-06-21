@@ -33,7 +33,7 @@ public class JwtAuthenticationTokenFilter extends AbstractAuthenticationProcessi
 		JwtAuthenticationToken token = new JwtAuthenticationToken(authenticationToken);
 	
 
-		return getAuthenticationManager().authenticate(token);
+		return getAuthenticationManager().authenticate(token);//aca es donde genera el token y compara con el token q envia el cliente?
 	}
 
 	@Override

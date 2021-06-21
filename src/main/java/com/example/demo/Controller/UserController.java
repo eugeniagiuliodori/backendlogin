@@ -28,6 +28,7 @@ public class UserController {
     @Autowired
     IRoleService roleService;
 
+
     @PostMapping("/add")
     public ResponseEntity<?> addUser(@RequestBody final EUser user){
         MsgeError error = new MsgeError();
