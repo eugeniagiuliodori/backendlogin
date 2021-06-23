@@ -57,7 +57,14 @@ public class TokenController {
             Long id = userDB.getId();
             jwtuser.setId(id);
             if(!userDB.getRoles().isEmpty()) {
-                jwtuser.setRoles(new LinkedList<ERole>(userDB.getRoles()));
+                String nameRole = "";
+                LinkedList<ERole> l = new LinkedList<>(userDB.getRoles());
+                LinkedList<String> roles = new LinkedList<String>();
+                for(int i=0;i<l.size();i++){
+                    nameRole = new String(l.get(i).getNameRole());
+                    roles.add(nameRole);
+                }
+                jwtuser.setRoles(roles);
             }
             return jwtuser;
         }

@@ -14,19 +14,10 @@ public class JwtGenerator {
     public String generate(JwtUser jwtUser) {
 
         //put in claims, the payload of the client
-        Claims claims = Jwts.claims()
-                .setSubject(jwtUser.getUserName());
+        Claims claims = Jwts.claims();
+        claims.put(Constants.NAME, jwtUser.getUserName());
         claims.put(Constants.USER_ID, String.valueOf(jwtUser.getId()));
-        String str = new String("");
-        if(jwtUser.getRoles() != null) {
-            for (int i = 0; i < jwtUser.getRoles().size(); i++) {
-                str = str + jwtUser.getRoles().get(i).getNameRole();
-                if ((i + 1) != jwtUser.getRoles().size()) {
-                    str = str + ",";
-                }
-            }
-        }
-        claims.put(Constants.ROLE, str);
+        claims.put(Constants.ROLE, jwtUser.getRoles());
 
         //With claims, the codification algorithm and the secret, generate token
         return Jwts.builder()

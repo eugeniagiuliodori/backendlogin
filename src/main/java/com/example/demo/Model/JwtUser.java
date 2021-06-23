@@ -11,7 +11,7 @@ public class JwtUser { //payload of token
 
     private Long id;
 
-    private LinkedList<ERole> roles;
+    private LinkedList<String> roles;
 
 
     public String getUserName() {
@@ -30,11 +30,11 @@ public class JwtUser { //payload of token
         this.id = id;
     }
 
-    public LinkedList<ERole> getRoles() {
+    public LinkedList<String> getRoles() {
         return roles;
     }
 
-    public void setRoles(LinkedList<ERole> roles) {
+    public void setRoles(LinkedList<String> roles) {
         this.roles = roles;
     }
 }

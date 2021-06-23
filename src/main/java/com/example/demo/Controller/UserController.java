@@ -7,11 +7,15 @@ import com.example.demo.Service.IRoleService;
 import com.example.demo.Service.IUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.security.RolesAllowed;
 import javax.persistence.PostUpdate;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -28,15 +32,14 @@ public class UserController {
     @Autowired
     IRoleService roleService;
 
-
     @PostMapping("/add")
+    @PreAuthorize("hasRole('ROLE_role1')")
     public ResponseEntity<?> addUser(@RequestBody final EUser user){
         MsgeError error = new MsgeError();
         error.setName("ERROR");
         error.setDescription("IN ADD USER");
         try {
-            boolean b = userService.addUser(user);
-            if (b) {
+            if (userService.addUser(user)) {
                 return new ResponseEntity<Void>(HttpStatus.CREATED);
             }
             else {

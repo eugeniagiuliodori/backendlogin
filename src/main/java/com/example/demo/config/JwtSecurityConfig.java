@@ -15,6 +15,9 @@ import com.example.demo.security.JwtSuccessHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -24,6 +27,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.stereotype.Component;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 @EnableWebSecurity
+@Configuration
 @Component
 @Slf4j
 public class JwtSecurityConfig extends WebSecurityConfigurerAdapter {
@@ -40,6 +46,7 @@ public class JwtSecurityConfig extends WebSecurityConfigurerAdapter {
 	
 	@Autowired
 	private JwtAuthenticationEntryPoint entryPoint;
+
 	
 	@Bean
 	public AuthenticationManager authenticationManager() {
@@ -53,22 +60,24 @@ public class JwtSecurityConfig extends WebSecurityConfigurerAdapter {
 		filter.setAuthenticationSuccessHandler(new JwtSuccessHandler());
 		return filter;
 	}
-	
+
+
 	@Override
 	protected void configure(HttpSecurity http) throws Exception{
 		http.csrf().disable()
+				.authorizeRequests().antMatchers("**/user/**").authenticated()
+				//.and()
+				//.authorizeRequests().antMatchers("/token").authenticated()
+				.and()
+				.exceptionHandling().authenticationEntryPoint(entryPoint)
+				.and()
+				.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
-		//.authorizeRequests().antMatchers("**/user/**").authenticated()
-				.authorizeRequests().antMatchers("**/user/add/**").hasRole("role1")
-		.and()
-		.exceptionHandling().authenticationEntryPoint(entryPoint)
-		.and()
-		.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-		
 		http.addFilterBefore(authenticationTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 		http.headers().cacheControl();
 
 	}
+
 
 	@Override
 	public void configure(AuthenticationManagerBuilder auth) throws Exception{

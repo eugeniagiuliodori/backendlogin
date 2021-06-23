@@ -4,6 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import com.example.demo.Constants.Constants;
 import com.example.demo.Entity.ERole;
 import com.example.demo.Entity.EUser;
 import com.example.demo.Model.AuthorityList;
@@ -56,7 +57,7 @@ public class JwtAuthenticationProvider extends AbstractUserDetailsAuthentication
 		String str = new String("");
 		if(jwtUser.getRoles() != null) {
 			for (int i = 0; i < jwtUser.getRoles().size(); i++) {
-				str = str + jwtUser.getRoles().get(i);
+				str = str + "ROLE_"+jwtUser.getRoles().get(i);
 				if ((i + 1) != jwtUser.getRoles().size()) {
 					str = str + ",";
 				}
