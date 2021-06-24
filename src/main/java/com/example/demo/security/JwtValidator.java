@@ -29,16 +29,9 @@ public class JwtValidator {
 			LinkedList<ERole> roles = new LinkedList();
 			LinkedList<String> strRoles = new LinkedList<String>();
 			for(int i=0;i<aroles.size();i++){
-				LinkedHashMap currRole = (LinkedHashMap) aroles.get(i);
-				ERole newrole = new ERole();
-				newrole.setNameRole((String)currRole.get("nameRole"));
-				newrole.setId(Long.valueOf(((Integer)currRole.get("id")).longValue()));
-				newrole.setDescription((String)currRole.get("description"));
-				newrole.setUsers(new HashSet<>((ArrayList)currRole.get("users")));
-				roles.add(newrole);
-				strRoles.add((String)currRole.get("nameRole"));
+				strRoles.add((String) aroles.get(i));
 			}
-
+			jwtUser.setRoles(strRoles);
 			//LinkedList<ERole> listRoles = new LinkedList<ERole>();
 			/*if(aroles != null) {
 				if(aroles.get(0) instanceof LinkedHashMap){
@@ -48,7 +41,7 @@ public class JwtValidator {
 				}
 			}*/
 
-			jwtUser.setRoles(strRoles);
+
 			
 		}catch(Exception e) {
 			System.out.println(e);

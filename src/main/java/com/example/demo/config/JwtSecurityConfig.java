@@ -66,8 +66,17 @@ public class JwtSecurityConfig extends WebSecurityConfigurerAdapter {
 	protected void configure(HttpSecurity http) throws Exception{
 		http.csrf().disable()
 				.authorizeRequests().antMatchers("**/user/**").authenticated()
+
+				/*                           NO FUNCIONA                              */
+				//.authorizeRequests().antMatchers("**/user/add").hasRole("add")
 				//.and()
-				//.authorizeRequests().antMatchers("/token").authenticated()
+				//.authorizeRequests().antMatchers("**/user/update").hasRole("update")
+				//.and()
+				//.authorizeRequests().antMatchers("**/user/delete").hasRole("delete")
+
+
+
+
 				.and()
 				.exceptionHandling().authenticationEntryPoint(entryPoint)
 				.and()

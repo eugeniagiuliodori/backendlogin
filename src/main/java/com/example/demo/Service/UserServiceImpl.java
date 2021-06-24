@@ -85,8 +85,8 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public EUser saveAndFlush(EUser user)  throws Exception{
-        return userDao.saveAndFlush(user);
+    public EUser save(EUser user)  throws Exception{
+        return userDao.save(user);
     }
     @Override
     @Transactional(readOnly = true)

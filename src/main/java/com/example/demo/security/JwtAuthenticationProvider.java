@@ -13,6 +13,7 @@ import com.example.demo.Model.JwtAuthenticationToken;
 import com.example.demo.Model.JwtUserDetails;
 import com.example.demo.Service.IRoleService;
 import com.example.demo.Service.IUserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.dao.AbstractUserDetailsAuthenticationProvider;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Component;
 
 
 @Component
+@Slf4j
 public class JwtAuthenticationProvider extends AbstractUserDetailsAuthenticationProvider {
 
 	@Autowired 

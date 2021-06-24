@@ -20,8 +20,6 @@ public interface IUserDao extends JpaRepository<EUser,Long> {
 
     public EUser save(EUser user);
 
-    public EUser saveAndFlush(EUser user);
-
     public void delete(EUser user);
 
     public void deleteByName(String name);

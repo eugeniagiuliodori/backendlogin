@@ -7,19 +7,15 @@ import com.example.demo.Service.IRoleService;
 import com.example.demo.Service.IUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-
-import javax.annotation.security.RolesAllowed;
-import javax.persistence.PostUpdate;
+import javax.annotation.PostConstruct;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.Set;
+
 
 @RestController
 @RequestMapping("/user")
@@ -32,9 +28,12 @@ public class UserController {
     @Autowired
     IRoleService roleService;
 
+
+
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/add")
-    @PreAuthorize("hasRole('ROLE_role1')")
-    public ResponseEntity<?> addUser(@RequestBody final EUser user){
+    @PreAuthorize("hasRole('ROLE_add')")
+    public ResponseEntity<?> addUser(@RequestBody final EUser user) {
         MsgeError error = new MsgeError();
         error.setName("ERROR");
         error.setDescription("IN ADD USER");
@@ -74,7 +73,9 @@ public class UserController {
         }
     }
 
+    @Transactional(rollbackFor = Exception.class)
     @PutMapping("/update")
+    @PreAuthorize("hasRole('ROLE_update')")
     public ResponseEntity<?> updateUser(@RequestBody final EUser user){
         MsgeError error = new MsgeError();
         error.setName("ERROR");
@@ -107,7 +108,9 @@ public class UserController {
 
     }
 
+    @Transactional(rollbackFor = Exception.class)
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasRole('ROLE_delete')")
     public ResponseEntity<?> deleteUser(@PathVariable(value="id") Long idUser){
         MsgeError error = new MsgeError();
         error.setName("ERROR");
@@ -129,7 +132,9 @@ public class UserController {
         }
     }
 
+    @Transactional(rollbackFor = Exception.class)
     @DeleteMapping("/delete")
+    @PreAuthorize("hasRole('ROLE_delete')")
     public ResponseEntity<?> deleteUser(@RequestBody final EUser user){
         MsgeError error = new MsgeError();
         error.setName("ERROR");
@@ -160,7 +165,9 @@ public class UserController {
         }
     }
 
+    @Transactional(rollbackFor = Exception.class)
     @DeleteMapping("/deleteAll")
+    @PreAuthorize("hasRole('ROLE_delete')")
     public ResponseEntity<?> deleteAllUsers(){
         MsgeError error = new MsgeError();
         error.setName("ERROR");

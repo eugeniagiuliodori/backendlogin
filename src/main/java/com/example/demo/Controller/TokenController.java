@@ -3,6 +3,8 @@ package com.example.demo.Controller;
 import com.example.demo.Entity.ERole;
 import com.example.demo.Entity.EUser;
 import com.example.demo.Model.JwtUser;
+import com.example.demo.Service.IRoleService;
+import com.example.demo.Service.RoleServiceImpl;
 import com.example.demo.security.JwtGenerator;
 import com.example.demo.Service.IUserService;
 import com.example.demo.Service.UserServiceImpl;
@@ -12,9 +14,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import javax.annotation.PostConstruct;
+import java.util.*;
 
 @RestController
 @RequestMapping("/token")
@@ -23,7 +24,10 @@ import java.util.List;
 public class TokenController {
 
     @Autowired
-    private UserServiceImpl userService;
+    private IUserService userService;
+
+    @Autowired
+    private IRoleService roleService;
 
     private JwtGenerator jwtGenerator;
 
@@ -31,7 +35,43 @@ public class TokenController {
         this.jwtGenerator=jwtGenerator;
     }
 
-    //@RequestMapping(value = "/value", method = RequestMethod.POST)
+
+    private ERole registersRole(String strRole){
+        ERole role = roleService.findByNameRole(strRole);
+        if(role == null){
+            role = new ERole();
+            role.setNameRole(strRole);
+            role.setDescription("permission for "+strRole + " user");
+            try { roleService.save(role); } catch(Exception e){}
+        }
+        return role;
+    }
+
+    @PostConstruct
+    public void init() {
+        ERole roleAdd = registersRole("add");
+        ERole roleUpdate = registersRole("update");
+        ERole roleDel = registersRole("delete");
+        Set<ERole> roles = new HashSet<>();
+        roles.add(roleAdd);
+        roles.add(roleUpdate);
+        roles.add(roleDel);
+        String name = "nameRoot";
+        String password = "passroot";
+        EUser user = userService.findByNameAndPassword(name,password);
+        if(user == null) {
+            try {
+                user = new EUser();
+                user.setName(name);
+                user.setPassword(password);
+                user.setRoles(roles);
+                userService.addUser(user);
+            }
+            catch (Exception e) {}
+        }
+    }
+
+
     @PostMapping
     //if user exist in BD, first generate payload and with payload generate the token using the secret
     public ResponseEntity<?> generate(@RequestBody final EUser user){
