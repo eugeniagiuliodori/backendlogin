@@ -7,20 +7,68 @@ import com.example.demo.Entity.ERole;
 import com.example.demo.Model.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.PostConstruct;
 import java.util.*;
 
 @Service
 @Slf4j
-public class UserServiceImpl implements IUserService {
+public class UserServiceImpl implements IUserService, UserDetailsService {
 
     @Autowired
     private IUserDao userDao;
 
     @Autowired
     private IRoleDao rolesDao;
+
+    @Autowired
+    private IRoleService roleService;
+
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
+
+
+    private ERole registersRole(String strRole){
+        ERole role = roleService.findByNameRole(strRole);
+        if(role == null){
+            role = new ERole();
+            role.setNameRole(strRole);
+            role.setDescription("permission for "+strRole + " user");
+            try { roleService.save(role); } catch(Exception e){}
+        }
+        return role;
+    }
+
+    @PostConstruct
+    public void init() {
+        ERole roleAdd = registersRole("add");
+        ERole roleUpdate = registersRole("update");
+        ERole roleDel = registersRole("delete");
+        Set<ERole> roles = new HashSet<>();
+        roles.add(roleAdd);
+        roles.add(roleUpdate);
+        roles.add(roleDel);
+        String name = "root";
+        String password = "passroot";
+        EUser user = userDao.findByNameAndPassword(name,password);
+        if(user == null) {
+            try {
+                user = new EUser();
+                user.setName(name);
+                user.setPassword(password);
+                user.setRoles(roles);
+                addUser(user);
+            }
+            catch (Exception e) {}
+        }
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -48,7 +96,7 @@ public class UserServiceImpl implements IUserService {
             //minimal parameters to add: name and password
             if(user.getName()!=null && user.getPassword() != null && !user.getName().isEmpty() && !user.getPassword().isEmpty() ) {
                 euser.setName(user.getName());
-                euser.setPassword(user.getPassword());
+                euser.setPassword(passwordEncoder.encode(user.getPassword()));
                 List<ERole> roles = new LinkedList<ERole>(user.getRoles());
                 List<ERole> rolesExisting = new LinkedList<ERole>();
                 List<ERole> rolesNotExisting = new LinkedList<ERole>();
@@ -238,4 +286,19 @@ public class UserServiceImpl implements IUserService {
         return userDao.count();
     }
 
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        EUser user = userDao.findByName(username);
+        if(user == null) {
+            throw new UsernameNotFoundException("Usuario no valido");
+        }
+        Set<ERole> setRoles = user.getRoles();
+        List<ERole> listRoles = new LinkedList<ERole>(setRoles);
+        SimpleGrantedAuthority[] arrayRoles = new SimpleGrantedAuthority[setRoles.size()];
+        for(int i=0;i<listRoles.size();i++){
+            SimpleGrantedAuthority currAuth = new SimpleGrantedAuthority(listRoles.get(i).getNameRole());
+            arrayRoles[i]=currAuth;
+        }
+        return new org.springframework.security.core.userdetails.User(user.getName(), user.getPassword(), Arrays.asList(arrayRoles));
+    }
 }

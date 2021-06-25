@@ -32,7 +32,7 @@ public class UserController {
 
     @Transactional(rollbackFor = Exception.class)
     @PostMapping("/add")
-    @PreAuthorize("hasRole('ROLE_add')")
+   // @PreAuthorize("hasRole('ROLE_add')")
     public ResponseEntity<?> addUser(@RequestBody final EUser user) {
         MsgeError error = new MsgeError();
         error.setName("ERROR");
