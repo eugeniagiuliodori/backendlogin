@@ -30,9 +30,8 @@ public class UserController {
 
 
 
-    @Transactional(rollbackFor = Exception.class)
+
     @PostMapping("/add")
-   // @PreAuthorize("hasRole('ROLE_add')")
     public ResponseEntity<?> addUser(@RequestBody final EUser user) {
         MsgeError error = new MsgeError();
         error.setName("ERROR");
@@ -75,7 +74,6 @@ public class UserController {
 
     @Transactional(rollbackFor = Exception.class)
     @PutMapping("/update")
-    @PreAuthorize("hasRole('ROLE_update')")
     public ResponseEntity<?> updateUser(@RequestBody final EUser user){
         MsgeError error = new MsgeError();
         error.setName("ERROR");
@@ -110,7 +108,6 @@ public class UserController {
 
     @Transactional(rollbackFor = Exception.class)
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasRole('ROLE_delete')")
     public ResponseEntity<?> deleteUser(@PathVariable(value="id") Long idUser){
         MsgeError error = new MsgeError();
         error.setName("ERROR");
@@ -134,7 +131,6 @@ public class UserController {
 
     @Transactional(rollbackFor = Exception.class)
     @DeleteMapping("/delete")
-    @PreAuthorize("hasRole('ROLE_delete')")
     public ResponseEntity<?> deleteUser(@RequestBody final EUser user){
         MsgeError error = new MsgeError();
         error.setName("ERROR");
@@ -167,7 +163,6 @@ public class UserController {
 
     @Transactional(rollbackFor = Exception.class)
     @DeleteMapping("/deleteAll")
-    @PreAuthorize("hasRole('ROLE_delete')")
     public ResponseEntity<?> deleteAllUsers(){
         MsgeError error = new MsgeError();
         error.setName("ERROR");

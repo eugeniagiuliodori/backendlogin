@@ -2,7 +2,6 @@ package com.example.demo.Dao;
 
 import com.example.demo.Entity.ERole;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.repository.CrudRepository;
 
 import java.util.Optional;
 

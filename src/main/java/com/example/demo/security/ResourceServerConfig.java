@@ -3,6 +3,7 @@ package com.example.demo.security;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.oauth2.config.annotation.web.configuration.EnableOAuth2Client;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableResourceServer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.ResourceServerConfigurerAdapter;
 import org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler;
@@ -21,13 +22,11 @@ public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
 
 	@Override
 	public void configure(HttpSecurity http) throws Exception{
-
-		//probar si esto funciona:
-		//.access("hasRole('USER') or hasRole('ADMIN') or hasRole('DBA')")
 		http
 		.anonymous().disable()
-		.authorizeRequests().antMatchers("**/user/**")
-		.authenticated()
+		.authorizeRequests().antMatchers("**/user/add").hasRole("add")
+		.and().authorizeRequests().antMatchers("**/user/update").hasRole("update")
+		.and().authorizeRequests().antMatchers("**/user/delete/**").hasRole("delete")
 		.and()
 		.exceptionHandling()
 		.accessDeniedHandler(new OAuth2AccessDeniedHandler());
