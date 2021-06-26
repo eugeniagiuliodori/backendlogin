@@ -1,18 +1,18 @@
-package com.example.demo.Model;
+package com.example.demo.CustomExceptions;
 
-public class MsgeError {
+public class CustomException extends Exception{
 
     private String name;
 
     private String description;
 
 
-    public MsgeError(String name, String description) {
+    public CustomException(String name, String description) {
         this.name = name;
         this.description = description;
     }
 
-    public MsgeError() {
+    public CustomException() {
         this.name = new String("");
         this.description = new String("");
     }

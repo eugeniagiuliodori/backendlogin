@@ -1,10 +1,12 @@
-package com.example.demo.Service;
+package com.example.demo.Service.Impl;
 
+import com.example.demo.CustomExceptions.CustomException;
 import com.example.demo.Dao.IRoleDao;
 import com.example.demo.Entity.EUser;
 import com.example.demo.Dao.IUserDao;
 import com.example.demo.Entity.ERole;
-import com.example.demo.Model.*;
+import com.example.demo.Service.Interfaces.IRoleService;
+import com.example.demo.Service.Interfaces.IUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -90,7 +92,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean addUser(EUser user) throws Exception{
+    public void addUser(EUser user) throws Exception{
         if(user !=null){
             EUser euser = new EUser();
             //minimal parameters to add: name and password
@@ -120,14 +122,28 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 setRoles = new HashSet<ERole>(roles);
                 euser.setRoles(setRoles);
                 userDao.save(euser);
-                return true;
             }
             else{
-                return false;
+                String str = new String("");
+                boolean b=false;
+                if(user.getName()==null  || user.getName().isEmpty()) {
+                    str="Excepted name user";
+                    b=true;
+                }
+                if(user.getPassword()==null  || user.getPassword().isEmpty()) {
+                    if(b){
+                        str=" and excepted password user";
+                    }
+                    else{
+                        str="Excepted password user";
+                    }
+
+                }
+                throw new CustomException("Missing mandatory info","ID Role is null");
             }
         }
         else{
-            return false;
+            throw new CustomException("User not found","user is null");
         }
     }
 
@@ -199,7 +215,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                         }
                     }
                     else {
-                        throw new IDRoleExpectedException();
+                        throw new CustomException("Excepcted ID Role","ID Role is null");
                     }
                 }
                 Set<ERole> setRoles = new HashSet(rolesUpdate);
@@ -208,15 +224,11 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 return oldUser;
             }
             else{
-                UserNotFoundException exc = new UserNotFoundException();
-                exc.setMsge("INCORRECT OR NULL ID USER");
-                throw exc;
+                throw new CustomException("User not found","Null or incorrect ID user");
             }
         }
         else{
-            UserNotFoundException exc = new UserNotFoundException();
-            exc.setMsge("NULL USER");
-            throw exc;
+            throw new CustomException("User not found","user is null");
         }
     }
 
@@ -230,11 +242,11 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 return delUser.get();
             }
             else {
-                throw new UserNotFoundException();
+                throw new CustomException("User not found","user is null");
             }
         }
         else{
-            throw new IDUserExpectedException();
+            throw new CustomException("Excepcted ID user","ID user is null");
         }
     }
 
@@ -248,11 +260,11 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 return delUser;
             }
             else {
-                throw new UserNotFoundException();
+                throw new CustomException("User not found","user is null");
             }
         }
         else{
-            throw new IDUserExpectedException();
+            throw new CustomException("Excepcted ID user","ID user is null");
         }
     }
 
@@ -264,9 +276,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         }
         catch(Exception e){
             if(user == null) {
-                UserNotFoundException exc = new UserNotFoundException();
-                exc.setMsge("NULL USER");
-                throw exc;
+                throw new CustomException("User not found","user is null");
             }
         }
 

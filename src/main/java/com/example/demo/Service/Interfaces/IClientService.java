@@ -1,4 +1,4 @@
-package com.example.demo.Service;
+package com.example.demo.Service.Interfaces;
 
 import com.example.demo.Entity.EClient;
 import com.example.demo.Entity.EUser;

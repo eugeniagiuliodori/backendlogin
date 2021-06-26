@@ -1,7 +1,8 @@
-package com.example.demo.Service;
+package com.example.demo.Service.Impl;
 
 import com.example.demo.Dao.IClientDao;
 import com.example.demo.Entity.EClient;
+import com.example.demo.Service.Interfaces.IClientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;

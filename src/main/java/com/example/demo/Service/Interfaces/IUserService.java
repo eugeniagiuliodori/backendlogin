@@ -1,4 +1,4 @@
-package com.example.demo.Service;
+package com.example.demo.Service.Interfaces;
 
 import com.example.demo.Entity.ERole;
 import com.example.demo.Entity.EUser;
@@ -16,7 +16,7 @@ public interface IUserService {
 
     public Optional<EUser> findById(Long id);
 
-    public boolean addUser(EUser user) throws Exception;
+    public void addUser(EUser user) throws Exception;
 
     public EUser save(EUser user)  throws Exception;
 
