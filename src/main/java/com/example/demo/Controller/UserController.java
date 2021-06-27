@@ -33,7 +33,13 @@ public class UserController {
             return new ResponseEntity<Void>(HttpStatus.CREATED);
         }
         catch(Exception e) {
-            return new ResponseEntity<>(e,HttpStatus.NOT_ACCEPTABLE);
+            if(e instanceof CustomException) {
+                return new ResponseEntity<>(e.toString(), HttpStatus.NOT_ACCEPTABLE);
+            }
+            else{
+                e.printStackTrace();
+                return new ResponseEntity<>(new String("unespected error"), HttpStatus.NOT_ACCEPTABLE);
+            }
         }
     }
 
@@ -45,7 +51,7 @@ public class UserController {
             return new ResponseEntity<>(HttpStatus.OK);
         }
         catch(Exception e){
-            return new ResponseEntity<>(e,HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>(e.toString(),HttpStatus.NOT_ACCEPTABLE);
         }
 
     }

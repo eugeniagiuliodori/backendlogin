@@ -2,16 +2,25 @@ package com.example.demo.Service.Impl;
 
 import com.example.demo.Dao.IClientDao;
 import com.example.demo.Entity.EClient;
+import com.example.demo.Entity.ERole;
+import com.example.demo.Entity.EUser;
 import com.example.demo.Service.Interfaces.IClientService;
+import com.example.demo.Service.Interfaces.IRoleService;
+import com.example.demo.extras.IteratorOfSet;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import javax.annotation.PostConstruct;
 import java.util.*;
 
 @Service
+@Slf4j
 public class ClientServiceImpl implements IClientService {
 
 
@@ -19,23 +28,60 @@ public class ClientServiceImpl implements IClientService {
     private IClientDao clientDao;
 
     @Autowired
+    private IRoleService roleService;
+
+    @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
+    private ERole registersRole(String strRole){
+        ERole role = roleService.findByNameRole(strRole);
+        if(role == null){
+            role = new ERole();
+            role.setNameRole(strRole);
+            role.setDescription("permission for "+strRole + " user");
+            try { roleService.save(role); } catch(Exception e){}
+        }
+        return role;
+    }
 
-    @PostConstruct
-    public void init() {
-        String id = "idClient";
-        String password = "passClient";
-        EClient client = clientDao.findByNameIdAndPassword(id,password);
+    private void registerClient(Set<String> strRoles, String idClient, String passClient){
+        Iterator iterator = new IteratorOfSet(strRoles);
+        Set<ERole> roles = new HashSet<>();
+        while(iterator.hasNext()){
+            ERole role = registersRole((String) iterator.next());
+            roles.add(role);
+        }
+        EClient client = clientDao.findByNameId(idClient);
+        int i = roles.size();
         if(client == null) {
             try {
                 client = new EClient();
-                client.setStrId(id);
-                client.setPassword(password);
+                client.setStrId(idClient);
+                client.setPassword(passClient);
+                String s = client.getPassword();
+                client.setRoles(roles);
                 addClient(client);
             }
             catch (Exception e) {}
         }
+    }
+    @PostConstruct
+    public void init() {
+        String id1 = "idClient1";
+        String password1 = "passClient1";
+        Set<String> strRoles1 = new HashSet<String>();
+        strRoles1.add(new String("add"));
+        strRoles1.add(new String("update"));
+        strRoles1.add(new String("delete"));
+
+        String id2 = "idClient2";
+        String password2 = "passClient2";
+        Set<String> strRoles2 = new HashSet<String>();
+        strRoles2.add(new String("role"));
+
+        registerClient(strRoles1, id1, password1);
+        registerClient(strRoles2, id2, password2);
+
     }
 
     @Override
@@ -67,7 +113,13 @@ public class ClientServiceImpl implements IClientService {
                 eclient.setStrId(client.getNameId());
                 eclient.setPassword(passwordEncoder.encode(client.getPassword()));
                 eclient.setDate(client.getDate());
+                int i = client.getRoles().size();
+                String s = client.getRoles().iterator().next().getNameRole();
+                eclient = clientDao.save(eclient);
+                eclient.setRoles(client.getRoles());
                 clientDao.save(eclient);
+
+
                 return true;
             }
             else{
@@ -83,4 +135,6 @@ public class ClientServiceImpl implements IClientService {
     public EClient save(EClient client)  throws Exception{
         return clientDao.save(client);
     }
+
+
 }

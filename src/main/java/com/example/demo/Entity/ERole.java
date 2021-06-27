@@ -26,16 +26,31 @@ public class ERole implements Serializable {
     @Column(name="description")
     private String description;
 
-    @ManyToMany
+    @ManyToMany(cascade = {CascadeType.REFRESH}, fetch = FetchType.EAGER)
     @JoinTable(name = "eusers_eroles",
             joinColumns = @JoinColumn(name = "erole_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "euser_id", referencedColumnName = "id"))
     private Set<EUser> users = new HashSet<EUser>();
 
+
+    @ManyToMany(cascade = {CascadeType.REFRESH}, fetch = FetchType.EAGER)
+    @JoinTable(name = "eclients_eroles",
+            joinColumns = @JoinColumn(name = "erole_id", referencedColumnName = "id"),
+            inverseJoinColumns = @JoinColumn(name = "eclient_id", referencedColumnName = "id"))
+    private Set<EClient> clients = new HashSet<EClient>();
+
     @PrePersist
     public void PrePersist(){
 
         date = new Date();
+    }
+
+    public Set<EClient> getClients() {
+        return clients;
+    }
+
+    public void setClients(Set<EClient> clients) {
+        this.clients = clients;
     }
 
     public Long getId() {

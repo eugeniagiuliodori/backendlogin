@@ -7,6 +7,7 @@ import com.example.demo.Dao.IUserDao;
 import com.example.demo.Entity.ERole;
 import com.example.demo.Service.Interfaces.IRoleService;
 import com.example.demo.Service.Interfaces.IUserService;
+import com.example.demo.extras.IteratorOfSet;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -45,6 +46,10 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
             role.setDescription("permission for "+strRole + " user");
             try { roleService.save(role); } catch(Exception e){}
         }
+        return role;
+    }
+    private ERole registersRole(ERole role){
+        try { roleService.save(role); } catch(Exception e){}
         return role;
     }
 
@@ -99,28 +104,17 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
             if(user.getName()!=null && user.getPassword() != null && !user.getName().isEmpty() && !user.getPassword().isEmpty() ) {
                 euser.setName(user.getName());
                 euser.setPassword(passwordEncoder.encode(user.getPassword()));
-                List<ERole> roles = new LinkedList<ERole>(user.getRoles());
-                List<ERole> rolesExisting = new LinkedList<ERole>();
+                Iterator iterator = new IteratorOfSet(user.getRoles());
                 List<ERole> rolesNotExisting = new LinkedList<ERole>();
-                for(int i=0;i<roles.size();i++){
-                    //roles.get(i).getUsers().add(user);
-                    if(roles.get(i).getId() != null){
-                        if(rolesDao.findByNameRole(roles.get(i).getNameRole())!=null){
-                            rolesExisting.add(roles.get(i));
-                        }
-                        else{
-                            rolesNotExisting.add(roles.get(i));
-                        }
-                    }
-                    else{
-                        rolesNotExisting.add(roles.get(i));
+                while(iterator.hasNext()){
+                    ERole currRole = (ERole) iterator.next();
+                    if(currRole.getId() == null){
+                        rolesNotExisting.add(currRole);
                     }
                 }
-                Set<ERole> setRoles = new HashSet<ERole>(rolesNotExisting);
-                euser.setRoles(setRoles);
+                euser.setRoles(new HashSet(rolesNotExisting));
                 euser = userDao.save(euser);//the assigment permit id value
-                setRoles = new HashSet<ERole>(roles);
-                euser.setRoles(setRoles);
+                euser.setRoles(new HashSet<ERole>(user.getRoles()));
                 userDao.save(euser);
             }
             else{
@@ -139,7 +133,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                     }
 
                 }
-                throw new CustomException("Missing mandatory info","ID Role is null");
+                throw new CustomException("Missing mandatory info",str);
             }
         }
         else{

@@ -18,6 +18,7 @@ public interface IUserDao extends JpaRepository<EUser,Long> {
 
     public Optional<EUser> findById(Long id);
 
+
     public EUser save(EUser user);
 
     public void delete(EUser user);
