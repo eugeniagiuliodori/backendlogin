@@ -16,4 +16,12 @@ public interface IRoleDao extends JpaRepository<ERole,Long> {
 
     public ERole saveAndFlush(ERole role);
 
+    public void deleteByNameRole(String name);
+
+    public void deleteById(Long id);
+
+    public void deleteAll();
+
+    public long count();
+
 }

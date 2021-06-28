@@ -13,4 +13,12 @@ public interface IRoleService {
     public ERole save(ERole role) throws Exception;
 
     public ERole saveAndFlush(ERole role) throws Exception;
+
+    public ERole deleteByNameRole(String name);
+
+    public Optional<ERole> deleteById(Long id);
+
+    public boolean deleteAll();
+
+    public long count();
 }

@@ -2,6 +2,8 @@ package com.example.demo.security;
 
 
 import com.example.demo.entity.EClient;
+import com.example.demo.entity.ERole;
+import com.example.demo.entity.EUser;
 import com.example.demo.service.impl.ClientServiceImpl;
 import com.example.demo.service.impl.UserServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +18,7 @@ import org.springframework.security.oauth2.config.annotation.configurers.ClientD
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
+import org.springframework.stereotype.Component;
 
 
 import java.util.*;
@@ -31,6 +34,7 @@ import java.util.*;
 
 @Configuration
 @EnableAuthorizationServer
+@Component
 @Slf4j
 public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdapter{
 
@@ -49,6 +53,16 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 	private ClientServiceImpl clientService;
 
 
+	private ClientDetailsServiceConfigurer clients;
+
+	public ClientDetailsServiceConfigurer getClients() {
+		return clients;
+	}
+
+	public void setClients(ClientDetailsServiceConfigurer clients) {
+		this.clients = clients;
+	}
+
 	@Override
 	public void configure(ClientDetailsServiceConfigurer clients) throws Exception{
 
@@ -56,18 +70,25 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 		// When you restart your application, all the session data will be gone,
 		// which means users need to login and authenticate again.
 
+		this.clients=clients;
 
 		Iterable<EClient> iterableClients = clientService.findAll();
-		Iterator<EClient> iteratorClients = iterableClients.iterator();
-		ClientDetailsServiceBuilder<InMemoryClientDetailsServiceBuilder>.ClientBuilder client=null;
-		boolean exist = false;
-		EClient currClient = null;
 		String id = "idClient1";
 		String pass = "passClient1";
-		client = clients.inMemory().withClient(id);
+		ClientDetailsServiceBuilder<InMemoryClientDetailsServiceBuilder>.ClientBuilder client =
+				clients.inMemory().withClient(id);
 		client.secret(bCryptPasswordEncoder.encode(pass));
 		client.authorizedGrantTypes("password", "refresh_token");
 		client.scopes("read", "write");
+		EUser user = userService.findByName(userService.getAuthenticatedUser());
+		if(user != null) {
+			ERole[] roles = (ERole[]) user.getRoles().toArray();
+			String[] auths = new String[roles.length];
+			for (int i = 0; i < auths.length; i++) {
+				auths[i] = roles[i].getNameRole();
+			}
+			client.authorities(auths);
+		}
 		client.accessTokenValiditySeconds(1 * 180);
 		client.refreshTokenValiditySeconds(2 * 180);
 	}

@@ -2,14 +2,33 @@ package com.example.demo.controller;
 
 import com.example.demo.customExceptions.CustomException;
 import com.example.demo.entity.EUser;
+import com.example.demo.extras.IteratorOfSet;
+import com.example.demo.extras.TokenGenerator;
+import com.example.demo.security.AuthorizationServerConfig;
+import com.example.demo.service.impl.UserServiceImpl;
 import com.example.demo.service.interfaces.IRoleService;
 import com.example.demo.service.interfaces.IUserService;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+
+import javax.annotation.PostConstruct;
+import javax.servlet.http.HttpServletRequest;
+import org.apache.commons.codec.binary.Base64;
+import org.springframework.web.client.RestTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Set;
 
 
 @RestController
@@ -18,27 +37,29 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     @Autowired
-    IUserService userService;
+    UserServiceImpl userService;
+
+
 
     @Autowired
     IRoleService roleService;
 
 
-
-
     @PreAuthorize("hasRole('add')")
     @PostMapping("/add")
-    public ResponseEntity<?> addUser(@RequestBody final EUser user) {
+    public ResponseEntity<?> addUser(HttpServletRequest httprequest, @RequestBody final EUser user) {
+        //String headerAuth = httprequest.getHeader("Authorization");
+        //String token=new String("");
+        //if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
+        //  token = headerAuth.substring(7, headerAuth.length());
+        //}
         try {
             userService.addUser(user);
             return new ResponseEntity<Void>(HttpStatus.CREATED);
-        }
-        catch(Exception e) {
-            if(e instanceof CustomException) {
+        } catch (Exception e) {
+            if (e instanceof CustomException) {
                 return new ResponseEntity<>(e.toString(), HttpStatus.NOT_ACCEPTABLE);
-            }
-            else{
-                e.printStackTrace();
+            } else {
                 return new ResponseEntity<>(new String("unespected error"), HttpStatus.NOT_ACCEPTABLE);
             }
         }
@@ -48,8 +69,13 @@ public class UserController {
     @PutMapping("/update")
     public ResponseEntity<?> updateUser(@RequestBody final EUser user){
         try{
-            EUser oldUser = userService.updateUser(user);
-            return new ResponseEntity<>(HttpStatus.OK);
+            if(userService.findByName(user.getName())!=null) {
+                EUser oldUser = userService.updateUser(user);
+                return new ResponseEntity<>(TokenGenerator.generate().getBody(), HttpStatus.OK);
+            }
+            else{
+                return new ResponseEntity<>("{error:user not found}",HttpStatus.NOT_ACCEPTABLE);
+            }
         }
         catch(Exception e){
             return new ResponseEntity<>(e.toString(),HttpStatus.NOT_ACCEPTABLE);

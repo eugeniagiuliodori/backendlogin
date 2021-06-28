@@ -38,4 +38,47 @@ public class RoleServiceImpl implements IRoleService {
     public ERole saveAndFlush(ERole role) throws Exception{
         return roleDao.saveAndFlush(role);
     }
+
+    @Override
+    @Transactional
+    public ERole deleteByNameRole(String name){
+        ERole delRole = roleDao.findByNameRole(name);
+        if(delRole != null) {
+            roleDao.deleteByNameRole(name);
+            return delRole;
+        }
+        else{
+            return null;
+        }
+    }
+
+    @Override
+    @Transactional
+    public Optional<ERole> deleteById(Long id){
+        if(id != null) {
+            Optional<ERole> delRole = roleDao.findById(id);
+            if (delRole.isPresent()) {
+                roleDao.deleteById(id);
+                return delRole;
+            } else {
+                return null;
+            }
+        }
+        else{
+            return null;
+        }
+    }
+
+    @Override
+    @Transactional
+    public boolean deleteAll(){
+        roleDao.deleteAll();
+        return count() == 0;
+    }
+
+    @Override
+    @Transactional(readOnly=true)
+    public long count(){
+        return roleDao.count();
+    }
 }

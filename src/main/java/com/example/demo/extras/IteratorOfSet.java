@@ -1,4 +1,6 @@
-package com.example.demo.service.impl.extras;
+package com.example.demo.extras;
+
+import org.springframework.security.core.GrantedAuthority;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -14,6 +16,20 @@ public class IteratorOfSet implements Iterator{
     public IteratorOfSet(Set set){
         list = new LinkedList(set);
         pos=-1;
+    }
+
+    public boolean contains(String key){
+        boolean exist = false;
+        if(!list.isEmpty()){
+            if(list.get(0) instanceof GrantedAuthority){
+                for(int i=0; !exist && i<list.size();i++){
+                    if(((GrantedAuthority)list.get(i)).getAuthority().equals(key)){
+                        exist=true;
+                    }
+                }
+            }
+        }
+        return exist;
     }
 
     @Override

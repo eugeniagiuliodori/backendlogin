@@ -5,8 +5,9 @@ import com.example.demo.dao.IRoleDao;
 import com.example.demo.entity.EUser;
 import com.example.demo.dao.IUserDao;
 import com.example.demo.entity.ERole;
+import com.example.demo.security.AuthorizationServerConfig;
 import com.example.demo.service.interfaces.IUserService;
-import com.example.demo.service.impl.extras.IteratorOfSet;
+import com.example.demo.extras.IteratorOfSet;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.Modifying;
@@ -15,6 +16,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.config.annotation.builders.ClientDetailsServiceBuilder;
+import org.springframework.security.oauth2.config.annotation.builders.InMemoryClientDetailsServiceBuilder;
+import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -70,10 +74,6 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     @Modifying(clearAutomatically=true, flushAutomatically=true)
     @Transactional(rollbackFor = Exception.class)
     public void addUser(EUser user) throws Exception{
-        flush();
-        if(authenticatedUser != null){
-            loadUserByUsername(authenticatedUser);
-        }
         if(user !=null){
             EUser euser = new EUser();
             //minimal parameters to add: name and password
@@ -92,7 +92,6 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 euser = userDao.save(euser);//the assigment permit id value
                 euser.setRoles(new HashSet<ERole>(user.getRoles()));
                 userDao.save(euser);
-                flush();
             }
             else{
                 String str = new String("");
@@ -156,7 +155,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                     euser.setName(oldUser.getPassword());
                 }
                 else{
-                    euser.setPassword(user.getPassword());
+                    euser.setPassword(passwordEncoder.encode(user.getPassword()));
                 }
                 List<ERole> rolesUpdate = new LinkedList<ERole>(user.getRoles());//apunta a user.getRoles()
                 for (int i=0;i<rolesUpdate.size();i++){
@@ -273,6 +272,14 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         userDao.flush();
     }
 
+    public String getAuthenticatedUser() {
+        return authenticatedUser;
+    }
+
+    public void setAuthenticatedUser(String authenticatedUser) {
+        this.authenticatedUser = authenticatedUser;
+    }
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         authenticatedUser=username;
@@ -283,10 +290,17 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         Set<ERole> setRoles = user.getRoles();
         List<ERole> listRoles = new LinkedList<ERole>(setRoles);
         SimpleGrantedAuthority[] arrayRoles = new SimpleGrantedAuthority[setRoles.size()];
+        String[] strRoles = new String[setRoles.size()];
         for(int i=0;i<listRoles.size();i++){
             SimpleGrantedAuthority currAuth = new SimpleGrantedAuthority("ROLE_"+listRoles.get(i).getNameRole());
             arrayRoles[i]=currAuth;
+            strRoles[i]=currAuth.getAuthority();
         }
+        AuthorizationServerConfig manager = new AuthorizationServerConfig();
+        try {
+            manager.configure(manager.getClients());
+        }
+        catch(Exception e){}
         return new org.springframework.security.core.userdetails.User(user.getName(), user.getPassword(), Arrays.asList(arrayRoles));
     }
 
