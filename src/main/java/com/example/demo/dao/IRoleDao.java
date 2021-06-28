@@ -1,9 +1,10 @@
-package com.example.demo.Dao;
+package com.example.demo.dao;
 
-import com.example.demo.Entity.ERole;
+import com.example.demo.entity.ERole;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
+
 
 public interface IRoleDao extends JpaRepository<ERole,Long> {
 

@@ -1,4 +1,4 @@
-package com.example.demo.CustomExceptions;
+package com.example.demo.customExceptions;
 
 public class CustomException extends Exception{
 

@@ -1,6 +1,6 @@
-package com.example.demo.Service.Interfaces;
+package com.example.demo.service.interfaces;
 
-import com.example.demo.Entity.ERole;
+import com.example.demo.entity.ERole;
 
 import java.util.Optional;
 

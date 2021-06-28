@@ -1,7 +1,6 @@
-package com.example.demo.Dao;
+package com.example.demo.dao;
 
-import com.example.demo.Entity.EClient;
-import com.example.demo.Entity.EUser;
+import com.example.demo.entity.EClient;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

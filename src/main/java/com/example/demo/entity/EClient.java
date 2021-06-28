@@ -1,13 +1,9 @@
-package com.example.demo.Entity;
+package com.example.demo.entity;
 
-
-import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import javax.persistence.*;
 import java.util.Date;
 import java.io.Serializable;
-import java.util.HashSet;
-import java.util.Set;
 
 
 @Entity
@@ -34,24 +30,25 @@ public class EClient implements Serializable {
         date = new Date();
     }
 
-    @ManyToMany(cascade = {CascadeType.ALL}, fetch = FetchType.EAGER)
-    @JsonBackReference
-    @JoinTable(name = "eclients_eroles",
-            joinColumns = @JoinColumn(name = "eclient_id", referencedColumnName = "id"),
-            inverseJoinColumns = @JoinColumn(name = "erole_id", referencedColumnName = "id"))
-    private Set<ERole> roles = new HashSet<ERole>();
+    //al menos por ahora no es necesario
+    //@ManyToMany(cascade = {CascadeType.ALL}, fetch = FetchType.EAGER)
+    //@JsonBackReference
+    //@JoinTable(name = "eclients_eroles",
+      //      joinColumns = @JoinColumn(name = "eclient_id", referencedColumnName = "id"),
+      //      inverseJoinColumns = @JoinColumn(name = "erole_id", referencedColumnName = "id"))
+    //private Set<ERole> roles = new HashSet<ERole>();
 
     public void setNameId(String nameId) {
         this.nameId = nameId;
     }
 
-    public Set<ERole> getRoles() {
-        return roles;
-    }
+    //public Set<ERole> getRoles() {
+      //  return roles;
+    //}
 
-    public void setRoles(Set<ERole> roles) {
-        this.roles = roles;
-    }
+    //public void setRoles(Set<ERole> roles) {
+      //  this.roles = roles;
+    //}
 
     public String getNameId() {
         return nameId;

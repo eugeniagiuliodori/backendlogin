@@ -1,9 +1,7 @@
-package com.example.demo.Service.Interfaces;
+package com.example.demo.service.interfaces;
 
-import com.example.demo.Entity.ERole;
-import com.example.demo.Entity.EUser;
+import com.example.demo.entity.EUser;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface IUserService {
@@ -31,6 +29,8 @@ public interface IUserService {
     public boolean deleteAllUsers() throws Exception;
 
     public long count();
+
+    public void flush();
 
 
 }

@@ -1,15 +1,15 @@
-package com.example.demo.Service.Impl;
+package com.example.demo.service.impl;
 
-import com.example.demo.CustomExceptions.CustomException;
-import com.example.demo.Dao.IRoleDao;
-import com.example.demo.Entity.EUser;
-import com.example.demo.Dao.IUserDao;
-import com.example.demo.Entity.ERole;
-import com.example.demo.Service.Interfaces.IRoleService;
-import com.example.demo.Service.Interfaces.IUserService;
-import com.example.demo.extras.IteratorOfSet;
+import com.example.demo.customExceptions.CustomException;
+import com.example.demo.dao.IRoleDao;
+import com.example.demo.entity.EUser;
+import com.example.demo.dao.IUserDao;
+import com.example.demo.entity.ERole;
+import com.example.demo.service.interfaces.IUserService;
+import com.example.demo.service.impl.extras.IteratorOfSet;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -25,6 +25,8 @@ import java.util.*;
 @Slf4j
 public class UserServiceImpl implements IUserService, UserDetailsService {
 
+
+
     @Autowired
     private IUserDao userDao;
 
@@ -32,50 +34,19 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     private IRoleDao rolesDao;
 
     @Autowired
-    private IRoleService roleService;
+    private RoleServiceImpl roleService;
 
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
 
-    private ERole registersRole(String strRole){
-        ERole role = roleService.findByNameRole(strRole);
-        if(role == null){
-            role = new ERole();
-            role.setNameRole(strRole);
-            role.setDescription("permission for "+strRole + " user");
-            try { roleService.save(role); } catch(Exception e){}
-        }
-        return role;
-    }
-    private ERole registersRole(ERole role){
-        try { roleService.save(role); } catch(Exception e){}
-        return role;
-    }
-
     @PostConstruct
     public void init() {
-        ERole roleAdd = registersRole("add");
-        ERole roleUpdate = registersRole("update");
-        ERole roleDel = registersRole("delete");
-        Set<ERole> roles = new HashSet<>();
-        roles.add(roleAdd);
-        roles.add(roleUpdate);
-        roles.add(roleDel);
-        String name = "root";
-        String password = "passroot";
-        EUser user = userDao.findByNameAndPassword(name,password);
-        if(user == null) {
-            try {
-                user = new EUser();
-                user.setName(name);
-                user.setPassword(password);
-                user.setRoles(roles);
-                addUser(user);
-            }
-            catch (Exception e) {}
-        }
+        registerUser(new String("root"), new String("passroot"));
     }
+
+
+    private String authenticatedUser;
 
     @Override
     @Transactional(readOnly = true)
@@ -96,8 +67,13 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     }
 
     @Override
+    @Modifying(clearAutomatically=true, flushAutomatically=true)
     @Transactional(rollbackFor = Exception.class)
     public void addUser(EUser user) throws Exception{
+        flush();
+        if(authenticatedUser != null){
+            loadUserByUsername(authenticatedUser);
+        }
         if(user !=null){
             EUser euser = new EUser();
             //minimal parameters to add: name and password
@@ -116,6 +92,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 euser = userDao.save(euser);//the assigment permit id value
                 euser.setRoles(new HashSet<ERole>(user.getRoles()));
                 userDao.save(euser);
+                flush();
             }
             else{
                 String str = new String("");
@@ -291,7 +268,14 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     }
 
     @Override
+    @Transactional
+    public void flush(){
+        userDao.flush();
+    }
+
+    @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        authenticatedUser=username;
         EUser user = userDao.findByName(username);
         if(user == null) {
             throw new UsernameNotFoundException("Usuario no valido");
@@ -300,9 +284,43 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         List<ERole> listRoles = new LinkedList<ERole>(setRoles);
         SimpleGrantedAuthority[] arrayRoles = new SimpleGrantedAuthority[setRoles.size()];
         for(int i=0;i<listRoles.size();i++){
-            SimpleGrantedAuthority currAuth = new SimpleGrantedAuthority(listRoles.get(i).getNameRole());
+            SimpleGrantedAuthority currAuth = new SimpleGrantedAuthority("ROLE_"+listRoles.get(i).getNameRole());
             arrayRoles[i]=currAuth;
         }
         return new org.springframework.security.core.userdetails.User(user.getName(), user.getPassword(), Arrays.asList(arrayRoles));
+    }
+
+
+
+    private void registerUser(String username, String password){
+        ERole roleAdd = registersRole("add");
+        ERole roleUpdate = registersRole("update");
+        ERole roleDel = registersRole("delete");
+        Set<ERole> roles = new HashSet<>();
+        roles.add(roleAdd);
+        roles.add(roleUpdate);
+        roles.add(roleDel);
+        EUser user = userDao.findByNameAndPassword(username,password);
+        if(user == null) {
+            try {
+                user = new EUser();
+                user.setName(username);
+                user.setPassword(password);
+                user.setRoles(roles);
+                addUser(user);
+            }
+            catch (Exception e) {}
+        }
+    }
+
+    private ERole registersRole(String strRole){
+        ERole role = roleService.findByNameRole(strRole);
+        if(role == null){
+            role = new ERole();
+            role.setNameRole(strRole);
+            role.setDescription("permission for "+strRole + " user");
+            try { roleService.save(role); } catch(Exception e){}
+        }
+        return role;
     }
 }

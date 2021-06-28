@@ -1,14 +1,14 @@
-package com.example.demo.Controller;
+package com.example.demo.controller;
 
-import com.example.demo.CustomExceptions.CustomException;
-import com.example.demo.Entity.EUser;
-import com.example.demo.Service.Interfaces.IRoleService;
-import com.example.demo.Service.Interfaces.IUserService;
+import com.example.demo.customExceptions.CustomException;
+import com.example.demo.entity.EUser;
+import com.example.demo.service.interfaces.IRoleService;
+import com.example.demo.service.interfaces.IUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -26,6 +26,7 @@ public class UserController {
 
 
 
+    @PreAuthorize("hasRole('add')")
     @PostMapping("/add")
     public ResponseEntity<?> addUser(@RequestBody final EUser user) {
         try {
@@ -43,7 +44,7 @@ public class UserController {
         }
     }
 
-    @Transactional(rollbackFor = Exception.class)
+    @PreAuthorize("hasRole('update')")
     @PutMapping("/update")
     public ResponseEntity<?> updateUser(@RequestBody final EUser user){
         try{
@@ -56,7 +57,7 @@ public class UserController {
 
     }
 
-    @Transactional(rollbackFor = Exception.class)
+    @PreAuthorize("hasRole('delete')")
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable(value="id") Long idUser){
         CustomException error = new CustomException();
@@ -71,7 +72,7 @@ public class UserController {
         }
     }
 
-    @Transactional(rollbackFor = Exception.class)
+    @PreAuthorize("hasRole('delete')")
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteUser(@RequestBody final EUser user){
         CustomException error = new CustomException();
@@ -99,7 +100,7 @@ public class UserController {
         }
     }
 
-    @Transactional(rollbackFor = Exception.class)
+    @PreAuthorize("hasRole('delete')")
     @DeleteMapping("/deleteAll")
     public ResponseEntity<?> deleteAllUsers(){
         try{

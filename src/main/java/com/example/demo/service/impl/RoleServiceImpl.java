@@ -1,8 +1,8 @@
-package com.example.demo.Service.Impl;
+package com.example.demo.service.impl;
 
-import com.example.demo.Dao.IRoleDao;
-import com.example.demo.Entity.ERole;
-import com.example.demo.Service.Interfaces.IRoleService;
+import com.example.demo.dao.IRoleDao;
+import com.example.demo.entity.ERole;
+import com.example.demo.service.interfaces.IRoleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

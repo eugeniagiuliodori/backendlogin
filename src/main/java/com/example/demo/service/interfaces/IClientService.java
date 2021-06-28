@@ -1,7 +1,6 @@
-package com.example.demo.Service.Interfaces;
+package com.example.demo.service.interfaces;
 
-import com.example.demo.Entity.EClient;
-import com.example.demo.Entity.EUser;
+import com.example.demo.entity.EClient;
 
 import java.util.Optional;
 
