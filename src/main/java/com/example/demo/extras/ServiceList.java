@@ -12,12 +12,12 @@ public class ServiceList extends HashSet<Service> {
         String str = new String("");
         Iterator iterator = new IteratorOfSet(this);
         while(iterator.hasNext()){
-            str = str + ((Service)iterator.next()).getName();
+            str = str + "\""+((Service)iterator.next()).getName()+"\"";
             if(iterator.hasNext()){
                 str = str + ",";
             }
         }
-        return "{services: ["+str+"]}";
+        return "{\"services\"=["+str+"]}";
     }
 
 

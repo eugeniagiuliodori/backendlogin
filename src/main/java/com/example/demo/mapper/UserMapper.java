@@ -10,9 +10,11 @@ import java.util.Set;
 
 public class UserMapper {
 
-    public static User translate(EUser user){
-        Set<Role> roles = RolesMapper.translate(user.getRoles());
-        return new User(user.getName(),user.getDate(),roles);
+
+    public static User translate(EUser euser){
+        Set<Role> roles = RolesMapper.translate(euser.getRoles());
+        return new User(euser.getName(),euser.getDate(),roles);
     }
+
 
 }

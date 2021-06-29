@@ -29,8 +29,7 @@ public class UsersMapper {
         return mapperUsers;
     }
 
-    public static String getStringUsers(){
-        return str;
+    public static String getStringUsers(){ return "{\"users\":["+str+"]}";
     }
 
 }

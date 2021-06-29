@@ -35,6 +35,6 @@ public class CustomException extends Exception{
 
     @Override
     public String toString() {
-        return "{'error': '** Error **" + name + ":" + description+"'}";
+        return "{\"error\":\""+ name + "->" + description+"\"}";
     }
 }

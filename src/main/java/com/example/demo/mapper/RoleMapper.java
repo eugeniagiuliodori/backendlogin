@@ -6,7 +6,9 @@ import com.example.demo.model.Role;
 
 public class RoleMapper {
 
-    public static Role translate(ERole role){
-        return new Role(role.getNameRole(), role.getDescription(), role.getDate(),new ServiceList());
+
+    public static Role translate(ERole erole){
+        return new Role(erole.getNameRole(), erole.getDescription(), erole.getDate(),new ServiceList());
     }
+
 }

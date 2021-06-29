@@ -70,12 +70,12 @@ public class Role {
 
     @Override
     public String toString() {
-        return "role={" +
-                "name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", date=" + date +
-                ", services=" + services +
-                '}';
+        return "{" +
+                "\"name\":\"" + name + "\"" +
+                ", \"description\":\"" + description + "\"" +
+                ", \"date\":\"" + date + "\""+
+                ", \"services\":" + services + ""+
+                "}";
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.example.demo.customExceptions.CustomException;
 import com.example.demo.entity.ERole;
 import com.example.demo.entity.EUser;
 import com.example.demo.extras.TokenGenerator;
+import com.example.demo.mapper.RoleMapper;
 import com.example.demo.mapper.RolesMapper;
 import com.example.demo.mapper.UsersMapper;
 import com.example.demo.model.Role;
@@ -14,10 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 
 @RestController
@@ -38,7 +36,7 @@ public class RoleController {
             if (e instanceof CustomException) {
                 return new ResponseEntity<>(e.toString(), HttpStatus.NOT_ACCEPTABLE);
             } else {
-                return new ResponseEntity<>(new String("unespected error"), HttpStatus.NOT_ACCEPTABLE);
+                return new ResponseEntity<>(new String("{\"error\":\"unespected error\"}"), HttpStatus.NOT_ACCEPTABLE);
             }
         }
     }
@@ -52,11 +50,11 @@ public class RoleController {
                 return new ResponseEntity<>(TokenGenerator.generate().getBody(), HttpStatus.OK);
             }
             else{
-                return new ResponseEntity<>("{error:role not found}",HttpStatus.NOT_ACCEPTABLE);
+                return new ResponseEntity<>("{\"error\":\"role not found\"}",HttpStatus.NOT_ACCEPTABLE);
             }
         }
         catch(Exception e){
-            return new ResponseEntity<>(e.toString(),HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
         }
 
     }
@@ -113,7 +111,7 @@ public class RoleController {
             }
         }
         catch(Exception e){
-            return new ResponseEntity<>(e,HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_FOUND);
         }
     }
 
@@ -125,14 +123,14 @@ public class RoleController {
             return new ResponseEntity<Void>(HttpStatus.OK);
         }
         catch(Exception e){
-            return new ResponseEntity<>(e,HttpStatus.CONFLICT);
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.CONFLICT);
         }
 
     }
 
 
     @GetMapping("/get")
-    public ResponseEntity<?> getUser(){
+    public ResponseEntity<?> getRole(){
         try{
             List<ERole> eiterable = roleService.findAll();
             Set<ERole> eroles = new HashSet<ERole>(eiterable);
@@ -140,7 +138,31 @@ public class RoleController {
             return new ResponseEntity<>(RolesMapper.getStringRoles(), HttpStatus.OK);
         }
         catch(Exception e){
-            return new ResponseEntity<>(e.toString(),HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
+        }
+    }
+
+    @GetMapping("/get/name/{name}")
+    public ResponseEntity<?> getRole(@PathVariable(value="name") String name){
+        try{
+            ERole erole = roleService.findByNameRole(name);
+            Role role = RoleMapper.translate(erole);
+            return new ResponseEntity<>(role.toString(), HttpStatus.OK);
+        }
+        catch(Exception e){
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
+        }
+    }
+
+    @GetMapping("/get/id/{id}")
+    public ResponseEntity<?> getRole(@PathVariable(value="id") Long id){
+        try{
+            Optional<ERole> erole = roleService.findById(id);
+            Role role = RoleMapper.translate(erole.get());
+            return new ResponseEntity<>(role.toString(), HttpStatus.OK);
+        }
+        catch(Exception e){
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
         }
     }
 
@@ -158,7 +180,7 @@ public class RoleController {
             }
         }
         catch(Exception e){
-            return new ResponseEntity<>("{error: unexpected error}",HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>("{\"error\": \"unexpected error\"}",HttpStatus.NOT_ACCEPTABLE);
         }
     }
 }

@@ -2,33 +2,18 @@ package com.example.demo.controller;
 
 import com.example.demo.customExceptions.CustomException;
 import com.example.demo.entity.EUser;
-import com.example.demo.extras.IteratorOfSet;
 import com.example.demo.extras.TokenGenerator;
 import com.example.demo.mapper.UserMapper;
 import com.example.demo.mapper.UsersMapper;
 import com.example.demo.model.User;
-import com.example.demo.security.AuthorizationServerConfig;
 import com.example.demo.service.impl.UserServiceImpl;
 import com.example.demo.service.interfaces.IRoleService;
-import com.example.demo.service.interfaces.IUserService;
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-
-import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
-import org.apache.commons.codec.binary.Base64;
-import org.springframework.web.client.RestTemplate;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.util.*;
 
 
@@ -61,7 +46,7 @@ public class UserController {
             if (e instanceof CustomException) {
                 return new ResponseEntity<>(e.toString(), HttpStatus.NOT_ACCEPTABLE);
             } else {
-                return new ResponseEntity<>(new String("unespected error"), HttpStatus.NOT_ACCEPTABLE);
+                return new ResponseEntity<>(new String("{\"error\":\"unespected error\"}"), HttpStatus.NOT_ACCEPTABLE);
             }
         }
     }
@@ -75,7 +60,7 @@ public class UserController {
                 return new ResponseEntity<>(TokenGenerator.generate().getBody(), HttpStatus.OK);
             }
             else{
-                return new ResponseEntity<>("{error:user not found}",HttpStatus.NOT_ACCEPTABLE);
+                return new ResponseEntity<>("{\"error\":\"user not found\"}",HttpStatus.NOT_ACCEPTABLE);
             }
         }
         catch(Exception e){
@@ -123,7 +108,7 @@ public class UserController {
             }
         }
         catch(Exception e){
-            return new ResponseEntity<>(e,HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_FOUND);
         }
     }
 
@@ -135,7 +120,7 @@ public class UserController {
             return new ResponseEntity<Void>(HttpStatus.OK);
         }
         catch(Exception e){
-            return new ResponseEntity<>(e,HttpStatus.CONFLICT);
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.CONFLICT);
         }
 
     }
@@ -146,7 +131,7 @@ public class UserController {
             return new ResponseEntity<>(HttpStatus.OK);
         }
         catch(Exception e){
-            return new ResponseEntity<>(e,HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
         }
     }
 
@@ -160,7 +145,33 @@ public class UserController {
                 return new ResponseEntity<>(UsersMapper.getStringUsers(), HttpStatus.OK);
         }
         catch(Exception e){
-            return new ResponseEntity<>(e.toString(),HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
+        }
+    }
+
+    //@PreAuthorize("hasRole('')")
+    @GetMapping("/get/name/{name}")
+    public ResponseEntity<?> getUser(@PathVariable(value="name") String name){
+        try{
+            EUser euser = userService.findByName(name);
+            User user = UserMapper.translate(euser);
+            return new ResponseEntity<>(user.toString(), HttpStatus.OK);
+        }
+        catch(Exception e){
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
+        }
+    }
+
+    //@PreAuthorize("hasRole('')")
+    @GetMapping("/get/id/{id}")
+    public ResponseEntity<?> getUser(@PathVariable(value="id") Long id){
+        try{
+            Optional<EUser> euser = userService.findById(id);
+            User user = UserMapper.translate(euser.get());
+            return new ResponseEntity<>(user.toString(), HttpStatus.OK);
+        }
+        catch(Exception e){
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
         }
     }
 }
