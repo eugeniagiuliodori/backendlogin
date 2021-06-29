@@ -2,6 +2,7 @@ package com.example.demo.service.interfaces;
 
 import com.example.demo.entity.EUser;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface IUserService {
@@ -10,7 +11,7 @@ public interface IUserService {
 
     public EUser findByName(String name);
 
-    public Iterable<EUser> findAll();
+    public List<EUser> findAll();
 
     public Optional<EUser> findById(Long id);
 

@@ -16,9 +16,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.oauth2.config.annotation.builders.ClientDetailsServiceBuilder;
-import org.springframework.security.oauth2.config.annotation.builders.InMemoryClientDetailsServiceBuilder;
-import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,7 +57,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
     @Override
     @Transactional(readOnly = true)
-    public Iterable<EUser> findAll(){
+    public List<EUser> findAll(){
         return userDao.findAll();
     }
 

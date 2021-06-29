@@ -2,13 +2,22 @@ package com.example.demo.controller;
 
 import com.example.demo.customExceptions.CustomException;
 import com.example.demo.entity.ERole;
+import com.example.demo.entity.EUser;
 import com.example.demo.extras.TokenGenerator;
+import com.example.demo.mapper.RolesMapper;
+import com.example.demo.mapper.UsersMapper;
+import com.example.demo.model.Role;
+import com.example.demo.model.User;
 import com.example.demo.service.interfaces.IRoleService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 
 @RestController
@@ -119,6 +128,20 @@ public class RoleController {
             return new ResponseEntity<>(e,HttpStatus.CONFLICT);
         }
 
+    }
+
+
+    @GetMapping("/get")
+    public ResponseEntity<?> getUser(){
+        try{
+            List<ERole> eiterable = roleService.findAll();
+            Set<ERole> eroles = new HashSet<ERole>(eiterable);
+            Set<Role> roles = RolesMapper.translate(eroles);
+            return new ResponseEntity<>(RolesMapper.getStringRoles(), HttpStatus.OK);
+        }
+        catch(Exception e){
+            return new ResponseEntity<>(e.toString(),HttpStatus.NOT_ACCEPTABLE);
+        }
     }
 
     private ResponseEntity<?> deleteRole(String name){

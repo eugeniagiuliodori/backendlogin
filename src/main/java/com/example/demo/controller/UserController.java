@@ -4,6 +4,9 @@ import com.example.demo.customExceptions.CustomException;
 import com.example.demo.entity.EUser;
 import com.example.demo.extras.IteratorOfSet;
 import com.example.demo.extras.TokenGenerator;
+import com.example.demo.mapper.UserMapper;
+import com.example.demo.mapper.UsersMapper;
+import com.example.demo.model.User;
 import com.example.demo.security.AuthorizationServerConfig;
 import com.example.demo.service.impl.UserServiceImpl;
 import com.example.demo.service.interfaces.IRoleService;
@@ -26,9 +29,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Set;
+import java.util.*;
 
 
 @RestController
@@ -146,6 +147,20 @@ public class UserController {
         }
         catch(Exception e){
             return new ResponseEntity<>(e,HttpStatus.NOT_ACCEPTABLE);
+        }
+    }
+
+    //@PreAuthorize("hasRole('')")
+    @GetMapping("/get")
+    public ResponseEntity<?> getUser(){
+        try{
+            List<EUser> eiterable = userService.findAll();
+            Set<EUser> eusers = new HashSet<EUser>(eiterable);
+            Set<User> users = UsersMapper.translate(eusers);
+                return new ResponseEntity<>(UsersMapper.getStringUsers(), HttpStatus.OK);
+        }
+        catch(Exception e){
+            return new ResponseEntity<>(e.toString(),HttpStatus.NOT_ACCEPTABLE);
         }
     }
 }
