@@ -1,10 +1,14 @@
 package com.example.demo.controller;
 
 import com.example.demo.customExceptions.CustomException;
+import com.example.demo.entity.ERole;
 import com.example.demo.entity.EUser;
+import com.example.demo.extras.IteratorOfSet;
 import com.example.demo.extras.TokenGenerator;
+import com.example.demo.mapper.RolesMapper;
 import com.example.demo.mapper.UserMapper;
 import com.example.demo.mapper.UsersMapper;
+import com.example.demo.model.Role;
 import com.example.demo.model.User;
 import com.example.demo.service.impl.UserServiceImpl;
 import com.example.demo.service.interfaces.IRoleService;
@@ -14,6 +18,8 @@ import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 
@@ -23,12 +29,14 @@ import java.util.*;
 public class UserController {
 
     @Autowired
-    UserServiceImpl userService;
-
+    private UserServiceImpl userService;
 
 
     @Autowired
-    IRoleService roleService;
+    private IRoleService roleService;
+
+    @Autowired
+    private HttpServletRequest context;
 
 
     @PreAuthorize("hasRole('add')")
@@ -55,16 +63,52 @@ public class UserController {
     @PutMapping("/update")
     public ResponseEntity<?> updateUser(@RequestBody final EUser user){
         try{
-            if(userService.findByName(user.getName())!=null) {
-                EUser oldUser = userService.updateUser(user);
+            EUser oldUser = userService.findByName(user.getName());
+            Optional<EUser> euser = null;
+            Set<Role> oldRoles = null;
+            if(oldUser == null){
+                euser = userService.findById(user.getId());
+                if(euser.isPresent()) {
+                    oldUser = euser.get();
+                }
+                if(euser.isPresent()){
+                    oldRoles = RolesMapper.translate(euser.get().getRoles());
+                }
+            }
+            else{
+                oldRoles = RolesMapper.translate(oldUser.getRoles());
+            }
+
+            oldUser = userService.updateUser(user, context.getParameter("roles")==null);
+            Set<Role> updateRoles = RolesMapper.translate(oldUser.getRoles());
+            Set<String> oldNameRoles = new HashSet<>();
+            Set<String> updateNameRoles = new HashSet<>();
+            IteratorOfSet iteratorOld = new IteratorOfSet(oldRoles);
+            IteratorOfSet iteratorUpdate = new IteratorOfSet(updateRoles);
+            if(iteratorOld.size()!=iteratorUpdate.size()){
                 return new ResponseEntity<>(TokenGenerator.generate().getBody(), HttpStatus.OK);
             }
             else{
-                return new ResponseEntity<>("{\"error\":\"user not found\"}",HttpStatus.NOT_ACCEPTABLE);
+                boolean exist = true;
+                while(iteratorUpdate.hasNext() && exist){
+                    if(!iteratorOld.contains(((Role)iteratorUpdate.next()))){
+                        exist=false;
+                    }
+                }
+                if(!exist){
+                    return new ResponseEntity<>(TokenGenerator.generate().getBody(), HttpStatus.OK);
+                }
+                else{
+                    return new ResponseEntity<Void>(HttpStatus.OK);
+                }
             }
         }
         catch(Exception e){
-            return new ResponseEntity<>(e.toString(),HttpStatus.NOT_ACCEPTABLE);
+            e.printStackTrace();
+            if(e instanceof CustomException){
+                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_ACCEPTABLE);
+            }
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
         }
 
     }
@@ -72,15 +116,12 @@ public class UserController {
     @PreAuthorize("hasRole('delete')")
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable(value="id") Long idUser){
-        CustomException error = new CustomException();
-        error.setName("ERROR");
-        error.setDescription("IN DELETE USER");
         try{
             EUser delUser = userService.deleteUser(idUser);
             return new ResponseEntity<>(HttpStatus.OK);
         }
         catch(Exception e){
-            return new ResponseEntity<>(error,HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>(e.toString(),HttpStatus.NOT_ACCEPTABLE);
         }
     }
 

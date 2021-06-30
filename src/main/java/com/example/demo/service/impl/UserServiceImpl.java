@@ -129,11 +129,18 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public EUser updateUser(EUser user) throws Exception{
+    public EUser updateUser(EUser user, boolean oldRoles) throws Exception{
         if(user != null){
             EUser oldUser = findByName(user.getName());
-            String s = user.getName();
-            if(oldUser != null) {
+            Optional<EUser> oldUserId = null;
+            if(user.getId() != null) {
+                oldUserId = findById(user.getId());
+            }
+            //Long s = oldUserId.get().getId();
+            if((oldUser != null)||(oldUserId.isPresent())) {
+                if(oldUser == null){
+                    oldUser = oldUserId.get();
+                }
                 EUser euser = new EUser();
                 euser.setId(oldUser.getId());
                 if(user.getDate()==null){
@@ -149,44 +156,47 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                     euser.setName(user.getName());
                 }
                 if(user.getPassword()==null ){
-                    euser.setName(oldUser.getPassword());
+                    euser.setPassword(oldUser.getPassword());
                 }
                 else{
                     euser.setPassword(passwordEncoder.encode(user.getPassword()));
                 }
                 List<ERole> rolesUpdate = new LinkedList<ERole>(user.getRoles());//apunta a user.getRoles()
-                for (int i=0;i<rolesUpdate.size();i++){
-                    String roleName = ((ERole)rolesUpdate.get(i)).getNameRole();
-                    if(roleName!=null){
-                        ERole currRole =  rolesDao.findByNameRole(roleName);//aca va una query mas compleja porque el usuario te puede dar un id de role que existe para otro user
-                        if(currRole == null){
-                            currRole = (ERole)rolesUpdate.get(i);
-                        }
-                        else {
-                            if (((ERole) rolesUpdate.get(i)).getNameRole() == null) {
-                                ((ERole) rolesUpdate.get(i)).setNameRole(currRole.getNameRole());
-                            }
-                            if (((ERole) rolesUpdate.get(i)).getId() == null) {
-                                ((ERole) rolesUpdate.get(i)).setId(currRole.getId());
-                            }
-                            if (((ERole) rolesUpdate.get(i)).getDate() == null) {
-                                ((ERole) rolesUpdate.get(i)).setDate(currRole.getDate());
-                            }
-                            if (((ERole) rolesUpdate.get(i)).getDescription() == null) {
-                                ((ERole) rolesUpdate.get(i)).setDescription(currRole.getDescription());
-                            }
-                            if (((ERole) rolesUpdate.get(i)).getUsers().isEmpty()) {
-                                //log.info("SIZE:"+currRole.get().getUsers().size());
-                                ((ERole) rolesUpdate.get(i)).setUsers(currRole.getUsers());
-                            }
-                        }
-                    }
-                    else {
-                        throw new CustomException("Excepcted ID Role","ID Role is null");
-                    }
+                if(oldRoles){
+                    euser.setRoles(oldUser.getRoles());
                 }
-                Set<ERole> setRoles = new HashSet(rolesUpdate);
-                euser.setRoles(setRoles);
+                else{
+                    for (int i=0;i<rolesUpdate.size();i++) {
+                        String roleName = ((ERole) rolesUpdate.get(i)).getNameRole();
+                        if (roleName != null) {
+                            ERole currRole = rolesDao.findByNameRole(roleName);//aca va una query mas compleja porque el usuario te puede dar un id de role que existe para otro user
+                            if (currRole == null) {
+                                currRole = (ERole) rolesUpdate.get(i);
+                            } else {
+                                if (((ERole) rolesUpdate.get(i)).getNameRole() == null) {
+                                    ((ERole) rolesUpdate.get(i)).setNameRole(currRole.getNameRole());
+                                }
+                                if (((ERole) rolesUpdate.get(i)).getId() == null) {
+                                    ((ERole) rolesUpdate.get(i)).setId(currRole.getId());
+                                }
+                                if (((ERole) rolesUpdate.get(i)).getDate() == null) {
+                                    ((ERole) rolesUpdate.get(i)).setDate(currRole.getDate());
+                                }
+                                if (((ERole) rolesUpdate.get(i)).getDescription() == null) {
+                                    ((ERole) rolesUpdate.get(i)).setDescription(currRole.getDescription());
+                                }
+                                if (((ERole) rolesUpdate.get(i)).getUsers().isEmpty()) {
+                                    //log.info("SIZE:"+currRole.get().getUsers().size());
+                                    ((ERole) rolesUpdate.get(i)).setUsers(currRole.getUsers());
+                                }
+                            }
+                        } else {
+                            throw new CustomException("Excepcted ID Role", "ID Role is null");
+                        }
+                    }
+                    Set<ERole> setRoles = new HashSet(rolesUpdate);
+                    euser.setRoles(setRoles);
+                }
                 userDao.save(euser);
                 return oldUser;
             }

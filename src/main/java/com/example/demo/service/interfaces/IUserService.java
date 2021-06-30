@@ -19,7 +19,7 @@ public interface IUserService {
 
     public EUser save(EUser user)  throws Exception;
 
-    public EUser updateUser(EUser user) throws Exception; //return the user with de old values
+    public EUser updateUser(EUser user, boolean changesRoles) throws Exception; //return the user with de old values
 
     public EUser deleteUser(String name) throws Exception; //return the deleted user
 

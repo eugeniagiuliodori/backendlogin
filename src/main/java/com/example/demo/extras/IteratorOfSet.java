@@ -1,5 +1,6 @@
 package com.example.demo.extras;
 
+import com.example.demo.model.Role;
 import com.example.demo.model.Service;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -61,6 +62,10 @@ public class IteratorOfSet implements Iterator {
         }
     }
 
+    public int size(){
+        return list.size();
+    }
+
     public boolean contains(Object o){
         if(!list.isEmpty()) {
             if(list.get(0) instanceof GrantedAuthority) {
@@ -83,6 +88,17 @@ public class IteratorOfSet implements Iterator {
                 boolean exist = false;
                 for (int i = 0; i < list.size() && !exist; i++) {
                     if (((Service) list.get(i)).equals(service)) {
+                        exist = true;
+                    }
+                }
+                return exist;
+            }
+            if(list.get(0) instanceof Role){
+                if (o == null) return true;
+                Role role = (Role) o;
+                boolean exist = false;
+                for (int i = 0; i < list.size() && !exist; i++) {
+                    if (((Role) list.get(i)).equalsOnlyNameService(role)) {
                         exist = true;
                     }
                 }
