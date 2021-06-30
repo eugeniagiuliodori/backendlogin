@@ -1,10 +1,8 @@
 package com.example.demo.security;
 
 
-import com.example.demo.entity.EClient;
 import com.example.demo.entity.ERole;
 import com.example.demo.entity.EUser;
-import com.example.demo.service.impl.ClientServiceImpl;
 import com.example.demo.service.impl.UserServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,9 +17,6 @@ import org.springframework.security.oauth2.config.annotation.web.configuration.A
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
 import org.springframework.stereotype.Component;
-
-
-import java.util.*;
 
 
 /*
@@ -49,19 +44,21 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 	@Autowired
 	private UserServiceImpl userService;
 
-	@Autowired
-	private ClientServiceImpl clientService;
 
 
-	private ClientDetailsServiceConfigurer clients;
+	private static ClientDetailsServiceConfigurer clients;
 
-	public ClientDetailsServiceConfigurer getClients() {
+	public static ClientDetailsServiceConfigurer getClients() {
 		return clients;
 	}
 
-	public void setClients(ClientDetailsServiceConfigurer clients) {
-		this.clients = clients;
+	public static void setClients(ClientDetailsServiceConfigurer clients) {
+		AuthorizationServerConfig.clients = clients;
 	}
+
+	private String userName;
+
+
 
 	@Override
 	public void configure(ClientDetailsServiceConfigurer clients) throws Exception{
@@ -70,17 +67,20 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 		// When you restart your application, all the session data will be gone,
 		// which means users need to login and authenticate again.
 
-		this.clients=clients;
-
-		Iterable<EClient> iterableClients = clientService.findAll();
 		String id = "idClient1";
 		String pass = "passClient1";
+
 		ClientDetailsServiceBuilder<InMemoryClientDetailsServiceBuilder>.ClientBuilder client =
 				clients.inMemory().withClient(id);
 		client.secret(bCryptPasswordEncoder.encode(pass));
 		client.authorizedGrantTypes("password", "refresh_token");
 		client.scopes("read", "write");
-		EUser user = userService.findByName(userService.getAuthenticatedUser());
+
+		if(userName == null){
+			userName=userService.getAuthenticatedUser();
+		}
+
+		EUser user = userService.findByName(userName);
 		if(user != null) {
 			ERole[] roles = (ERole[]) user.getRoles().toArray();
 			String[] auths = new String[roles.length];
@@ -99,7 +99,21 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 
 	}
 
+	public String getUserName() {
+		return userName;
+	}
+
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
 
 
-	
-}	
+	//ESTO ES CON OAUTH2 Y ES OPCIONAL
+	/*@Bean
+	public JwtAccessTokenConverter accessTokenConverter() {
+		JwtAccessTokenConverter jwtAccessTokenConverter = new  JwtAccessTokenConverter();
+		jwtAccessTokenConverter.setSigningKey("mypasswoerfortoken"); // setea la clave del token , si no se pasa esta es generada automaticamente
+		return jwtAccessTokenConverter;
+	}*/
+
+}

@@ -11,10 +11,10 @@ import java.util.Arrays;
 
 public class TokenGenerator {
 
-    @Autowired
-    private static AuthorizationServerConfig auth;
+    //@Autowired
+    //private static AuthorizationServerConfig auth;
 
-    public static ResponseEntity<?> generate(){
+    /*public static ResponseEntity<?> generate(){
         try {
             if(auth != null) {
                 auth.configure(auth.getClients());
@@ -42,6 +42,6 @@ public class TokenGenerator {
         String access_token_url = "http://localhost:8040/oauth/token";
         ResponseEntity<String> response = restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
         return new ResponseEntity<>(response.getBody(), HttpStatus.OK);
-    }
+    }*/
 
 }

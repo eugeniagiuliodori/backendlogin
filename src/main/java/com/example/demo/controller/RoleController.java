@@ -47,7 +47,8 @@ public class RoleController {
         try{
             if(roleService.findByNameRole(role.getNameRole())!=null) {
                 ERole oldRole = roleService.save(role);
-                return new ResponseEntity<>(TokenGenerator.generate().getBody(), HttpStatus.OK);
+                //va generate
+                return new ResponseEntity<Void>(HttpStatus.OK);
             }
             else{
                 return new ResponseEntity<>("{\"error\":\"role not found\"}",HttpStatus.NOT_ACCEPTABLE);

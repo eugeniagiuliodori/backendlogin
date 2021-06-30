@@ -15,11 +15,13 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
+import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 
 @Service
@@ -40,6 +42,12 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
+    @Autowired
+    private static AuthorizationServerConfig auth;
+
+    @Autowired
+    private HttpServletRequest context;
+
 
     @PostConstruct
     public void init() {
@@ -48,6 +56,8 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
 
     private String authenticatedUser;
+
+    private String authenticatedPassUser;
 
     @Override
     @Transactional(readOnly = true)
@@ -76,6 +86,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
             //minimal parameters to add: name and password
             if(user.getName()!=null && user.getPassword() != null && !user.getName().isEmpty() && !user.getPassword().isEmpty() ) {
                 euser.setName(user.getName());
+                String hashedPassword =  BCrypt.hashpw(user.getPassword(), BCrypt.gensalt());
                 euser.setPassword(passwordEncoder.encode(user.getPassword()));
                 Iterator iterator = new IteratorOfSet(user.getRoles());
                 List<ERole> rolesNotExisting = new LinkedList<ERole>();
@@ -287,9 +298,18 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         this.authenticatedUser = authenticatedUser;
     }
 
+    public String getAuthenticatedPassUser() {
+        return authenticatedPassUser;
+    }
+
+    public void setAuthenticatedPassUser(String authenticatedPassUser) {
+        this.authenticatedPassUser = authenticatedPassUser;
+    }
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         authenticatedUser=username;
+        authenticatedPassUser=context.getParameter("password");
         EUser user = userDao.findByName(username);
         if(user == null) {
             throw new UsernameNotFoundException("Usuario no valido");
@@ -308,6 +328,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
             manager.configure(manager.getClients());
         }
         catch(Exception e){}
+
         return new org.springframework.security.core.userdetails.User(user.getName(), user.getPassword(), Arrays.asList(arrayRoles));
     }
 

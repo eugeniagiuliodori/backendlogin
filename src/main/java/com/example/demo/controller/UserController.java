@@ -1,26 +1,36 @@
 package com.example.demo.controller;
 
 import com.example.demo.customExceptions.CustomException;
-import com.example.demo.entity.ERole;
 import com.example.demo.entity.EUser;
 import com.example.demo.extras.IteratorOfSet;
-import com.example.demo.extras.TokenGenerator;
 import com.example.demo.mapper.RolesMapper;
 import com.example.demo.mapper.UserMapper;
 import com.example.demo.mapper.UsersMapper;
 import com.example.demo.model.Role;
 import com.example.demo.model.User;
+import com.example.demo.security.AuthorizationServerConfig;
+import com.example.demo.security.CustomTokenStore;
 import com.example.demo.service.impl.UserServiceImpl;
 import com.example.demo.service.interfaces.IRoleService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.token.TokenStore;
+import org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+import javax.crypto.spec.SecretKeySpec;
 import javax.servlet.http.HttpServletRequest;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.*;
+
 
 
 @RestController
@@ -38,15 +48,17 @@ public class UserController {
     @Autowired
     private HttpServletRequest context;
 
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
+
+    @Autowired
+    private CustomTokenStore tokenStore;
+
+
 
     @PreAuthorize("hasRole('add')")
     @PostMapping("/add")
     public ResponseEntity<?> addUser(HttpServletRequest httprequest, @RequestBody final EUser user) {
-        //String headerAuth = httprequest.getHeader("Authorization");
-        //String token=new String("");
-        //if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
-        //  token = headerAuth.substring(7, headerAuth.length());
-        //}
         try {
             userService.addUser(user);
             return new ResponseEntity<Void>(HttpStatus.CREATED);
@@ -59,6 +71,7 @@ public class UserController {
         }
     }
 
+
     @PreAuthorize("hasRole('update')")
     @PutMapping("/update")
     public ResponseEntity<?> updateUser(@RequestBody final EUser user){
@@ -70,8 +83,6 @@ public class UserController {
                 euser = userService.findById(user.getId());
                 if(euser.isPresent()) {
                     oldUser = euser.get();
-                }
-                if(euser.isPresent()){
                     oldRoles = RolesMapper.translate(euser.get().getRoles());
                 }
             }
@@ -80,23 +91,62 @@ public class UserController {
             }
 
             oldUser = userService.updateUser(user, context.getParameter("roles")==null);
+
+            /*             revoque current token           */
+            String authHeader = context.getHeader("Authorization");
+            if (authHeader != null) {
+                String tokenValue = authHeader.replace("Bearer", "").trim();
+
+                OAuth2Authentication auth = tokenStore.getCurrentTokenStore().readAuthentication(tokenValue);
+                OAuth2AccessToken accessToken = tokenStore.getCurrentTokenStore().getAccessToken(auth);
+                //OAuth2AccessToken accessToken = tokenStore.getCurrentTokenStore().readAccessToken(tokenValue);
+                if(accessToken == null){
+                    String s="";
+                }
+                else {
+                    tokenStore.getCurrentTokenStore().removeAccessToken(accessToken);
+                }
+            }
+
+
             Set<Role> updateRoles = RolesMapper.translate(oldUser.getRoles());
             Set<String> oldNameRoles = new HashSet<>();
             Set<String> updateNameRoles = new HashSet<>();
             IteratorOfSet iteratorOld = new IteratorOfSet(oldRoles);
             IteratorOfSet iteratorUpdate = new IteratorOfSet(updateRoles);
-            if(iteratorOld.size()!=iteratorUpdate.size()){
-                return new ResponseEntity<>(TokenGenerator.generate().getBody(), HttpStatus.OK);
+            if(iteratorOld.size()!=iteratorUpdate.size()
+                    || !oldUser.getName().equals(user.getName())
+                    || !oldUser.getPassword().equals(user.getPassword())){
+
+                String nameUser = new String("");
+                if(context.getParameter("name") != null){
+                    nameUser = user.getName();
+                }
+                else{
+                    nameUser = oldUser.getName();
+                }
+                String passUser = new String("");
+                boolean isCrypt=false;
+                if(context.getParameter("password") != null){
+                    passUser = user.getPassword();
+                }
+                else{
+                    passUser = oldUser.getPassword();
+                    isCrypt=true;
+                }
+
+                return new ResponseEntity<>(generate(nameUser,passUser,isCrypt).getBody(), HttpStatus.OK);
             }
             else{
-                boolean exist = true;
-                while(iteratorUpdate.hasNext() && exist){
+                boolean equalsRolesValues = true;
+                while(iteratorUpdate.hasNext() && equalsRolesValues){
                     if(!iteratorOld.contains(((Role)iteratorUpdate.next()))){
-                        exist=false;
+                        equalsRolesValues=false;
                     }
                 }
-                if(!exist){
-                    return new ResponseEntity<>(TokenGenerator.generate().getBody(), HttpStatus.OK);
+                if(!equalsRolesValues || !oldUser.getName().equals(user.getName()) || !oldUser.getPassword().equals(user.getPassword())){
+
+                    return new ResponseEntity<>(generate(user.getName(),user.getPassword(),true).getBody(), HttpStatus.OK);
                 }
                 else{
                     return new ResponseEntity<Void>(HttpStatus.OK);
@@ -121,16 +171,13 @@ public class UserController {
             return new ResponseEntity<>(HttpStatus.OK);
         }
         catch(Exception e){
-            return new ResponseEntity<>(e.toString(),HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
         }
     }
 
     @PreAuthorize("hasRole('delete')")
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteUser(@RequestBody final EUser user){
-        CustomException error = new CustomException();
-        error.setName("ERROR");
-        error.setDescription("IN DELETE USER");
         try {
             if (user.getId() == null) {
                  return deleteUser(user.getName());
@@ -139,8 +186,6 @@ public class UserController {
                 ResponseEntity<?> response = deleteUser(user.getId());
                 HttpStatus status =  response.getStatusCode() ;//id not store in BD
                 if(status.isError()){
-                    error.setName("ERROR");
-                    error.setDescription("IN DELETE USER");
                     return deleteUser(user.getName());
                 }
                 else{
@@ -149,6 +194,9 @@ public class UserController {
             }
         }
         catch(Exception e){
+            if(e instanceof CustomException){
+                return new ResponseEntity<>(new String("{\"error\":\"unespected error\"}"), HttpStatus.NOT_ACCEPTABLE);
+            }
             return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_FOUND);
         }
     }
@@ -215,4 +263,41 @@ public class UserController {
             return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
         }
     }
+
+
+    private ResponseEntity<?> generate(String userName, String userPassword, boolean isCrypt){
+        if(isCrypt){
+            userPassword=userService.getAuthenticatedPassUser();
+        }
+
+        AuthorizationServerConfig manager = new AuthorizationServerConfig();
+        manager.setUserName(userName);
+        try {
+            manager.configure(manager.getClients());
+        }
+        catch(Exception e){}
+        String credentials = "idClient1:passClient1";
+        String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.add("Authorization", "Basic " + encodedCredentials);
+        MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<String, String>();
+        requestBody.add("Content-Type", "application/x-www-form-urlencoded");
+        requestBody.add("username", userName);
+        String d = context.getParameter("password");
+        requestBody.add("password", userPassword);
+        requestBody.add("grant_type", "password");
+        HttpEntity formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
+        HttpEntity<String> request = new HttpEntity<String>(headers);
+        RestTemplate restTemplate = new RestTemplate();
+        String access_token_url = "http://localhost:8040/oauth/token";
+        ResponseEntity<String> response = restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
+
+        return new ResponseEntity<>(response.getBody(), HttpStatus.OK);
+    }
+
+
+
+
+
 }
