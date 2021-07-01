@@ -37,12 +37,13 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 
 	@Autowired
 	private BCryptPasswordEncoder bCryptPasswordEncoder;
-	
+
 	@Autowired
 	private AuthenticationManager authenticationManager;
-	
+
 	@Autowired
 	private UserServiceImpl userService;
+
 
 
 
@@ -58,6 +59,8 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 
 	private String userName;
 
+	@Autowired
+	private CustomTokenStore tokenStore;
 
 
 	@Override
@@ -98,6 +101,7 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 		endpoints.authenticationManager(authenticationManager).userDetailsService((UserDetailsService)userService);
 
 	}
+
 
 	public String getUserName() {
 		return userName;

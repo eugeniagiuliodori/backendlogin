@@ -31,6 +31,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		return super.authenticationManager();
 	}
 
+
 	//ESTO SE AGREGA CON OAUTH2
 	@Bean
 	public BCryptPasswordEncoder encoder() {

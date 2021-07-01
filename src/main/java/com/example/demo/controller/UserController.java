@@ -18,16 +18,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.token.TokenStore;
-import org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
-import javax.crypto.spec.SecretKeySpec;
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 
@@ -54,6 +52,9 @@ public class UserController {
     @Autowired
     private CustomTokenStore tokenStore;
 
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
 
 
     @PreAuthorize("hasRole('add')")
@@ -71,6 +72,26 @@ public class UserController {
         }
     }
 
+
+    @RequestMapping(method = RequestMethod.GET, value = "/tokens")
+    @ResponseBody
+    public List<String> getTokens() {
+        List<String> tokenValues = new ArrayList<String>();
+        Collection<OAuth2AccessToken> tokens = tokenStore.findTokensByClientId("idClient");
+        String authHeader = context.getHeader("Authorization");
+        if (authHeader != null) {
+            String tokenValue = authHeader.replace("Bearer", "").trim();
+            OAuth2AccessToken t = tokenStore.readAccessToken(tokenValue);
+            tokenStore.storeAccessToken();
+        }
+
+        if (tokens!=null){
+            for (OAuth2AccessToken token:tokens){
+                tokenValues.add(token.getValue());
+            }
+        }
+        return tokenValues;
+    }
 
     @PreAuthorize("hasRole('update')")
     @PutMapping("/update")
@@ -91,22 +112,6 @@ public class UserController {
             }
 
             oldUser = userService.updateUser(user, context.getParameter("roles")==null);
-
-            /*             revoque current token           */
-            String authHeader = context.getHeader("Authorization");
-            if (authHeader != null) {
-                String tokenValue = authHeader.replace("Bearer", "").trim();
-
-                OAuth2Authentication auth = tokenStore.getCurrentTokenStore().readAuthentication(tokenValue);
-                OAuth2AccessToken accessToken = tokenStore.getCurrentTokenStore().getAccessToken(auth);
-                //OAuth2AccessToken accessToken = tokenStore.getCurrentTokenStore().readAccessToken(tokenValue);
-                if(accessToken == null){
-                    String s="";
-                }
-                else {
-                    tokenStore.getCurrentTokenStore().removeAccessToken(accessToken);
-                }
-            }
 
 
             Set<Role> updateRoles = RolesMapper.translate(oldUser.getRoles());
@@ -133,6 +138,17 @@ public class UserController {
                 else{
                     passUser = oldUser.getPassword();
                     isCrypt=true;
+                }
+
+                /*             revoque current token           */
+                String authHeader = context.getHeader("Authorization");
+                if (authHeader != null) {
+                    String tokenValue = authHeader.replace("Bearer", "").trim();
+
+                    //tokenStore.removeAccessToken(tokenValue);
+
+
+
                 }
 
                 return new ResponseEntity<>(generate(nameUser,passUser,isCrypt).getBody(), HttpStatus.OK);
