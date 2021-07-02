@@ -59,6 +59,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
     private String authenticatedPassUser;
 
+
     @Override
     @Transactional(readOnly = true)
     public EUser findByNameAndPassword(String name, String password){
@@ -140,7 +141,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public EUser updateUser(EUser user, boolean oldRoles) throws Exception{
+    public EUser updateUser(EUser user, boolean existBodyRoles) throws Exception{
         if(user != null){
             EUser oldUser = findByName(user.getName());
             Optional<EUser> oldUserId = null;
@@ -172,11 +173,12 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 else{
                     euser.setPassword(passwordEncoder.encode(user.getPassword()));
                 }
-                List<ERole> rolesUpdate = new LinkedList<ERole>(user.getRoles());//apunta a user.getRoles()
-                if(oldRoles){
+
+                if(!existBodyRoles){
                     euser.setRoles(oldUser.getRoles());
                 }
                 else{
+                    List<ERole>  rolesUpdate = new LinkedList<ERole>(user.getRoles());//apunta a user.getRoles()
                     for (int i=0;i<rolesUpdate.size();i++) {
                         String roleName = ((ERole) rolesUpdate.get(i)).getNameRole();
                         if (roleName != null) {
@@ -306,14 +308,17 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         this.authenticatedPassUser = authenticatedPassUser;
     }
 
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+
         authenticatedUser=username;
         authenticatedPassUser=context.getParameter("password");
         EUser user = userDao.findByName(username);
         if(user == null) {
             throw new UsernameNotFoundException("Usuario no valido");
         }
+
         Set<ERole> setRoles = user.getRoles();
         List<ERole> listRoles = new LinkedList<ERole>(setRoles);
         SimpleGrantedAuthority[] arrayRoles = new SimpleGrantedAuthority[setRoles.size()];

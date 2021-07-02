@@ -9,7 +9,6 @@ import com.example.demo.mapper.UsersMapper;
 import com.example.demo.model.Role;
 import com.example.demo.model.User;
 import com.example.demo.security.AuthorizationServerConfig;
-import com.example.demo.security.CustomTokenStore;
 import com.example.demo.service.impl.UserServiceImpl;
 import com.example.demo.service.interfaces.IRoleService;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +16,6 @@ import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -54,16 +52,14 @@ public class UserController {
     private BCryptPasswordEncoder passwordEncoder;
 
     @Autowired
-    private CustomTokenStore tokenStore;
+    private AuthorizationServerConfig auth;
 
     @Autowired
-    private AuthenticationManager authenticationManager;
+    AuthorizationServerTokenServices authorizationServerTokenServices;
 
     @Autowired
-    private AuthorizationServerTokenServices authorizationServerTokenServices;
+    ConsumerTokenServices consumerTokenServices;
 
-    @Autowired
-    private ConsumerTokenServices consumerTokenServices;
 
 
     @PreAuthorize("hasRole('add')")
@@ -87,68 +83,68 @@ public class UserController {
     @PutMapping("/update")
     public ResponseEntity<?> updateUser(@RequestBody final EUser user){
         try{
-            EUser oldUser = userService.findByName(user.getName());
-            Optional<EUser> euser = null;
-            Set<Role> oldRoles = null;
-            if(oldUser == null){
-                euser = userService.findById(user.getId());
-                if(euser.isPresent()) {
-                    oldUser = euser.get();
-                    oldRoles = RolesMapper.translate(euser.get().getRoles());
-                }
+            String tokenValue = new String("");
+            String authHeader = context.getHeader("Authorization");
+            if (authHeader != null) {
+                tokenValue = authHeader.replace("Bearer", "").trim();
             }
-            else{
-                oldRoles = RolesMapper.translate(oldUser.getRoles());
-            }
-
-            oldUser = userService.updateUser(user, context.getParameter("roles")==null);
-
-
-            Set<Role> updateRoles = RolesMapper.translate(oldUser.getRoles());
-            Set<String> oldNameRoles = new HashSet<>();
-            Set<String> updateNameRoles = new HashSet<>();
-            IteratorOfSet iteratorOld = new IteratorOfSet(oldRoles);
-            IteratorOfSet iteratorUpdate = new IteratorOfSet(updateRoles);
-            if(iteratorOld.size()!=iteratorUpdate.size()
-                    || !oldUser.getName().equals(user.getName())
-                    || !oldUser.getPassword().equals(user.getPassword())){
-
-                String nameUser = new String("");
-                if(context.getParameter("name") != null){
-                    nameUser = user.getName();
-                }
-                else{
-                    nameUser = oldUser.getName();
-                }
-                String passUser = new String("");
-                boolean isCrypt=false;
-                if(context.getParameter("password") != null){
-                    passUser = user.getPassword();
-                }
-                else{
-                    passUser = oldUser.getPassword();
-                    isCrypt=true;
-                }
-
-                String new_token_refreshToken = (String)generate(nameUser,passUser,isCrypt,new String("http://localhost:8040/oauth/token")).getBody();
-                generateRevoque(new String("http://localhost:8040/user/logout"));
-                return new ResponseEntity<>(new_token_refreshToken , HttpStatus.OK);
-            }
-            else{
-                boolean equalsRolesValues = true;
-                while(iteratorUpdate.hasNext() && equalsRolesValues){
-                    if(!iteratorOld.contains(((Role)iteratorUpdate.next()))){
-                        equalsRolesValues=false;
+            String authenticatedUser = userService.getAuthenticatedUser();
+            EUser authuser = userService.findByName(authenticatedUser);
+            Long authenticatedUserId = authuser.getId();
+            Long bodyUserId = user.getId();
+            String bodyUser = user.getName();
+            String bodyPassUser = user.getPassword();
+            boolean existBodyRoles=user.getRoles() != null && user.getRoles().isEmpty();
+            if(bodyUserId != null || bodyUser != null) {
+                EUser oldUser = userService.findByName(user.getName());
+                EUser usermod = userService.updateUser(user, existBodyRoles);
+                if ((bodyUserId != null && bodyUserId.equals(authenticatedUserId)) ||
+                        (bodyUser != null && bodyUser.equals(authenticatedUser))) {//if update is of authenticated user
+                    String s1=bodyUser;
+                    String s2=authenticatedUser;
+                    Optional<EUser> euser = null;
+                    Set<Role> oldRoles = null;
+                    if (oldUser == null) {
+                        euser = userService.findById(user.getId());
+                        if (euser.isPresent()) {
+                            oldUser = euser.get();
+                            oldRoles = RolesMapper.translate(euser.get().getRoles());
+                        }
+                    } else {
+                        oldRoles = RolesMapper.translate(oldUser.getRoles());
                     }
-                }
-                if(!equalsRolesValues || !oldUser.getName().equals(user.getName()) || !oldUser.getPassword().equals(user.getPassword())){
-                    String new_token_refreshToken = (String) generate(user.getName(),user.getPassword(),true,new String("http://localhost:8040/oauth/token")).getBody();
-                    generateRevoque(new String("http://localhost:8040/user/logout"));
-                    return new ResponseEntity<>(new_token_refreshToken, HttpStatus.OK);
+                    Set<Role> updateRoles = RolesMapper.translate(usermod.getRoles());
+                    Set<String> oldNameRoles = new HashSet<>();
+                    Set<String> updateNameRoles = new HashSet<>();
+                    IteratorOfSet iteratorOld = new IteratorOfSet(oldRoles);
+                    IteratorOfSet iteratorUpdate = new IteratorOfSet(updateRoles);
+                    boolean changesCountRoles = iteratorOld.size() != iteratorUpdate.size();
+                    boolean equalsContentRoles = true;
+                    while (iteratorUpdate.hasNext() && equalsContentRoles) {
+                        if (!iteratorOld.contains(((Role) iteratorUpdate.next()))) {
+                            equalsContentRoles = false;
+                        }
+                    }
+                    boolean changesRoles = changesCountRoles || !equalsContentRoles;
+                    if ((bodyUser != null && !authenticatedUser.equals(bodyUser))||
+                    (bodyPassUser != null && !authuser.getPassword().equals(bodyPassUser)) ||
+                            (changesRoles)){
+                        String new_token_refreshToken = revoquesToken(usermod.getName(),usermod.getPassword(), tokenValue, auth.getIdClient(), auth.getPassClient());
+                        if(new_token_refreshToken.contains("error")){
+                            new_token_refreshToken="{\"error\":\""+new_token_refreshToken+"\"}";
+                        }
+                        return new ResponseEntity<>(new_token_refreshToken , HttpStatus.OK);
+                    }
+                    else{
+                        return new ResponseEntity<Void>(HttpStatus.OK);
+                    }
                 }
                 else{
                     return new ResponseEntity<Void>(HttpStatus.OK);
                 }
+            }
+            else{
+                return new ResponseEntity<>("{\"error\":\"insuficient information\"}",HttpStatus.NOT_ACCEPTABLE);
             }
         }
         catch(Exception e){
@@ -277,69 +273,44 @@ public class UserController {
     }
 
 
-    private ResponseEntity<?> generate(String userName, String userPassword, boolean isCrypt, String url){
-        if(isCrypt){
-            userPassword=userService.getAuthenticatedPassUser();
-        }
-        AuthorizationServerConfig manager = new AuthorizationServerConfig();
+    private String revoquesToken(String userName, String userPassword,String tokenValue, String idClient,String passClient) {
+        AuthorizationServerConfig manager = new AuthorizationServerConfig();//como hago autowired?
         manager.setUserName(userName);
+        manager.setUserService(userService);
         try {
-            manager.configure(manager.getClients());
+            manager.configure(AuthorizationServerConfig.getClients());//en lugar de invocacion a configure, quizas haya una solucion mas alineada al flujo de oauth2
+            String credentials = idClient + ":" + passClient;
+            String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
+            HttpHeaders headers = new HttpHeaders();
+            headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+            headers.add("Authorization", "Basic " + encodedCredentials);
+            MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<String, String>();
+            requestBody.add("Content-Type", "application/x-www-form-urlencoded");
+            requestBody.add("username", userName);
+            requestBody.add("password", userPassword);
+            requestBody.add("grant_type", "password");
+            HttpEntity formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
+            HttpEntity<String> request = new HttpEntity<String>(headers);
+            RestTemplate restTemplate = new RestTemplate();
+            String access_token_url = "http://localhost:8040/oauth/token";
+            ResponseEntity<String> response = restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
+            headers = new HttpHeaders();
+            headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+            headers.add("Authorization", "Bearer " + tokenValue);
+            requestBody = new LinkedMultiValueMap<String, String>();
+            formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
+            restTemplate = new RestTemplate();
+            access_token_url = "http://localhost:8040/user/logout";
+            restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
+            return response.getBody();
         }
-        catch(Exception e){}
-        String credentials = "idClient1:passClient1";
-        String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-        headers.add("Authorization", "Basic " + encodedCredentials);
-        MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<String, String>();
-        requestBody.add("Content-Type", "application/x-www-form-urlencoded");
-        requestBody.add("username", userName);
-        requestBody.add("password", userPassword);
-        requestBody.add("grant_type", "password");
-        HttpEntity formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
-        HttpEntity<String> request = new HttpEntity<String>(headers);
-        RestTemplate restTemplate = new RestTemplate();
-        String access_token_url = url;
-        ResponseEntity<String> response = restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
-
-        return new ResponseEntity<>(response.getBody(), HttpStatus.OK);
+        catch(Exception e){
+            return e.toString();
+        }
     }
 
 
-    private ResponseEntity<?> generateRevoque(String url){
-        //if(isCrypt){
-          //  userPassword=userService.getAuthenticatedPassUser();
-        //}
-        //AuthorizationServerConfig manager = new AuthorizationServerConfig();
-        //manager.setUserName(userName);
-        //try {
-          //  manager.configure(manager.getClients());
-        //}
-        //catch(Exception e){}
-        //String credentials = "idClient1:passClient1";
-        //String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-        String tokenValue = new String("");
-        String authHeader = context.getHeader("Authorization");
-        if (authHeader != null) {
-            tokenValue = authHeader.replace("Bearer", "").trim();
-        }
-        headers.add("Authorization", "Bearer " + tokenValue);
-        MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<String, String>();
-        //requestBody.add("Content-Type", "application/x-www-form-urlencoded");
-        //requestBody.add("token",tokenValue);
-        //requestBody.add("password", userPassword);
-       // requestBody.add("grant_type", "password");
-        HttpEntity formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
-        //HttpEntity<String> request = new HttpEntity<String>(headers);
-        RestTemplate restTemplate = new RestTemplate();
-        String access_token_url = url;
-        ResponseEntity<String> response = restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
 
-        return new ResponseEntity<>(response.getBody(), HttpStatus.OK);
-    }
 
 
 

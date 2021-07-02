@@ -3,9 +3,11 @@ package com.example.demo.security;
 
 import com.example.demo.entity.ERole;
 import com.example.demo.entity.EUser;
+import com.example.demo.extras.IteratorOfSet;
 import com.example.demo.service.impl.UserServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -17,6 +19,8 @@ import org.springframework.security.oauth2.config.annotation.web.configuration.A
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
 import org.springframework.stereotype.Component;
+
+import java.util.Iterator;
 
 
 /*
@@ -35,7 +39,7 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 
 
 
-	@Autowired
+	//@Autowired por que no anda autowired?
 	private BCryptPasswordEncoder bCryptPasswordEncoder;
 
 	@Autowired
@@ -49,6 +53,7 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 
 	private static ClientDetailsServiceConfigurer clients;
 
+
 	public static ClientDetailsServiceConfigurer getClients() {
 		return clients;
 	}
@@ -59,8 +64,10 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 
 	private String userName;
 
-	@Autowired
-	private CustomTokenStore tokenStore;
+	private String idClient;
+
+	private String passClient;
+
 
 
 	@Override
@@ -69,13 +76,18 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 		//inMemory means all the necessary data to create a session will be stored in memory.
 		// When you restart your application, all the session data will be gone,
 		// which means users need to login and authenticate again.
+		this.clients=clients;
+		if(idClient == null || idClient.isEmpty()){
+			idClient = "idClient1";
+		}
 
-		String id = "idClient1";
-		String pass = "passClient1";
-
+		if(passClient == null || passClient.isEmpty()){
+			passClient = "passClient1";
+		}
+		bCryptPasswordEncoder=new BCryptPasswordEncoder();//por q no funciona autowired?
 		ClientDetailsServiceBuilder<InMemoryClientDetailsServiceBuilder>.ClientBuilder client =
-				clients.inMemory().withClient(id);
-		client.secret(bCryptPasswordEncoder.encode(pass));
+				clients.inMemory().withClient(idClient);
+		client.secret(bCryptPasswordEncoder.encode(passClient));
 		client.authorizedGrantTypes("password", "refresh_token");
 		client.scopes("read", "write");
 
@@ -83,14 +95,21 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 			userName=userService.getAuthenticatedUser();
 		}
 
+		if(userService == null){
+			String s="";
+		}
 		EUser user = userService.findByName(userName);
 		if(user != null) {
-			ERole[] roles = (ERole[]) user.getRoles().toArray();
-			String[] auths = new String[roles.length];
-			for (int i = 0; i < auths.length; i++) {
-				auths[i] = roles[i].getNameRole();
+			if(user.getRoles() != null) {
+				IteratorOfSet iterator = new IteratorOfSet(user.getRoles());
+				String[] auths = new String[iterator.size()];
+				int i=0;
+				while (iterator.hasNext()) {
+					auths[i] = ((ERole)iterator.next()).getNameRole();
+					i++;
+				}
+				client.authorities(auths);
 			}
-			client.authorities(auths);
 		}
 		client.accessTokenValiditySeconds(1 * 180);
 		client.refreshTokenValiditySeconds(2 * 180);
@@ -102,6 +121,13 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 
 	}
 
+	public UserServiceImpl getUserService() {
+		return userService;
+	}
+
+	public void setUserService(UserServiceImpl userService) {
+		this.userService = userService;
+	}
 
 	public String getUserName() {
 		return userName;
@@ -109,6 +135,23 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 
 	public void setUserName(String userName) {
 		this.userName = userName;
+	}
+
+	public String getIdClient() {
+		return idClient;
+	}
+
+	public void setIdClient(String idClient) {
+		this.idClient = idClient;
+	}
+
+
+	public String getPassClient() {
+		return passClient;
+	}
+
+	public void setPassClient(String passClient) {
+		this.passClient = passClient;
 	}
 
 

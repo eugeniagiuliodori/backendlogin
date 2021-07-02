@@ -31,7 +31,7 @@ public class EUser implements Serializable {
     @JoinTable(name = "eusers_eroles",
             joinColumns = @JoinColumn(name = "euser_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "erole_id", referencedColumnName = "id"))
-    private Set<ERole> roles = new HashSet<ERole>();
+    private Set<ERole> roles;// = new HashSet<ERole>();
 
     public Date getDate() {
         return date;

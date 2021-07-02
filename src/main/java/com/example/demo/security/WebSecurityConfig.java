@@ -51,7 +51,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 				.authorizeRequests()
 				.antMatchers("/oauth/token/revoke/**").authenticated().
 				and().authorizeRequests()
-				.antMatchers("/oauth/token").permitAll();//este endpoint es fijo. Asi lo reconoce el framework oauth2 para generar token y token_refresh sin usar un controller
+				.antMatchers("/oauth/token").authenticated();//este endpoint es fijo. Asi lo reconoce el framework oauth2 para generar token y token_refresh sin usar un controller
 		http
 				.logout()
 				.logoutSuccessUrl("/user/logout")

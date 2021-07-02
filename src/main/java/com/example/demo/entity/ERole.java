@@ -30,7 +30,7 @@ public class ERole implements Serializable {
     @JoinTable(name = "eusers_eroles",
             joinColumns = @JoinColumn(name = "erole_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "euser_id", referencedColumnName = "id"))
-    private Set<EUser> users = new HashSet<EUser>();
+    private Set<EUser> users;// = new HashSet<EUser>();
 
 /*por ahora no se neceesita
     @ManyToMany(cascade = {CascadeType.REFRESH}, fetch = FetchType.EAGER)
