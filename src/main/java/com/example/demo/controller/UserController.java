@@ -15,18 +15,22 @@ import com.example.demo.service.interfaces.IRoleService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
+import org.springframework.security.oauth2.provider.token.ConsumerTokenServices;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.security.Principal;
 import java.util.*;
 
 
@@ -55,6 +59,11 @@ public class UserController {
     @Autowired
     private AuthenticationManager authenticationManager;
 
+    @Autowired
+    private AuthorizationServerTokenServices authorizationServerTokenServices;
+
+    @Autowired
+    private ConsumerTokenServices consumerTokenServices;
 
 
     @PreAuthorize("hasRole('add')")
@@ -73,25 +82,6 @@ public class UserController {
     }
 
 
-    @RequestMapping(method = RequestMethod.GET, value = "/tokens")
-    @ResponseBody
-    public List<String> getTokens() {
-        List<String> tokenValues = new ArrayList<String>();
-        Collection<OAuth2AccessToken> tokens = tokenStore.findTokensByClientId("idClient");
-        String authHeader = context.getHeader("Authorization");
-        if (authHeader != null) {
-            String tokenValue = authHeader.replace("Bearer", "").trim();
-            OAuth2AccessToken t = tokenStore.readAccessToken(tokenValue);
-            tokenStore.storeAccessToken();
-        }
-
-        if (tokens!=null){
-            for (OAuth2AccessToken token:tokens){
-                tokenValues.add(token.getValue());
-            }
-        }
-        return tokenValues;
-    }
 
     @PreAuthorize("hasRole('update')")
     @PutMapping("/update")
@@ -140,18 +130,9 @@ public class UserController {
                     isCrypt=true;
                 }
 
-                /*             revoque current token           */
-                String authHeader = context.getHeader("Authorization");
-                if (authHeader != null) {
-                    String tokenValue = authHeader.replace("Bearer", "").trim();
-
-                    //tokenStore.removeAccessToken(tokenValue);
-
-
-
-                }
-
-                return new ResponseEntity<>(generate(nameUser,passUser,isCrypt).getBody(), HttpStatus.OK);
+                String new_token_refreshToken = (String)generate(nameUser,passUser,isCrypt,new String("http://localhost:8040/oauth/token")).getBody();
+                generateRevoque(new String("http://localhost:8040/user/logout"));
+                return new ResponseEntity<>(new_token_refreshToken , HttpStatus.OK);
             }
             else{
                 boolean equalsRolesValues = true;
@@ -161,8 +142,9 @@ public class UserController {
                     }
                 }
                 if(!equalsRolesValues || !oldUser.getName().equals(user.getName()) || !oldUser.getPassword().equals(user.getPassword())){
-
-                    return new ResponseEntity<>(generate(user.getName(),user.getPassword(),true).getBody(), HttpStatus.OK);
+                    String new_token_refreshToken = (String) generate(user.getName(),user.getPassword(),true,new String("http://localhost:8040/oauth/token")).getBody();
+                    generateRevoque(new String("http://localhost:8040/user/logout"));
+                    return new ResponseEntity<>(new_token_refreshToken, HttpStatus.OK);
                 }
                 else{
                     return new ResponseEntity<Void>(HttpStatus.OK);
@@ -178,6 +160,20 @@ public class UserController {
         }
 
     }
+
+
+    @PostMapping ("/logout")
+    public ResponseEntity<?> logout(Principal principal, HttpServletRequest request, HttpServletResponse response) throws IOException {
+
+        OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) principal;
+        OAuth2AccessToken accessToken = authorizationServerTokenServices.getAccessToken(oAuth2Authentication);
+        consumerTokenServices.revokeToken(accessToken.getValue());
+        //String redirectUrl = "user/logout?myRedirect=/user";
+        //response.sendRedirect(redirectUrl); por ahora no hasta definir url home
+
+        return new ResponseEntity<Void>(HttpStatus.OK);
+    }
+
 
     @PreAuthorize("hasRole('delete')")
     @DeleteMapping("/delete/{id}")
@@ -281,11 +277,10 @@ public class UserController {
     }
 
 
-    private ResponseEntity<?> generate(String userName, String userPassword, boolean isCrypt){
+    private ResponseEntity<?> generate(String userName, String userPassword, boolean isCrypt, String url){
         if(isCrypt){
             userPassword=userService.getAuthenticatedPassUser();
         }
-
         AuthorizationServerConfig manager = new AuthorizationServerConfig();
         manager.setUserName(userName);
         try {
@@ -300,19 +295,51 @@ public class UserController {
         MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<String, String>();
         requestBody.add("Content-Type", "application/x-www-form-urlencoded");
         requestBody.add("username", userName);
-        String d = context.getParameter("password");
         requestBody.add("password", userPassword);
         requestBody.add("grant_type", "password");
         HttpEntity formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
         HttpEntity<String> request = new HttpEntity<String>(headers);
         RestTemplate restTemplate = new RestTemplate();
-        String access_token_url = "http://localhost:8040/oauth/token";
+        String access_token_url = url;
         ResponseEntity<String> response = restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
 
         return new ResponseEntity<>(response.getBody(), HttpStatus.OK);
     }
 
 
+    private ResponseEntity<?> generateRevoque(String url){
+        //if(isCrypt){
+          //  userPassword=userService.getAuthenticatedPassUser();
+        //}
+        //AuthorizationServerConfig manager = new AuthorizationServerConfig();
+        //manager.setUserName(userName);
+        //try {
+          //  manager.configure(manager.getClients());
+        //}
+        //catch(Exception e){}
+        //String credentials = "idClient1:passClient1";
+        //String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        String tokenValue = new String("");
+        String authHeader = context.getHeader("Authorization");
+        if (authHeader != null) {
+            tokenValue = authHeader.replace("Bearer", "").trim();
+        }
+        headers.add("Authorization", "Bearer " + tokenValue);
+        MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<String, String>();
+        //requestBody.add("Content-Type", "application/x-www-form-urlencoded");
+        //requestBody.add("token",tokenValue);
+        //requestBody.add("password", userPassword);
+       // requestBody.add("grant_type", "password");
+        HttpEntity formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
+        //HttpEntity<String> request = new HttpEntity<String>(headers);
+        RestTemplate restTemplate = new RestTemplate();
+        String access_token_url = url;
+        ResponseEntity<String> response = restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
+
+        return new ResponseEntity<>(response.getBody(), HttpStatus.OK);
+    }
 
 
 

@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 
 @Configuration
@@ -31,7 +32,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		return super.authenticationManager();
 	}
 
-
 	//ESTO SE AGREGA CON OAUTH2
 	@Bean
 	public BCryptPasswordEncoder encoder() {
@@ -49,7 +49,15 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	protected void configure(HttpSecurity http) throws Exception{
 		http
 				.authorizeRequests()
+				.antMatchers("/oauth/token/revoke/**").authenticated().
+				and().authorizeRequests()
 				.antMatchers("/oauth/token").permitAll();//este endpoint es fijo. Asi lo reconoce el framework oauth2 para generar token y token_refresh sin usar un controller
+		http
+				.logout()
+				.logoutSuccessUrl("/user/logout")
+				// using this antmatcher allows /logout from GET without csrf as indicated in
+				// https://docs.spring.io/spring-security/site/docs/current/reference/html/csrf.html#csrf-logout
+				.logoutRequestMatcher(new AntPathRequestMatcher("/user/logout"));
 	}
 
 	/* SIN OAUTH 2
