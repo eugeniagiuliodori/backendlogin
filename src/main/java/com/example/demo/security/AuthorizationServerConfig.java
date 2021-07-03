@@ -39,7 +39,7 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 
 
 
-	//@Autowired por que no anda autowired?
+	@Autowired
 	private BCryptPasswordEncoder bCryptPasswordEncoder;
 
 	@Autowired
@@ -51,15 +51,15 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 
 
 
-	private static ClientDetailsServiceConfigurer clients;
+	private ClientDetailsServiceConfigurer clients;
 
 
-	public static ClientDetailsServiceConfigurer getClients() {
+	public  ClientDetailsServiceConfigurer getClients() {
 		return clients;
 	}
 
-	public static void setClients(ClientDetailsServiceConfigurer clients) {
-		AuthorizationServerConfig.clients = clients;
+	public  void setClients(ClientDetailsServiceConfigurer clients) {
+		this.clients = clients;
 	}
 
 	private String userName;
@@ -76,28 +76,19 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 		//inMemory means all the necessary data to create a session will be stored in memory.
 		// When you restart your application, all the session data will be gone,
 		// which means users need to login and authenticate again.
-		this.clients=clients;
-		if(idClient == null || idClient.isEmpty()){
-			idClient = "idClient1";
-		}
+		//this.clients=clients;
 
-		if(passClient == null || passClient.isEmpty()){
-			passClient = "passClient1";
-		}
-		bCryptPasswordEncoder=new BCryptPasswordEncoder();//por q no funciona autowired?
+		this.clients=clients;
+		idClient = "idClient1";
+		passClient = "passClient1";
+
+		//bCryptPasswordEncoder=new BCryptPasswordEncoder();//por q no funciona autowired?
 		ClientDetailsServiceBuilder<InMemoryClientDetailsServiceBuilder>.ClientBuilder client =
 				clients.inMemory().withClient(idClient);
 		client.secret(bCryptPasswordEncoder.encode(passClient));
 		client.authorizedGrantTypes("password", "refresh_token");
 		client.scopes("read", "write");
-
-		if(userName == null){
-			userName=userService.getAuthenticatedUser();
-		}
-
-		if(userService == null){
-			String s="";
-		}
+		userName=userService.getAuthenticatedUser();
 		EUser user = userService.findByName(userName);
 		if(user != null) {
 			if(user.getRoles() != null) {
@@ -120,6 +111,8 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 		endpoints.authenticationManager(authenticationManager).userDetailsService((UserDetailsService)userService);
 
 	}
+
+
 
 	public UserServiceImpl getUserService() {
 		return userService;

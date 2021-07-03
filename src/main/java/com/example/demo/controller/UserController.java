@@ -129,7 +129,7 @@ public class UserController {
                     if ((bodyUser != null && !authenticatedUser.equals(bodyUser))||
                     (bodyPassUser != null && !authuser.getPassword().equals(bodyPassUser)) ||
                             (changesRoles)){
-                        String new_token_refreshToken = revoquesToken(usermod.getName(),usermod.getPassword(), tokenValue, auth.getIdClient(), auth.getPassClient());
+                        String new_token_refreshToken = revoquesToken(usermod.getName(), tokenValue, auth.getIdClient(), auth.getPassClient());
                         if(new_token_refreshToken.contains("error")){
                             new_token_refreshToken="{\"error\":\""+new_token_refreshToken+"\"}";
                         }
@@ -148,6 +148,7 @@ public class UserController {
             }
         }
         catch(Exception e){
+            e.printStackTrace();
             e.printStackTrace();
             if(e instanceof CustomException){
                 return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_ACCEPTABLE);
@@ -273,12 +274,7 @@ public class UserController {
     }
 
 
-    private String revoquesToken(String userName, String userPassword,String tokenValue, String idClient,String passClient) {
-        AuthorizationServerConfig manager = new AuthorizationServerConfig();//como hago autowired?
-        manager.setUserName(userName);
-        manager.setUserService(userService);
-        try {
-            manager.configure(AuthorizationServerConfig.getClients());//en lugar de invocacion a configure, quizas haya una solucion mas alineada al flujo de oauth2
+    private String revoquesToken(String userName, String tokenValue, String idClient,String passClient) {
             String credentials = idClient + ":" + passClient;
             String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
             HttpHeaders headers = new HttpHeaders();
@@ -287,7 +283,7 @@ public class UserController {
             MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<String, String>();
             requestBody.add("Content-Type", "application/x-www-form-urlencoded");
             requestBody.add("username", userName);
-            requestBody.add("password", userPassword);
+            requestBody.add("password", userService.getAuthenticatedPassUser());
             requestBody.add("grant_type", "password");
             HttpEntity formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
             HttpEntity<String> request = new HttpEntity<String>(headers);
@@ -303,10 +299,6 @@ public class UserController {
             access_token_url = "http://localhost:8040/user/logout";
             restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
             return response.getBody();
-        }
-        catch(Exception e){
-            return e.toString();
-        }
     }
 
 

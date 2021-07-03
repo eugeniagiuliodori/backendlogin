@@ -43,7 +43,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     private BCryptPasswordEncoder passwordEncoder;
 
     @Autowired
-    private static AuthorizationServerConfig auth;
+    private AuthorizationServerConfig auth;
 
     @Autowired
     private HttpServletRequest context;
@@ -145,7 +145,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         if(user != null){
             EUser oldUser = findByName(user.getName());
             Optional<EUser> oldUserId = null;
-            if(user.getId() != null) {
+            if(oldUser == null && user.getId() != null) {
                 oldUserId = findById(user.getId());
             }
             //Long s = oldUserId.get().getId();
@@ -210,8 +210,8 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                     Set<ERole> setRoles = new HashSet(rolesUpdate);
                     euser.setRoles(setRoles);
                 }
-                userDao.save(euser);
-                return oldUser;
+
+                return userDao.save(euser);
             }
             else{
                 throw new CustomException("User not found","Null or incorrect ID user");
@@ -311,7 +311,6 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-
         authenticatedUser=username;
         authenticatedPassUser=context.getParameter("password");
         EUser user = userDao.findByName(username);
@@ -323,17 +322,18 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         List<ERole> listRoles = new LinkedList<ERole>(setRoles);
         SimpleGrantedAuthority[] arrayRoles = new SimpleGrantedAuthority[setRoles.size()];
         String[] strRoles = new String[setRoles.size()];
+
         for(int i=0;i<listRoles.size();i++){
             SimpleGrantedAuthority currAuth = new SimpleGrantedAuthority("ROLE_"+listRoles.get(i).getNameRole());
             arrayRoles[i]=currAuth;
             strRoles[i]=currAuth.getAuthority();
         }
-        AuthorizationServerConfig manager = new AuthorizationServerConfig();
         try {
-            manager.configure(manager.getClients());
+            auth.configure(auth.getClients());
         }
-        catch(Exception e){}
-
+        catch(Exception e){
+            e.printStackTrace();
+        }
         return new org.springframework.security.core.userdetails.User(user.getName(), user.getPassword(), Arrays.asList(arrayRoles));
     }
 
