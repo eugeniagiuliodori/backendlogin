@@ -1,9 +1,7 @@
 package com.example.demo.entity;
 
-
 import javax.persistence.*;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Set;
 import java.io.Serializable;
 
@@ -20,7 +18,7 @@ public class ERole implements Serializable {
     @Temporal(TemporalType.DATE)
     private Date date;
 
-    @Column(name="role", unique = true, nullable = false)
+    @Column(name="role", unique = true, nullable = false)//no reconoce el unique
     private String nameRole;
 
     @Column(name="description")
@@ -32,26 +30,12 @@ public class ERole implements Serializable {
             inverseJoinColumns = @JoinColumn(name = "euser_id", referencedColumnName = "id"))
     private Set<EUser> users;// = new HashSet<EUser>();
 
-/*por ahora no se neceesita
-    @ManyToMany(cascade = {CascadeType.REFRESH}, fetch = FetchType.EAGER)
-    @JoinTable(name = "eclients_eroles",
-            joinColumns = @JoinColumn(name = "erole_id", referencedColumnName = "id"),
-            inverseJoinColumns = @JoinColumn(name = "eclient_id", referencedColumnName = "id"))
-    private Set<EClient> clients = new HashSet<EClient>();
-*/
     @PrePersist
     public void PrePersist(){
 
         date = new Date();
     }
 
-   // public Set<EClient> getClients() {
-     //   return clients;
-    //}
-
-    //public void setClients(Set<EClient> clients) {
-      //  this.clients = clients;
-    //}
 
     public Long getId() {
         return id;

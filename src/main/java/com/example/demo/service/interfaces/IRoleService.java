@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public interface IRoleService {
 
-    public ERole findByNameRole(String nameRole);
+    public ERole findByRoleName(String nameRole);
 
     public List<ERole> findAll();
 

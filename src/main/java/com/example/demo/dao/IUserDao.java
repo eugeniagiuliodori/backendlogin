@@ -7,9 +7,11 @@ import java.util.Optional;
 
 public interface IUserDao extends JpaRepository<EUser,Long> {
 
-    public EUser findByNameAndPassword(String name, String password);
+    public EUser findByPasswordAndName(String name, String password);
 
     public EUser findByName(String name);
+
+    public EUser findByPassword(String password);
 
     public List<EUser> findAll();
 

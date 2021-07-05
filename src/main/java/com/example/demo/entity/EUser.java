@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import javax.persistence.*;
 import java.io.Serializable;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -31,6 +30,8 @@ public class EUser implements Serializable {
     @JoinTable(name = "eusers_eroles",
             joinColumns = @JoinColumn(name = "euser_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "erole_id", referencedColumnName = "id"))
+
+
     private Set<ERole> roles;// = new HashSet<ERole>();
 
     public Date getDate() {

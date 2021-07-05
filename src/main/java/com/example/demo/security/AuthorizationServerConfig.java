@@ -89,8 +89,9 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 		client.authorizedGrantTypes("password", "refresh_token");
 		client.scopes("read", "write");
 		userName=userService.getAuthenticatedUser();
-		EUser user = userService.findByName(userName);
-		if(user != null) {
+		EUser user;
+		try {
+			user = userService.findByUserName(userName);
 			if(user.getRoles() != null) {
 				IteratorOfSet iterator = new IteratorOfSet(user.getRoles());
 				String[] auths = new String[iterator.size()];
@@ -102,6 +103,7 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 				client.authorities(auths);
 			}
 		}
+		catch(Exception e){}
 		client.accessTokenValiditySeconds(1 * 180);
 		client.refreshTokenValiditySeconds(2 * 180);
 	}

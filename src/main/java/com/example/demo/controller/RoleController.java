@@ -45,7 +45,7 @@ public class RoleController {
     @PutMapping("/update")
     public ResponseEntity<?> updateRole(@RequestBody final ERole role){
         try{
-            if(roleService.findByNameRole(role.getNameRole())!=null) {
+            if(roleService.findByRoleName(role.getNameRole())!=null) {
                 ERole oldRole = roleService.save(role);
                 //va generate
                 return new ResponseEntity<Void>(HttpStatus.OK);
@@ -146,7 +146,7 @@ public class RoleController {
     @GetMapping("/get/name/{name}")
     public ResponseEntity<?> getRole(@PathVariable(value="name") String name){
         try{
-            ERole erole = roleService.findByNameRole(name);
+            ERole erole = roleService.findByRoleName(name);
             Role role = RoleMapper.translate(erole);
             return new ResponseEntity<>(role.toString(), HttpStatus.OK);
         }

@@ -18,7 +18,7 @@ public class RoleServiceImpl implements IRoleService {
 
     @Override
     @Transactional(readOnly=true)
-    public ERole findByNameRole(String nameRole){
+    public ERole findByRoleName(String nameRole){
         return roleDao.findByNameRole(nameRole);
     }
 

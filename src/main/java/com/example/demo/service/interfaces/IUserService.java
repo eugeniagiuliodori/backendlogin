@@ -7,13 +7,15 @@ import java.util.Optional;
 
 public interface IUserService {
 
-    public EUser findByNameAndPassword(String name, String password);
+    public EUser findByPasswordAndName(String name, String password)throws Exception;
 
-    public EUser findByName(String name);
+    public EUser findByUserName(String name)throws Exception;
 
-    public List<EUser> findAll();
+    public EUser findByPassword(String password)throws Exception;
 
-    public Optional<EUser> findById(Long id);
+    public List<EUser> findAll()throws Exception;
+
+    public Optional<EUser> findById(Long id)throws Exception;
 
     public void addUser(EUser user) throws Exception;
 

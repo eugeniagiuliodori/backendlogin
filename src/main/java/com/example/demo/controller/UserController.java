@@ -69,6 +69,7 @@ public class UserController {
             userService.addUser(user);
             return new ResponseEntity<Void>(HttpStatus.CREATED);
         } catch (Exception e) {
+            e.printStackTrace();
             if (e instanceof CustomException) {
                 return new ResponseEntity<>(e.toString(), HttpStatus.NOT_ACCEPTABLE);
             } else {
@@ -89,14 +90,18 @@ public class UserController {
                 tokenValue = authHeader.replace("Bearer", "").trim();
             }
             String authenticatedUser = userService.getAuthenticatedUser();
-            EUser authuser = userService.findByName(authenticatedUser);
+            EUser authuser = userService.findByUserName(authenticatedUser);
             Long authenticatedUserId = authuser.getId();
             Long bodyUserId = user.getId();
             String bodyUser = user.getName();
             String bodyPassUser = user.getPassword();
-            boolean existBodyRoles=user.getRoles() != null && user.getRoles().isEmpty();
+            boolean existBodyRoles=user.getRoles() != null;
             if(bodyUserId != null || bodyUser != null) {
-                EUser oldUser = userService.findByName(user.getName());
+                EUser oldUser = null;
+                try {
+                    oldUser = userService.findByUserName(user.getName());
+                }
+                catch(Exception e){}
                 EUser usermod = userService.updateUser(user, existBodyRoles);
                 if ((bodyUserId != null && bodyUserId.equals(authenticatedUserId)) ||
                         (bodyUser != null && bodyUser.equals(authenticatedUser))) {//if update is of authenticated user
@@ -218,6 +223,9 @@ public class UserController {
             return new ResponseEntity<Void>(HttpStatus.OK);
         }
         catch(Exception e){
+            if(e instanceof CustomException){
+                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_ACCEPTABLE);
+            }
             return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.CONFLICT);
         }
 
@@ -229,6 +237,9 @@ public class UserController {
             return new ResponseEntity<>(HttpStatus.OK);
         }
         catch(Exception e){
+            if(e instanceof CustomException){
+                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_ACCEPTABLE);
+            }
             return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
         }
     }
@@ -243,6 +254,9 @@ public class UserController {
                 return new ResponseEntity<>(UsersMapper.getStringUsers(), HttpStatus.OK);
         }
         catch(Exception e){
+            if(e instanceof CustomException){
+                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_ACCEPTABLE);
+            }
             return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
         }
     }
@@ -251,11 +265,14 @@ public class UserController {
     @GetMapping("/get/name/{name}")
     public ResponseEntity<?> getUser(@PathVariable(value="name") String name){
         try{
-            EUser euser = userService.findByName(name);
+            EUser euser = userService.findByUserName(name);
             User user = UserMapper.translate(euser);
             return new ResponseEntity<>(user.toString(), HttpStatus.OK);
         }
         catch(Exception e){
+            if(e instanceof CustomException){
+                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_ACCEPTABLE);
+            }
             return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
         }
     }
@@ -269,6 +286,9 @@ public class UserController {
             return new ResponseEntity<>(user.toString(), HttpStatus.OK);
         }
         catch(Exception e){
+            if(e instanceof CustomException){
+                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_ACCEPTABLE);
+            }
             return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
         }
     }
