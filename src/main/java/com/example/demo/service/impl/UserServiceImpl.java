@@ -133,6 +133,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
             if(user.getName()!=null && user.getPassword() != null && !user.getName().isEmpty() && !user.getPassword().isEmpty() ) {
                 euser.setName(user.getName());
                 euser.setPassword(passwordEncoder.encode(user.getPassword()));
+                Set<ERole> s = getNotFoundUserRolesInBD(user);
                 for(ERole role : getNotFoundUserRolesInBD(user)){
                     roleService.save(role);
                 }
@@ -252,16 +253,11 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                             if (role.getDescription() == null) {
                                 role.setDescription(currRole.getDescription());
                             }
-                            if (role.getUsers() == null) {
-                                role.setUsers(currRole.getUsers());
-                            }
                         }
                         else{
-                            String s = role.getNameRole();
                             roleService.save(role);
                         }
                     }
-                    int i = rolesUpdate.size();
                     euser.setRoles(getRolesWithID(rolesUpdate));
                     euser = userDao.save(euser);
 
@@ -463,18 +459,10 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     private Set<ERole> getRolesWithID(Set<ERole> roles)throws Exception{
         Set<ERole> rolesWithID = new HashSet<>();
         for(ERole role : roles){
-            try {
-                role = roleService.findByRoleName(role.getNameRole());
-                rolesWithID.add(role);
-            }
-            catch(Exception e){
-                try {
-                    role = roleService.findById(role.getId()).get();
-                    rolesWithID.add(role);
-                }
-                catch(Exception ex){}
-            }
+            ERole frole = roleService.findByRoleName(role.getNameRole());
+            rolesWithID.add(frole);
         }
         return rolesWithID;
     }
+
 }

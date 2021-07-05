@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import com.example.demo.customExceptions.CustomException;
+import com.example.demo.entity.ERole;
 import com.example.demo.entity.EUser;
 import com.example.demo.extras.IteratorOfSet;
 import com.example.demo.mapper.RolesMapper;
