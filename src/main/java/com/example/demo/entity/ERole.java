@@ -1,7 +1,10 @@
 package com.example.demo.entity;
 
+import com.example.demo.model.Role;
+
 import javax.persistence.*;
 import java.util.Date;
+import java.util.Objects;
 import java.util.Set;
 import java.io.Serializable;
 
@@ -75,5 +78,12 @@ public class ERole implements Serializable {
 
     public void setUsers(Set<EUser> users) {
         this.users = users;
+    }
+
+    public boolean equalsOnlyByNameERole(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ERole role = (ERole) o;
+        return nameRole.equals(role.nameRole);
     }
 }

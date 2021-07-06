@@ -1,5 +1,6 @@
 package com.example.demo.extras;
 
+import com.example.demo.entity.ERole;
 import com.example.demo.model.Role;
 import com.example.demo.model.Service;
 import org.springframework.security.core.GrantedAuthority;
@@ -98,7 +99,18 @@ public class IteratorOfSet implements Iterator {
                 Role role = (Role) o;
                 boolean exist = false;
                 for (int i = 0; i < list.size() && !exist; i++) {
-                    if (((Role) list.get(i)).equalsOnlyNameService(role)) {
+                    if (((Role) list.get(i)).equalsOnlyByNameRole(role)) {
+                        exist = true;
+                    }
+                }
+                return exist;
+            }
+            if(list.get(0) instanceof ERole){
+                if (o == null) return true;
+                ERole role = (ERole) o;
+                boolean exist = false;
+                for (int i = 0; i < list.size() && !exist; i++) {
+                    if (((ERole) list.get(i)).equalsOnlyByNameERole(role)) {
                         exist = true;
                     }
                 }

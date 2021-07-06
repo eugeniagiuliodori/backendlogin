@@ -97,38 +97,54 @@ public class UserController {
             String bodyUser = user.getName();
             String bodyPassUser = user.getPassword();
             boolean existBodyRoles=user.getRoles() != null;
+            String s=null;
             if(bodyUserId != null || bodyUser != null) {
                 EUser oldUser = null;
                 try {
-                    oldUser = userService.findByUserName(user.getName());
+                    EUser old = userService.findByUserName(user.getName());
+                    oldUser = new EUser();
+                    oldUser.setId(old.getId());
+                    oldUser.setName(old.getName());
+                    oldUser.setDate(old.getDate());
+                    oldUser.setPassword(old.getPassword());
+                    oldUser.setRoles(new HashSet<>(old.getRoles()));//si no pongo un new EUser para oldUser, me da problema de aliasing cuando hace el update (no entiendo donde)
                 }
                 catch(Exception e){}
                 EUser usermod = userService.updateUser(user, existBodyRoles);
+                s = new String("");
+                for(Role role : RolesMapper.translate(oldUser.getRoles())){
+                    s=s+role.getName()+",";
+                }
+                log.info("ROLES old!!!:"+s);
                 if ((bodyUserId != null && bodyUserId.equals(authenticatedUserId)) ||
                         (bodyUser != null && bodyUser.equals(authenticatedUser))) {//if update is of authenticated user
-                    String s1=bodyUser;
-                    String s2=authenticatedUser;
                     Optional<EUser> euser = null;
                     Set<Role> oldRoles = null;
                     if (oldUser == null) {
                         euser = userService.findById(user.getId());
                         if (euser.isPresent()) {
-                            oldUser = euser.get();
                             oldRoles = RolesMapper.translate(euser.get().getRoles());
                         }
-                    } else {
+                    }
+                    else {
                         oldRoles = RolesMapper.translate(oldUser.getRoles());
                     }
+                    s = new String("");
+                    for(ERole role : usermod.getRoles()){
+                        s=s+role.getNameRole()+",";
+                    }
+                    log.info("ROLES!!!:"+s);
+
                     Set<Role> updateRoles = RolesMapper.translate(usermod.getRoles());
-                    Set<String> oldNameRoles = new HashSet<>();
-                    Set<String> updateNameRoles = new HashSet<>();
                     IteratorOfSet iteratorOld = new IteratorOfSet(oldRoles);
                     IteratorOfSet iteratorUpdate = new IteratorOfSet(updateRoles);
                     boolean changesCountRoles = iteratorOld.size() != iteratorUpdate.size();
                     boolean equalsContentRoles = true;
-                    while (iteratorUpdate.hasNext() && equalsContentRoles) {
-                        if (!iteratorOld.contains(((Role) iteratorUpdate.next()))) {
-                            equalsContentRoles = false;
+                    if(!changesCountRoles) {
+                        while (iteratorUpdate.hasNext() && equalsContentRoles) {
+                            if (!iteratorOld.contains(((Role) iteratorUpdate.next()))) {
+                                equalsContentRoles = false;
+                            }
                         }
                     }
                     boolean changesRoles = changesCountRoles || !equalsContentRoles;
@@ -305,14 +321,6 @@ public class UserController {
         RestTemplate restTemplate = new RestTemplate();
         String access_token_url = "http://localhost:8040/user/logout";
         restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
-
-
-
-
-
-
-
-
         String credentials = idClient + ":" + passClient;
             String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
             headers = new HttpHeaders();

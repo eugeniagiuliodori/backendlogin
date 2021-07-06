@@ -223,7 +223,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                     euser.setRoles(oldUser.getRoles());
                 }
                 else{
-                    Set<ERole>  rolesUpdate = user.getRoles();
+                    Set<ERole>  rolesUpdate = new HashSet<>(user.getRoles());//si no pongo new, hay problema de alisaing
                     for (ERole role : rolesUpdate) {
                         String roleName = role.getNameRole();
                         ERole currRole = null;
@@ -259,7 +259,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                         }
                     }
                     euser.setRoles(getRolesWithID(rolesUpdate));
-                    euser = userDao.save(euser);
+                    //euser = userDao.save(euser);
 
                 }
                 return userDao.save(euser);

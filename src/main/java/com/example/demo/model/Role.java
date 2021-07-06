@@ -71,7 +71,7 @@ public class Role {
     @Override
     public String toString() {
         return "{" +
-                "\"name\":\"" + name + "\"" +
+                "\"nameRole\":\"" + name + "\"" +
                 ", \"description\":\"" + description + "\"" +
                 ", \"date\":\"" + date + "\""+
                 ", \"services\":" + services + ""+
@@ -92,6 +92,14 @@ public class Role {
         if (o == null || getClass() != o.getClass()) return false;
         Role role = (Role) o;
         return name.equals(role.name) && Objects.equals(description, role.description) && date.equals(role.date) && services.equalsOnlyName(role.getServices());
+    }
+
+
+    public boolean equalsOnlyByNameRole(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Role role = (Role) o;
+        return name.equals(role.name);
     }
 
 
