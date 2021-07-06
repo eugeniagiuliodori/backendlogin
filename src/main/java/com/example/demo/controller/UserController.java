@@ -111,11 +111,6 @@ public class UserController {
                 }
                 catch(Exception e){}
                 EUser usermod = userService.updateUser(user, existBodyRoles);
-                s = new String("");
-                for(Role role : RolesMapper.translate(oldUser.getRoles())){
-                    s=s+role.getName()+",";
-                }
-                log.info("ROLES old!!!:"+s);
                 if ((bodyUserId != null && bodyUserId.equals(authenticatedUserId)) ||
                         (bodyUser != null && bodyUser.equals(authenticatedUser))) {//if update is of authenticated user
                     Optional<EUser> euser = null;
@@ -129,11 +124,6 @@ public class UserController {
                     else {
                         oldRoles = RolesMapper.translate(oldUser.getRoles());
                     }
-                    s = new String("");
-                    for(ERole role : usermod.getRoles()){
-                        s=s+role.getNameRole()+",";
-                    }
-                    log.info("ROLES!!!:"+s);
 
                     Set<Role> updateRoles = RolesMapper.translate(usermod.getRoles());
                     IteratorOfSet iteratorOld = new IteratorOfSet(oldRoles);

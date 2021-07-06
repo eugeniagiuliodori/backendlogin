@@ -240,6 +240,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                                 }
                             }
                         }
+                        String d = role.getDescription();
                         if(currRole != null) {
                             if (role.getNameRole() == null) {
                                 role.setNameRole(currRole.getNameRole());
@@ -258,6 +259,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                             roleService.save(role);
                         }
                     }
+                    Set<ERole> rolesWithID = getRolesWithID(rolesUpdate);
                     euser.setRoles(getRolesWithID(rolesUpdate));
                     //euser = userDao.save(euser);
 
@@ -460,6 +462,8 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         Set<ERole> rolesWithID = new HashSet<>();
         for(ERole role : roles){
             ERole frole = roleService.findByRoleName(role.getNameRole());
+            frole.setDescription(role.getDescription());
+            frole.setDate(role.getDate());
             rolesWithID.add(frole);
         }
         return rolesWithID;
