@@ -228,7 +228,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                         String roleName = role.getNameRole();
                         ERole currRole = null;
                         try {
-                            currRole = roleService.findByRoleName(roleName);//aca va una query mas compleja porque el usuario te puede dar un id de role que existe para otro user
+                            currRole = roleService.findByRoleName(roleName);
                         }
                         catch(Exception e){
                             try {
@@ -236,7 +236,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                             }
                             catch(Exception ex){
                                 if(roleName == null && role.getId() == null) {
-                                    throw new CustomException("Invalid data", "Empty id and name role of user");
+                                    throw new CustomException("Invalid data", "Empty id and name role");
                                 }
                             }
                         }
@@ -432,26 +432,26 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     }
 
     private Set<ERole> getNotFoundUserRolesInBD(EUser user) throws Exception{
-        Iterator iterator = new IteratorOfSet(user.getRoles());
         Set<ERole> rolesNotExisting = new HashSet<>();
-        while(iterator.hasNext()){
-            ERole currRole = (ERole) iterator.next();
-            if((currRole.getId() == null) && (currRole.getNameRole() == null)){
-                throw new CustomException("Missing mandatory info","Missing id and name of role");
-            }
-            else{
-                boolean present=true;
-                if((currRole.getId() != null) && !roleService.findById(currRole.getId()).isPresent()){
-                    present=false;
-                }
-                if((currRole.getNameRole() != null) && roleService.findByRoleName(currRole.getNameRole())==null){
-                    present=false;
-                }
-                else{
-                    present=true;
-                }
-                if(!present){
-                    rolesNotExisting.add(currRole);
+        if(user.getRoles() != null && !user.getRoles().isEmpty()) {
+            Iterator iterator = new IteratorOfSet(user.getRoles());
+            while (iterator.hasNext()) {
+                ERole currRole = (ERole) iterator.next();
+                if ((currRole.getId() == null) && (currRole.getNameRole() == null)) {
+                    throw new CustomException("Missing mandatory info", "Missing id and name of role");
+                } else {
+                    boolean present = true;
+                    if ((currRole.getId() != null) && !roleService.findById(currRole.getId()).isPresent()) {
+                        present = false;
+                    }
+                    if ((currRole.getNameRole() != null) && roleService.findByRoleName(currRole.getNameRole()) == null) {
+                        present = false;
+                    } else {
+                        present = true;
+                    }
+                    if (!present) {
+                        rolesNotExisting.add(currRole);
+                    }
                 }
             }
         }
@@ -460,6 +460,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
     private Set<ERole> getRolesWithID(Set<ERole> roles)throws Exception{
         Set<ERole> rolesWithID = new HashSet<>();
+        if(roles != null && !roles.isEmpty())
         for(ERole role : roles){
             ERole frole = roleService.findByRoleName(role.getNameRole());
             frole.setDescription(role.getDescription());
