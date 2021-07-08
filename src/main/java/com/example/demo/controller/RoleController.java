@@ -59,7 +59,7 @@ public class RoleController {
     public ResponseEntity<?> updateRole(@RequestBody final ERole role){
         try{
             ERole roleold = roleService.findByRoleName(role.getNameRole());
-            role.setId(roleold.getId());
+            //role.setId(roleold.getId());
             if(role.getNameRole() != null && roleold !=null) {
                 ERole oldRole = roleService.save(role);
                 if(oldRole != null) {
@@ -229,6 +229,7 @@ public class RoleController {
     public ResponseEntity<?> getRole(@PathVariable(value="name") String name){
         try{
             ERole erole = roleService.findByRoleName(name);
+            int size = erole.getUsers().size();
             Role role = RoleMapper.translate(erole);
             return new ResponseEntity<>(role.toString(), HttpStatus.OK);
         }

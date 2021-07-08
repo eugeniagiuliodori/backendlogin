@@ -18,6 +18,11 @@ public class User {
         this.roles = roles;
     }
 
+
+    public User(String name) {
+        this.name = name;
+    }
+
     public String getName() {
         return name;
     }
@@ -44,6 +49,14 @@ public class User {
 
     @Override
     public String toString(){
-        return "{"+"\"name\":\""+getName()+"\", \"date\":\""+getDate().toString()+"\", \"roles\":"+getRoles().toString()+"}";
+        String date = new String("");
+        String roles = new String("");
+        if(getDate() != null){
+            date = ",\"" + date + "\":\""+ getDate().toString() + "\",";
+        }
+        if(getRoles() != null){
+            roles = "\"roles\":"+ getRoles().toString();
+        }
+        return "{"+"\"name\":\""+getName()+"\"" + date + roles+"}";
     }
 }

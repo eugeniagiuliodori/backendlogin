@@ -2,10 +2,7 @@ package com.example.demo.model;
 
 import com.example.demo.extras.ServiceList;
 
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class Role {
 
@@ -17,11 +14,14 @@ public class Role {
 
     private ServiceList services;
 
-    public Role(String name, String description, Date date, ServiceList services) {
+    private Set<User> users;
+
+    public Role(String name, String description, Date date, ServiceList services, Set<User> users) {
         this.name = name;
         this.description = description;
         this.date = date;
         this.services = services;
+        this.users = users;
     }
 
     public Role(String name) {
@@ -74,7 +74,8 @@ public class Role {
                 "\"nameRole\":\"" + name + "\"" +
                 ", \"description\":\"" + description + "\"" +
                 ", \"date\":\"" + date + "\""+
-                ", \"services\":" + services + ""+
+                ", \"services\":" + services.toString() + ""+
+                ", \"users\":" + users.toString() + ""+
                 "}";
     }
 

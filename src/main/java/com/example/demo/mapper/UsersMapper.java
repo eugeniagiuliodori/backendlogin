@@ -3,9 +3,11 @@ package com.example.demo.mapper;
 import com.example.demo.entity.ERole;
 import com.example.demo.entity.EUser;
 import com.example.demo.extras.IteratorOfSet;
+import com.example.demo.extras.ServiceList;
 import com.example.demo.model.Role;
 import com.example.demo.model.User;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -19,7 +21,8 @@ public class UsersMapper {
         IteratorOfSet iterator = new IteratorOfSet(users);
         while(iterator.hasNext()){
             EUser euser = (EUser)iterator.next();
-            User user = UserMapper.translate(euser);
+            User user = new User(euser.getName());
+            //User user = UserMapper.translate(euser);// esto genera recursividad infinita
             mapperUsers.add(user);
             str = str + user.toString();
             if (iterator.hasNext()){

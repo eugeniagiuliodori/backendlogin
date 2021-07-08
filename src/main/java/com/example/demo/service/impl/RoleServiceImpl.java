@@ -114,7 +114,6 @@ public class RoleServiceImpl implements IRoleService {
                         }
                     }
                 }
-
             }
             return roleDao.save(role);
         }
