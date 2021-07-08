@@ -1,6 +1,7 @@
 package com.example.demo.entity;
 
 import com.example.demo.model.Role;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import javax.persistence.*;
 import java.util.Date;
@@ -21,7 +22,7 @@ public class ERole implements Serializable {
     @Temporal(TemporalType.DATE)
     private Date date;
 
-    @Column(name="role", unique = true, nullable = false)//no reconoce el unique
+    @Column(name="role", unique = true, nullable = false)
     private String nameRole;
 
     @Column(name="description")
@@ -31,7 +32,15 @@ public class ERole implements Serializable {
     @JoinTable(name = "eusers_eroles",
             joinColumns = @JoinColumn(name = "erole_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "euser_id", referencedColumnName = "id"))
-    private Set<EUser> users;// = new HashSet<EUser>();
+    private Set<EUser> users;
+
+    @ManyToMany(cascade = {CascadeType.REFRESH}, fetch = FetchType.EAGER)
+    @JsonBackReference
+    @JoinTable(name = "eservices_eroles",
+            joinColumns = @JoinColumn(name = "erole_id", referencedColumnName = "id"),
+            inverseJoinColumns = @JoinColumn(name = "eservice_id", referencedColumnName = "id"))
+    private Set<EService> services;
+
 
     @PrePersist
     public void PrePersist(){
@@ -78,6 +87,14 @@ public class ERole implements Serializable {
 
     public void setUsers(Set<EUser> users) {
         this.users = users;
+    }
+
+    public Set<EService> getServices() {
+        return services;
+    }
+
+    public void setServices(Set<EService> services) {
+        this.services = services;
     }
 
     public boolean equalsOnlyByNameERole(Object o) {

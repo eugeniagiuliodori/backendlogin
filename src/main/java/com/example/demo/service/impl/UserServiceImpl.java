@@ -54,6 +54,8 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
     private String authenticatedPassUser;
 
+    private List<ERole> listRoles;
+
     @Override
     @Transactional(readOnly = true, rollbackFor = Exception.class)
     public EUser findByUserName(String name)throws Exception{
@@ -371,6 +373,14 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         return authenticatedPassUser;
     }
 
+    public List<ERole> getListRoles() {
+        return listRoles;
+    }
+
+    public void setListRoles(List<ERole> listRoles) {
+        this.listRoles = listRoles;
+    }
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         authenticatedUser=username;
@@ -384,7 +394,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         }
 
         Set<ERole> setRoles = user.getRoles();
-        List<ERole> listRoles = new LinkedList<>(setRoles);
+        listRoles = new LinkedList<>(setRoles);
         SimpleGrantedAuthority[] arrayRoles = new SimpleGrantedAuthority[setRoles.size()];
         for(int i=0;i<listRoles.size();i++){
             SimpleGrantedAuthority currAuth = new SimpleGrantedAuthority("ROLE_"+listRoles.get(i).getNameRole());
