@@ -1,11 +1,13 @@
 
 package com.example.demo.service.impl;
 
+import com.example.demo.customExceptions.CustomException;
 import com.example.demo.dao.IRoleDao;
 import com.example.demo.dao.IServiceDao;
 import com.example.demo.entity.ERole;
 import com.example.demo.entity.EService;
 import com.example.demo.entity.EUser;
+import com.example.demo.extras.RoleRepository;
 import com.example.demo.service.interfaces.IRoleService;
 import com.example.demo.service.interfaces.IServiceService;
 import com.example.demo.service.interfaces.IUserService;
@@ -26,6 +28,9 @@ public class RoleServiceImpl implements IRoleService {
 
     @Autowired
     private IUserService userService;
+
+    @Autowired
+    private RoleRepository roleRepository;
 
     @Override
     @Transactional(readOnly=true)
@@ -55,64 +60,71 @@ public class RoleServiceImpl implements IRoleService {
                     }
                 }
             }
-            if(frole != null){
-                if(role.getId() == null){
-                    role.setId(frole.getId());//garantizo update
-                }
-                if(role.getNameRole() == null){
-                    role.setNameRole(frole.getNameRole());
-                }
-                if(role.getDate() == null){
-                    role.setDate(frole.getDate());
-                }
-                if(role.getDescription() == null){
-                    role.setDescription(frole.getDescription());
-                }
-                if(role.getUsers() == null){
-                    role.setUsers(new HashSet<>(frole.getUsers()));
-                }
-                else{
-                    Set<EUser> users = role.getUsers();
-                    for(EUser user : users) {
-                        if (user.getName() != null) {//en el caso de add de rol (no desde user) no se permite en el request, poner el id
-                            EUser fuser = userService.findByUserName(user.getName());
-                            if(fuser != null) {
-                                user.setId(fuser.getId());
-                            }
-                            else{
-                                return null;
-                            }
+            if(frole != null && role.getId() == null){
+                role.setId(frole.getId());//garantizo update
+            }
+            if(frole != null && role.getNameRole() == null){
+                role.setNameRole(frole.getNameRole());
+            }
+            if(frole != null && role.getDate() == null){
+                role.setDate(frole.getDate());
+            }
+            if(frole != null && role.getDescription() == null){
+                role.setDescription(frole.getDescription());
+            }
+            boolean b=false;
+            if(frole != null && role.getUsers() == null){
+                role.setUsers(new HashSet<>(frole.getUsers()));
+                b = true;
+            }
+            if(role.getUsers() != null && !b){//porque es update o add con usuarios
+                Set<EUser> users = role.getUsers();
+                for(EUser user : users) {
+                    if (user.getName() != null) {//en el caso de add de rol (no desde user) no se permite en el request, poner el id
+                        EUser fuser = null;
+                        try {
+                            fuser = userService.findByUserName(user.getName());
+                            user.setId(fuser.getId());
                         }
-                        else{
-                            return null;
+                        catch(Exception ex){
+                            throw new CustomException("Data not found","Invalid name in some/s name/s role users");
                         }
                     }
+                    else{
+                        throw new CustomException("Data not found","Missing name/s of role users");
+                    }
                 }
-                if(role.getServices() == null){
-                    role.setServices(new HashSet<>(frole.getServices()));
-                }
-                else {
-                    Set<EService> services = role.getServices();
-                    if (services != null) {
-                        for (EService service : services) {
-                            if (service.getName() != null) {//en el caso de add de rol (no desde user) no se permite en el request, poner el id
-                                EService fservice = serviceDao.findByName(service.getName());
-                                if (fservice != null) {
-                                    service.setId(fservice.getId());
-                                } else {
-                                    return null;
-                                }
-                            } else {
-                                return null;
+            }
+            b = false;
+            if(frole != null && role.getServices() == null){
+                role.setServices(new HashSet<>(frole.getServices()));
+                b=true;
+            }
+            if(role.getServices() != null && !b){
+                Set<EService> services = role.getServices();
+                if (services != null) {
+                    for (EService service : services) {
+                        if (service.getName() != null) {//en el caso de add de rol (no desde user) no se permite en el request, poner el id
+                            EService fservice = null;
+                            try {
+                                fservice = serviceDao.findByName(service.getName());
+                                service.setId(fservice.getId());
                             }
+                            catch(Exception ex){
+                                throw new CustomException("Data not found","Invalid name in some/s name/s role services");
+                            }
+                        }
+                        else {
+                            throw new CustomException("Data not found","Missing name/s of role services");
                         }
                     }
                 }
             }
+
             return roleDao.save(role);
         }
         else{
-            return null;
+            throw new CustomException("Data not found","Role is null");
         }
     }
 
@@ -123,15 +135,15 @@ public class RoleServiceImpl implements IRoleService {
     }
 
     @Override
-    @Transactional
-    public ERole deleteByNameRole(String name){
+    @Transactional(rollbackFor = Exception.class)
+    public ERole deleteByNameRole(String name) throws Exception{
         ERole delRole = roleDao.findByNameRole(name);
         if(delRole != null) {
-            roleDao.deleteByNameRole(name);
+            roleRepository.deleteByNameRole(name);
             return delRole;
         }
         else{
-            return null;
+            throw new CustomException("Data not found","Role not found with name: "+name);
         }
     }
 
@@ -143,26 +155,37 @@ public class RoleServiceImpl implements IRoleService {
 
 
     @Override
-    @Transactional
-    public Optional<ERole> deleteById(Long id){
+    @Transactional(rollbackFor = Exception.class)
+    /* RAZON POR LA QUE HAGO OVERRIDE DEL DELETEBYID DEL REPOSITORY JPA:
+    The "problem" is your mapping. Your collection is retrieved eagerly. Now why would that be an issue?
+    The deleteById in Spring Data JPA first does a findById which in your case, loads the associated entities
+    eagerly.
+    Now entity is attempting to be deleted but due to it being still attached and referenced by another entity
+     it would be persisted again, hence the delete is canceled.
+    Possible solutions:
+    Delete using a query and write your own query method for this
+    Mark either side of the association lazy
+    */
+    public Optional<ERole> deleteById(Long id) throws Exception{
         if(id != null) {
             Optional<ERole> delRole = roleDao.findById(id);
             if (delRole.isPresent()) {
-                roleDao.deleteById(id);
+                roleRepository.deleteById(id);
                 return delRole;
-            } else {
-                return null;
+            }
+            else {
+                throw new CustomException("Data not found","Role not found with id: "+id);
             }
         }
         else{
-            return null;
+            throw new CustomException("Null data","Missing role id");
         }
     }
 
     @Override
-    @Transactional
-    public boolean deleteAll(){
-        roleDao.deleteAll();
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteAll()  throws Exception{
+        roleRepository.deleteAll();
         return count() == 0;
     }
 

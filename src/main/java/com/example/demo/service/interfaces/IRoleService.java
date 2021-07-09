@@ -17,11 +17,11 @@ public interface IRoleService {
 
     public ERole saveAndFlush(ERole role) throws Exception;
 
-    public ERole deleteByNameRole(String name);
+    public ERole deleteByNameRole(String name) throws Exception;
 
-    public Optional<ERole> deleteById(Long id);
+    public Optional<ERole> deleteById(Long id) throws Exception;
 
-    public boolean deleteAll();
+    public boolean deleteAll() throws Exception;
 
     public long count();
 }

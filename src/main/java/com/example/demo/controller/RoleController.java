@@ -2,13 +2,11 @@ package com.example.demo.controller;
 
 import com.example.demo.customExceptions.CustomException;
 import com.example.demo.entity.ERole;
-import com.example.demo.entity.EUser;
+import com.example.demo.extras.RoleRepository;
 import com.example.demo.extras.TokenGenerator;
 import com.example.demo.mapper.RoleMapper;
 import com.example.demo.mapper.RolesMapper;
-import com.example.demo.mapper.UsersMapper;
 import com.example.demo.model.Role;
-import com.example.demo.model.User;
 import com.example.demo.service.impl.UserServiceImpl;
 import com.example.demo.service.interfaces.IRoleService;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +17,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
-
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 
@@ -37,6 +34,7 @@ public class RoleController {
 
     @Autowired
     private HttpServletRequest context;
+
 
 //    @PreAuthorize("hasRole('add')")
     @PostMapping("/add")
@@ -136,6 +134,9 @@ public class RoleController {
             }
         }
         catch(Exception e){
+            if(e instanceof CustomException){
+                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_ACCEPTABLE);
+            }
             return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
         }
 
@@ -145,56 +146,53 @@ public class RoleController {
  //   @PreAuthorize("hasRole('delete')")
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteRole(@PathVariable(value="id") Long idRole){
-        CustomException error = new CustomException();
-        error.setName("ERROR");
-        error.setDescription("IN DELETE USER");
         try{
             roleService.deleteById(idRole);
             return new ResponseEntity<>(HttpStatus.OK);
         }
         catch(Exception e){
-            return new ResponseEntity<>(error,HttpStatus.NOT_ACCEPTABLE);
+            if(e instanceof CustomException){
+                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_ACCEPTABLE);
+            }
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
         }
     }
 
   //  @PreAuthorize("hasRole('delete')")
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteRole(@RequestBody final ERole role){
-        CustomException error = new CustomException();
-        error.setName("ERROR");
-        error.setDescription("IN DELETE USER");
-        ERole delRole = null;
-        try {
-            if (role.getId() == null) {
-                 delRole = roleService.deleteByNameRole(role.getNameRole());
-                 if(delRole != null){
-                     return new ResponseEntity<Void>(HttpStatus.OK);
-                 }
-                 else{
-                     return new ResponseEntity<>(error.toString(),HttpStatus.NOT_FOUND);
-                 }
+        boolean error=false;
+        if(role.getId() == null && role.getNameRole() != null){
+            ERole erole = roleService.findByRoleName(role.getNameRole());
+            if(erole != null){
+                role.setId(erole.getId());
             }
-            else {
-                ResponseEntity<?> response = deleteRole(role.getId());
-                HttpStatus status =  response.getStatusCode() ;//id not store in BD
-                if(status.isError()){
-                    error.setName("ERROR");
-                    error.setDescription("IN DELETE USER");
-                    delRole = roleService.deleteByNameRole(role.getNameRole());
-                    if(delRole != null){
-                        return new ResponseEntity<Void>(HttpStatus.OK);
+            else{
+                error = true;
+            }
+        }
+        else{
+            if(role.getId() != null && role.getNameRole() != null){
+                ERole erole = roleService.findByRoleName(role.getNameRole());
+                if(erole == null){
+                    Optional<ERole> frole = roleService.findById(role.getId());
+                    if(frole.isPresent()){
+                        role.setId(frole.get().getId());
                     }
                     else{
-                        return new ResponseEntity<>(error.toString(),HttpStatus.NOT_FOUND);
+                        error = true;
                     }
                 }
                 else{
-                    return response;
+                    role.setId(erole.getId());
                 }
             }
         }
-        catch(Exception e){
-            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_FOUND);
+        if(error){
+            return new ResponseEntity<>("{\"error\":\"role not found\"}",HttpStatus.NOT_ACCEPTABLE);
+        }
+        else {
+            return deleteRole(role.getId());
         }
     }
 
@@ -206,6 +204,9 @@ public class RoleController {
             return new ResponseEntity<Void>(HttpStatus.OK);
         }
         catch(Exception e){
+            if(e instanceof CustomException){
+                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.CONFLICT);
+            }
             return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.CONFLICT);
         }
 
@@ -229,9 +230,14 @@ public class RoleController {
     public ResponseEntity<?> getRole(@PathVariable(value="name") String name){
         try{
             ERole erole = roleService.findByRoleName(name);
-            int size = erole.getUsers().size();
-            Role role = RoleMapper.translate(erole);
-            return new ResponseEntity<>(role.toString(), HttpStatus.OK);
+            if(erole != null) {
+                int size = erole.getUsers().size();
+                Role role = RoleMapper.translate(erole);
+                return new ResponseEntity<>(role.toString(), HttpStatus.OK);
+            }
+            else{
+                return new ResponseEntity<>("{\"error\":\"role not found\"}",HttpStatus.NOT_ACCEPTABLE);
+            }
         }
         catch(Exception e){
             return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
@@ -242,31 +248,19 @@ public class RoleController {
     public ResponseEntity<?> getRole(@PathVariable(value="id") Long id){
         try{
             Optional<ERole> erole = roleService.findById(id);
-            Role role = RoleMapper.translate(erole.get());
-            return new ResponseEntity<>(role.toString(), HttpStatus.OK);
+            if(erole != null) {
+                Role role = RoleMapper.translate(erole.get());
+                return new ResponseEntity<>(role.toString(), HttpStatus.OK);
+            }
+            else{
+                return new ResponseEntity<>("{\"error\":\"role not found\"}",HttpStatus.NOT_ACCEPTABLE);
+            }
         }
         catch(Exception e){
             return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
         }
     }
 
-    private ResponseEntity<?> deleteRole(String name){
-        CustomException error = new CustomException();
-        error.setName("ERROR");
-        error.setDescription("IN DELETE USER");
-        try{
-            ERole delRole = roleService.deleteByNameRole(name);
-            if(delRole != null){
-                return new ResponseEntity<Void>(HttpStatus.OK);
-            }
-            else{
-                return new ResponseEntity<>(error.toString(),HttpStatus.NOT_FOUND);
-            }
-        }
-        catch(Exception e){
-            return new ResponseEntity<>("{\"error\": \"unexpected error\"}",HttpStatus.NOT_ACCEPTABLE);
-        }
-    }
 
     private String revoquesToken(String userName, String userPass, boolean passInRequest, String tokenValue, String idClient,String passClient) {
 
