@@ -43,27 +43,21 @@ public class RoleServiceImpl implements IRoleService {
     @Transactional(rollbackFor = Exception.class)
     public ERole save(ERole role) throws Exception{
         if(role != null) {
-            ERole frole;
+            ERole frole=null;
             if(role.getNameRole() != null){
                 frole = roleDao.findByNameRole(role.getNameRole());
             }
-            else {
-                if(role.getId() != null){
+            if(frole == null){
+                if(role.getId() != null) {
                     Optional<ERole> r = roleDao.findById(role.getId());
-                    if(r.isPresent()){
+                    if (r.isPresent()) {
                         frole = r.get();
                     }
-                    else {
-                        return null;
-                    }
-                }
-                else {
-                    return null;
                 }
             }
-            if(frole != null && frole.getId() != null){//si es update
+            if(frole != null){
                 if(role.getId() == null){
-                    role.setId(frole.getId());
+                    role.setId(frole.getId());//garantizo update
                 }
                 if(role.getNameRole() == null){
                     role.setNameRole(frole.getNameRole());
