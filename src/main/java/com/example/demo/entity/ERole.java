@@ -42,6 +42,16 @@ public class ERole implements Serializable {
     private Set<EService> services;
 
 
+    private transient String warnings;
+
+    public String getWarnings() {
+        return warnings;
+    }
+
+    public void setWarnings(String warnings) {
+        this.warnings = warnings;
+    }
+
     @PrePersist
     public void PrePersist(){
 

@@ -7,6 +7,7 @@ import com.example.demo.dao.IServiceDao;
 import com.example.demo.entity.ERole;
 import com.example.demo.entity.EService;
 import com.example.demo.entity.EUser;
+import com.example.demo.extras.ListManager;
 import com.example.demo.extras.RoleRepository;
 import com.example.demo.service.interfaces.IRoleService;
 import com.example.demo.service.interfaces.IServiceService;
@@ -77,6 +78,7 @@ public class RoleServiceImpl implements IRoleService {
                 role.setUsers(new HashSet<>(frole.getUsers()));
                 b = true;
             }
+
             if(role.getUsers() != null && !b){//porque es update o add con roles
                 Set<EUser> users = role.getUsers();
                 for(EUser user : users) {
@@ -120,7 +122,21 @@ public class RoleServiceImpl implements IRoleService {
                     }
                 }
             }
-            return roleDao.save(role);
+            boolean duplicatedNameUser = ListManager.hasDuplicates(role.getUsers());
+            String strWarnings = new String("");
+            if(duplicatedNameUser){
+                strWarnings = strWarnings + "{\"warning\":\"There are duplicated users\"}";
+            }
+            boolean duplicatedNameService = ListManager.hasDuplicates(role.getServices());
+            if(duplicatedNameUser){
+                if(!strWarnings.isEmpty()){
+                    strWarnings = strWarnings + ",";
+                }
+                strWarnings = strWarnings + "{\"warning\":\"There are duplicated services\"}";
+            }
+            ERole srole =  roleDao.save(role);
+            srole.setWarnings(strWarnings);
+            return srole;
         }
         else{
             throw new CustomException("Data not found","Role is null");

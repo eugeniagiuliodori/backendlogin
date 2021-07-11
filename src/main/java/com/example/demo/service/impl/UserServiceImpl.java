@@ -4,6 +4,7 @@ import com.example.demo.customExceptions.CustomException;
 import com.example.demo.entity.EUser;
 import com.example.demo.dao.IUserDao;
 import com.example.demo.entity.ERole;
+import com.example.demo.extras.ListManager;
 import com.example.demo.security.AuthorizationServerConfig;
 import com.example.demo.service.interfaces.IUserService;
 import com.example.demo.extras.IteratorOfSet;
@@ -160,21 +161,14 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                         strWarnings = "{\"warning\":\"User not necesarily has the number id given\"}";
                         //throw new CustomException("warning","User not necesarily has the number id given");
                     }
-                    boolean duplicatedNameRole = false;
-                    List<ERole> listRoles = new LinkedList<>(user.getRoles());
-                    for(int i=0; i < listRoles.size() && !duplicatedNameRole;i++){
-                        for(int j=i+1; j < listRoles.size() && !duplicatedNameRole; j++){
-                            if(listRoles.get(i).getNameRole().toLowerCase().equals(listRoles.get(j).getNameRole().toLowerCase())){
-                                duplicatedNameRole = true;
-                            }
-                        }
-                    }
+                    boolean duplicatedNameRole = ListManager.hasDuplicates(user.getRoles());
                     if(duplicatedNameRole){
                         if(!strWarnings.isEmpty()){
                             strWarnings = strWarnings + ",";
                         }
                         strWarnings = strWarnings + "{\"warning\":\"There are duplicated roles\"}";
                     }
+
                     if(warning){
                         if(!strWarnings.isEmpty()){
                             strWarnings = strWarnings + ",";
@@ -231,21 +225,28 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     @Transactional(rollbackFor = Exception.class)
     public EUser updateUser(EUser user, boolean existBodyRoles) throws Exception{
         if(user != null){
-            String strWarning = new String("");
+            String strWarnings = new String("");
             if(user.getName() == null){
-                strWarning = "{\"warning\":\"Incorrect or missing user name\"}";
+                strWarnings = "{\"warning\":\"Incorrect or missing user name\"}";
             }
             if(user.getPassword() == null){
-                if(!strWarning.isEmpty()){
-                    strWarning = strWarning + ",";
+                if(!strWarnings.isEmpty()){
+                    strWarnings = strWarnings + ",";
                 }
-                strWarning = strWarning + "{\"warning\":\"Incorrect or missing user password\"}";
+                strWarnings = strWarnings + "{\"warning\":\"Incorrect or missing user password\"}";
             }
             if(user.getRoles() == null){
-                if(!strWarning.isEmpty()){
-                    strWarning = strWarning + ",";
+                if(!strWarnings.isEmpty()){
+                    strWarnings = strWarnings + ",";
                 }
-                strWarning = strWarning + "{\"warning\":\"Incorrect or missing user roles\"}";
+                strWarnings = strWarnings + "{\"warning\":\"Incorrect or missing user roles\"}";
+            }
+            boolean duplicatedNameRole = ListManager.hasDuplicates(user.getRoles());
+            if(duplicatedNameRole){
+                if(!strWarnings.isEmpty()){
+                    strWarnings = strWarnings + ",";
+                }
+                strWarnings = strWarnings + "{\"warning\":\"There are duplicated roles\"}";
             }
             EUser oldUser = null;
             try {
@@ -328,7 +329,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
                 }
                 EUser suser = userDao.save(euser);
-                suser.setWarning(strWarning);
+                suser.setWarning(strWarnings);
                 return suser;
 
             }
