@@ -35,6 +35,11 @@ public class CustomException extends Exception{
 
     @Override
     public String toString() {
-        return "{\"error\":\""+ name + "->" + description+"\"}";
+        if(name.contains("warning")){
+            return "{\"warning\":\"" + description + "\"}";
+        }
+        else {
+            return "{\"error\":\"" + name + "->" + description + "\"}";
+        }
     }
 }

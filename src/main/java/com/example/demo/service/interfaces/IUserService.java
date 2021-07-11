@@ -17,7 +17,7 @@ public interface IUserService {
 
     public Optional<EUser> findById(Long id)throws Exception;
 
-    public void addUser(EUser user) throws Exception;
+    public EUser addUser(EUser user) throws Exception;
 
     public EUser save(EUser user)  throws Exception;
 

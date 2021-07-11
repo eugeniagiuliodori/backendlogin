@@ -77,7 +77,7 @@ public class RoleServiceImpl implements IRoleService {
                 role.setUsers(new HashSet<>(frole.getUsers()));
                 b = true;
             }
-            if(role.getUsers() != null && !b){//porque es update o add con usuarios
+            if(role.getUsers() != null && !b){//porque es update o add con roles
                 Set<EUser> users = role.getUsers();
                 for(EUser user : users) {
                     if (user.getName() != null) {//en el caso de add de rol (no desde user) no se permite en el request, poner el id
@@ -120,7 +120,6 @@ public class RoleServiceImpl implements IRoleService {
                     }
                 }
             }
-
             return roleDao.save(role);
         }
         else{

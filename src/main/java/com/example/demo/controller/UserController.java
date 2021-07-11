@@ -65,14 +65,20 @@ public class UserController {
 
     @PreAuthorize("hasRole('add')")
     @PostMapping("/add")
-    public ResponseEntity<?> addUser(HttpServletRequest httprequest, @RequestBody final EUser user) {
+    public ResponseEntity<?> addUser(@RequestBody final EUser user) {
         try {
-            userService.addUser(user);
-            return new ResponseEntity<Void>(HttpStatus.CREATED);
-        } catch (Exception e) {
+            EUser euser = userService.addUser(user);
+            if(!euser.getWarning().isEmpty()){
+                return new ResponseEntity<>("{\"warnings\":["+euser.getWarning()+"]}",HttpStatus.CREATED);
+            }
+            else {
+                return new ResponseEntity<Void>(HttpStatus.CREATED);
+            }
+        }
+        catch (Exception e) {
             e.printStackTrace();
             if (e instanceof CustomException) {
-                return new ResponseEntity<>(e.toString(), HttpStatus.NOT_ACCEPTABLE);
+                return new ResponseEntity<>(((CustomException)e).toString(), HttpStatus.NOT_ACCEPTABLE);
             } else {
                 return new ResponseEntity<>(new String("{\"error\":\"unespected error\"}"), HttpStatus.NOT_ACCEPTABLE);
             }
@@ -148,11 +154,21 @@ public class UserController {
                         return new ResponseEntity<>(new_token_refreshToken , HttpStatus.OK);
                     }
                     else{
-                        return new ResponseEntity<Void>(HttpStatus.OK);
+                        if(!usermod.getWarning().isEmpty()){
+                            return new ResponseEntity<>("{\"warnings\":["+usermod.getWarning()+"]}",HttpStatus.CREATED);
+                        }
+                        else {
+                            return new ResponseEntity<Void>(HttpStatus.CREATED);
+                        }
                     }
                 }
                 else{
-                    return new ResponseEntity<Void>(HttpStatus.OK);
+                    if(!usermod.getWarning().isEmpty()){
+                        return new ResponseEntity<>("{\"warnings\":["+usermod.getWarning()+"]}",HttpStatus.CREATED);
+                    }
+                    else {
+                        return new ResponseEntity<Void>(HttpStatus.CREATED);
+                    }
                 }
             }
             else{

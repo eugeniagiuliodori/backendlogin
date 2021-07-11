@@ -1,16 +1,21 @@
 package com.example.demo.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.persistence.*;
+import javax.servlet.http.HttpServletRequest;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 @Entity
 @Table(name="EUser")
 public class EUser implements Serializable {
 
+    
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)
     private Long id;
@@ -30,12 +35,21 @@ public class EUser implements Serializable {
     @JoinTable(name = "eusers_eroles",
             joinColumns = @JoinColumn(name = "euser_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "erole_id", referencedColumnName = "id"))
-
-
     private Set<ERole> roles;// = new HashSet<ERole>();
+
+
+    private transient String warning;
 
     public Date getDate() {
         return date;
+    }
+
+    public String getWarning() {
+        return warning;
+    }
+
+    public void setWarning(String warning) {
+        this.warning = warning;
     }
 
     public void setDate(Date date) {

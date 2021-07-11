@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.*;
 
 @Service
@@ -46,7 +48,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
     @PostConstruct
     public void init() {
-        registerUser("root", "passroot");
+        //registerUser("root", "passroot");
     }
 
 
@@ -128,20 +130,63 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     @Override
     @Modifying(clearAutomatically=true, flushAutomatically=true)
     @Transactional(rollbackFor = Exception.class)
-    public void addUser(EUser user) throws Exception{
+    public EUser addUser(EUser user) throws Exception{
+        boolean warning = false;
         if(user !=null){
             EUser euser = new EUser();
             //minimal parameters to add: name and password
             if(user.getName()!=null && user.getPassword() != null && !user.getName().isEmpty() && !user.getPassword().isEmpty() ) {
-                euser.setName(user.getName());
-                euser.setPassword(passwordEncoder.encode(user.getPassword()));
-                Set<ERole> s = getNotFoundUserRolesInBD(user);
-                for(ERole role : getNotFoundUserRolesInBD(user)){
-                    roleService.save(role);
+                boolean b = userDao.findByName(user.getName()) != null;
+                String ss = user.getName();
+                if(userDao.findByName(user.getName())== null) {
+                    euser.setName(user.getName());
+                    euser.setPassword(passwordEncoder.encode(user.getPassword()));
+                    for (ERole role : getNotFoundUserRolesInBD(user)) {
+                        try {
+                            if(role.getId() != null){
+                                warning = true;
+                            }
+                            roleService.save(role);
+                        }
+                        catch(Exception ex){}//omit duplicated role
+                    }
+                    euser = userDao.save(euser);//the assigment permit id value
+                    euser.setRoles(getRolesWithID(user.getRoles()));//aca puede reescribirse una relacion user-rol pero eso no es problema
+                    Long iu = euser.getId();
+                    Long ir = euser.getRoles().iterator().next().getId();
+                    euser = userDao.save(euser);
+                    String strWarnings = new String("");
+                    if(user.getId() != null){
+                        strWarnings = "{\"warning\":\"User not necesarily has the number id given\"}";
+                        //throw new CustomException("warning","User not necesarily has the number id given");
+                    }
+                    boolean duplicatedNameRole = false;
+                    List<ERole> listRoles = new LinkedList<>(user.getRoles());
+                    for(int i=0; i < listRoles.size() && !duplicatedNameRole;i++){
+                        for(int j=i+1; j < listRoles.size() && !duplicatedNameRole; j++){
+                            if(listRoles.get(i).getNameRole().toLowerCase().equals(listRoles.get(j).getNameRole().toLowerCase())){
+                                duplicatedNameRole = true;
+                            }
+                        }
+                    }
+                    if(duplicatedNameRole){
+                        if(!strWarnings.isEmpty()){
+                            strWarnings = strWarnings + ",";
+                        }
+                        strWarnings = strWarnings + "{\"warning\":\"There are duplicated roles\"}";
+                    }
+                    if(warning){
+                        if(!strWarnings.isEmpty()){
+                            strWarnings = strWarnings + ",";
+                        }
+                        strWarnings = strWarnings + "{\"warning\":\"There roles that not necesarily has registered with the number id given\"}";
+                    }
+                    euser.setWarning(strWarnings);
+                    return euser;
                 }
-                euser = userDao.save(euser);//the assigment permit id value
-                euser.setRoles(getRolesWithID(user.getRoles()));
-                userDao.save(euser);
+                else{
+                    throw new CustomException("Duplicate user","User is already added");
+                }
             }
             else{
                 String str = new String("");
@@ -186,6 +231,22 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     @Transactional(rollbackFor = Exception.class)
     public EUser updateUser(EUser user, boolean existBodyRoles) throws Exception{
         if(user != null){
+            String strWarning = new String("");
+            if(user.getName() == null){
+                strWarning = "{\"warning\":\"Incorrect or missing user name\"}";
+            }
+            if(user.getPassword() == null){
+                if(!strWarning.isEmpty()){
+                    strWarning = strWarning + ",";
+                }
+                strWarning = strWarning + "{\"warning\":\"Incorrect or missing user password\"}";
+            }
+            if(user.getRoles() == null){
+                if(!strWarning.isEmpty()){
+                    strWarning = strWarning + ",";
+                }
+                strWarning = strWarning + "{\"warning\":\"Incorrect or missing user roles\"}";
+            }
             EUser oldUser = null;
             try {
                 oldUser = findByUserName(user.getName());
@@ -266,7 +327,10 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                     //euser = userDao.save(euser);
 
                 }
-                return userDao.save(euser);
+                EUser suser = userDao.save(euser);
+                suser.setWarning(strWarning);
+                return suser;
+
             }
             else{
                 throw new CustomException("User not found","Null or incorrect ID user");
@@ -470,12 +534,15 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
     private Set<ERole> getRolesWithID(Set<ERole> roles)throws Exception{
         Set<ERole> rolesWithID = new HashSet<>();
-        if(roles != null && !roles.isEmpty())
-        for(ERole role : roles){
-            ERole frole = roleService.findByRoleName(role.getNameRole());
-            frole.setDescription(role.getDescription());
-            frole.setDate(role.getDate());
-            rolesWithID.add(frole);
+        if(roles != null && !roles.isEmpty()) {
+            for (ERole role : roles) {
+                ERole frole = roleService.findByRoleName(role.getNameRole());
+                frole.setDescription(role.getDescription());
+                frole.setDate(role.getDate());
+                rolesWithID.add(frole);
+                Long l = frole.getId();
+                String strs="";
+            }
         }
         return rolesWithID;
     }
