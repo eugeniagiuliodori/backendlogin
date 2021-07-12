@@ -10,25 +10,40 @@ import java.util.Set;
 
 public class ListManager {
 
-    public static boolean hasDuplicates(Set<?> set){
+    public static List<?> hasDuplicates(Set<?> set){
         boolean duplicate=false;
-        List<Object> list = new LinkedList<>(set);
-        for(int i=0; i < list.size() && !duplicate;i++){
-            for(int j=i+1; j < list.size() && !duplicate; j++){
-                if(list != null && !list.isEmpty()&& list.get(0) instanceof ERole) {
-                    if (((ERole)list.get(i)).getNameRole().toLowerCase().equals(((ERole)list.get(j)).getNameRole().toLowerCase())) {
-                        return true;
+        List<Object> list;
+        if(set != null && !set.isEmpty()) {
+            list = new LinkedList<>(set);
+        }
+        else{
+            list = new LinkedList<>();
+        }
+        if(list.size()>1){
+            for(int i=0; i < list.size() && !duplicate;i++) {
+                for (int j = i + 1; j < list.size() && !duplicate; j++) {
+                    if (list.get(0) instanceof ERole) {
+                        if (((ERole) list.get(i)).getNameRole().toLowerCase().equals(((ERole) list.get(j)).getNameRole().toLowerCase())) {
+                            list.remove(j);
+                            j--;
+                        }
                     }
-                    if (((EUser)list.get(i)).getName().toLowerCase().equals(((EUser)list.get(j)).getName().toLowerCase())) {
-                        return true;
+                    if (list.get(0) instanceof EUser) {
+                        if (((EUser) list.get(i)).getName().toLowerCase().equals(((EUser) list.get(j)).getName().toLowerCase())) {
+                            list.remove(j);
+                            j--;
+                        }
                     }
-                    if (((EService)list.get(i)).getName().toLowerCase().equals(((EService)list.get(j)).getName().toLowerCase())) {
-                        return true;
+                    if (list.get(0) instanceof EService) {
+                        if (((EService) list.get(i)).getName().toLowerCase().equals(((EService) list.get(j)).getName().toLowerCase())) {
+                            list.remove(j);
+                            j--;
+                        }
                     }
                 }
             }
         }
-        return false;
+        return list;
     }
 
 

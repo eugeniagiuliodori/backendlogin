@@ -40,12 +40,17 @@ public class RoleController {
     @PostMapping("/add")
     public ResponseEntity<?> addRole(HttpServletRequest httprequest, @RequestBody final ERole role) {
         try {
-            roleService.save(role);
-            return new ResponseEntity<Void>(HttpStatus.CREATED);
+            ERole erole = roleService.save(role);
+            if(erole.getWarnings().isEmpty()) {
+                return new ResponseEntity<Void>(HttpStatus.CREATED);
+            }
+            else{
+                return new ResponseEntity<>("{\"warnings\":["+erole.getWarnings()+"]}",HttpStatus.CREATED);
+            }
         } catch (Exception e) {
             e.printStackTrace();
             if (e instanceof CustomException) {
-                return new ResponseEntity<>(e.toString(), HttpStatus.NOT_ACCEPTABLE);
+                return new ResponseEntity<>(((CustomException)e).toString(), HttpStatus.NOT_ACCEPTABLE);
             } else {
                 return new ResponseEntity<>(new String("{\"error\":\"unespected error\"}"), HttpStatus.NOT_ACCEPTABLE);
             }
@@ -83,7 +88,12 @@ public class RoleController {
                         return new ResponseEntity<>(new_token_refreshToken, HttpStatus.OK);
                     }
                     else {
-                        return new ResponseEntity<Void>(HttpStatus.OK);
+                        if(oldRole.getWarnings().isEmpty()) {
+                            return new ResponseEntity<Void>(HttpStatus.OK);
+                        }
+                        else{
+                            return new ResponseEntity<>("{\"warnings\":["+oldRole.getWarnings()+"]}",HttpStatus.CREATED);
+                        }
                     }
                 }
                 else{

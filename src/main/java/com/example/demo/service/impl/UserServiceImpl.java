@@ -161,8 +161,8 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                         strWarnings = "{\"warning\":\"User not necesarily has the number id given\"}";
                         //throw new CustomException("warning","User not necesarily has the number id given");
                     }
-                    boolean duplicatedNameRole = ListManager.hasDuplicates(user.getRoles());
-                    if(duplicatedNameRole){
+                    List<ERole> distinctRoles = (List<ERole>)ListManager.hasDuplicates(user.getRoles());
+                    if(distinctRoles.size() < user.getRoles().size()){
                         if(!strWarnings.isEmpty()){
                             strWarnings = strWarnings + ",";
                         }
@@ -241,8 +241,8 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 }
                 strWarnings = strWarnings + "{\"warning\":\"Incorrect or missing user roles\"}";
             }
-            boolean duplicatedNameRole = ListManager.hasDuplicates(user.getRoles());
-            if(duplicatedNameRole){
+            List<ERole> distinctRoles = (List<ERole>)ListManager.hasDuplicates(user.getRoles());
+            if(distinctRoles.size() < user.getRoles().size()){
                 if(!strWarnings.isEmpty()){
                     strWarnings = strWarnings + ",";
                 }

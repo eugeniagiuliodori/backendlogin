@@ -122,17 +122,19 @@ public class RoleServiceImpl implements IRoleService {
                     }
                 }
             }
-            boolean duplicatedNameUser = ListManager.hasDuplicates(role.getUsers());
+            List<EUser> distinctUsers = (List<EUser>)ListManager.hasDuplicates(role.getUsers());
             String strWarnings = new String("");
-            if(duplicatedNameUser){
+            if(role.getUsers() != null && (distinctUsers.size() < role.getUsers().size())){
                 strWarnings = strWarnings + "{\"warning\":\"There are duplicated users\"}";
+                role.setUsers(new HashSet<EUser>(distinctUsers));
             }
-            boolean duplicatedNameService = ListManager.hasDuplicates(role.getServices());
-            if(duplicatedNameUser){
+            List<EService> distinctServices = (List<EService>)ListManager.hasDuplicates(role.getServices());
+            if(role.getServices() != null && (distinctServices.size() < role.getServices().size())){
                 if(!strWarnings.isEmpty()){
                     strWarnings = strWarnings + ",";
                 }
                 strWarnings = strWarnings + "{\"warning\":\"There are duplicated services\"}";
+                role.setServices(new HashSet<EService>(distinctServices));
             }
             ERole srole =  roleDao.save(role);
             srole.setWarnings(strWarnings);
