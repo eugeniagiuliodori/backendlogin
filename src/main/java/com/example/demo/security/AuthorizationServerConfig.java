@@ -104,8 +104,8 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 			}
 		}
 		catch(Exception e){}
-		client.accessTokenValiditySeconds(1 * 180);
-		client.refreshTokenValiditySeconds(2 * 180);
+		//client.accessTokenValiditySeconds(1 * 180);
+		//client.refreshTokenValiditySeconds(2 * 180);
 	}
 	
 	@Override
