@@ -7,7 +7,6 @@ import com.example.demo.extras.IteratorOfSet;
 import com.example.demo.service.impl.UserServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -104,8 +103,8 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 			}
 		}
 		catch(Exception e){}
-		//client.accessTokenValiditySeconds(1 * 180);
-		//client.refreshTokenValiditySeconds(2 * 180);
+		client.accessTokenValiditySeconds(1 * 180);
+		client.refreshTokenValiditySeconds(2 * 180);
 	}
 	
 	@Override

@@ -6,10 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import javax.persistence.*;
 import javax.servlet.http.HttpServletRequest;
 import java.io.Serializable;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Entity
 @Table(name="EUser")
@@ -39,6 +36,8 @@ public class EUser implements Serializable {
 
 
     private transient String warning;
+
+    private transient String toString;
 
     public Date getDate() {
         return date;
@@ -95,7 +94,21 @@ public class EUser implements Serializable {
         this.password = password;
     }
 
-
+    public String toString() {
+        String s = new String("");
+        String roles = new String("");
+        if(getRoles() != null && !getRoles().isEmpty()){
+            Iterator iterator = getRoles().iterator();
+            for(ERole role : getRoles()) {
+                roles = roles + "{\"nameRole\":\""+((ERole)iterator.next()).getNameRole()+"\"}";
+            }
+            if(iterator.hasNext()){
+                roles=roles+",";
+            }
+        }
+        s = "{\"name\":\""+getName()+"\",\"password\":\""+getPassword()+"\",\"roles\":["+roles+"]}";
+        return s;
+    }
 
     private static final long serialVersionUID = 1L;
 }
