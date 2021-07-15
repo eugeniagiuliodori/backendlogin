@@ -7,31 +7,47 @@ import com.example.demo.service.impl.RoleServiceImpl;
 import com.example.demo.service.impl.UserServiceImpl;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.json.JacksonJsonParser;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.context.BootstrapWith;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.Base64Utils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.WebApplicationContext;
 import java.util.*;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -39,21 +55,25 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
+import org.springframework.test.context.support.DefaultTestContextBootstrapper;
+import org.springframework.web.util.DefaultUriBuilderFactory;
 
-@SpringBootTest(classes = DemoApplication.class)
-@AutoConfigureMockMvc
-@WebAppConfiguration
 @RunWith(SpringRunner.class)
+@ContextConfiguration(classes = DemoApplication.class)
+@AutoConfigureMockMvc
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+//@WebMvcTest(UserController.class)
 public class DemoApplicationTests{
+
+
+	@Autowired
+	private TestRestTemplate template;
 
 	@Autowired
 	private MockMvc mvc;
 
 	@Autowired
-	private WebApplicationContext wac;
-
-	@Autowired
-	private FilterChainProxy springSecurityFilterChain;
+	private WebApplicationContext webApplicationContext;
 
 	@MockBean
 	private UserServiceImpl userServicesMock;
@@ -61,41 +81,14 @@ public class DemoApplicationTests{
 	@MockBean
 	private RoleServiceImpl roleServicesMock;
 
-	@InjectMocks
-	private UserController userController;
-
-	@Autowired
-	private BCryptPasswordEncoder bCryptPasswordEncoder;
 
 	@Before
-	public void setup() {
-		mvc = MockMvcBuilders.webAppContextSetup(this.wac)
-				.addFilter(springSecurityFilterChain).build();
+	public void init() throws Exception {
+		mvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+				.apply(SecurityMockMvcConfigurers.springSecurity())
+				.build();
 	}
 
-	private String obtainAccessToken(String username, String password) throws Exception {
-
-		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-		//params.add("client_id", "idClient1");
-		params.add("username", username);
-		params.add("password", password);
-		params.add("grant_type", "password");
-
-		String pass = bCryptPasswordEncoder.encode("passClient1");
-		ResultActions result
-				= mvc.perform(post("/oauth/token")
-				.params(params)
-				//.header("Authorization","Basic "+new String(Base64Utils.encode(("idClient1" + ":" + "passClient1").getBytes())))
-				.with(httpBasic("idClient1","passClient1"))
-				.accept("application/json;charset=UTF-8"))
-				.andExpect(status().isOk())
-				.andExpect(content().contentType("application/json;charset=UTF-8"));
-
-		String resultString = result.andReturn().getResponse().getContentAsString();
-
-		JacksonJsonParser jsonParser = new JacksonJsonParser();
-		return jsonParser.parseMap(resultString).get("access_token").toString();
-	}
 
 		@Test
 	public void getAllUsers() throws Exception {
@@ -126,6 +119,7 @@ public class DemoApplicationTests{
 
 
 	@Test
+	//@WithMockUser(username = "root", authorities = { "add" })
 	public void addCorrectUser() throws Exception {
 		EUser mockUser = new EUser();
 		ERole mockRole = new ERole();
@@ -143,14 +137,32 @@ public class DemoApplicationTests{
 		mockUser.setDate(timestamp);
 		mockUser.setRoles(setRoles);
 		String s = mockUser.toString();
-		String accessToken = obtainAccessToken("root", "passroot");
+		String authStr = "idClient1:passClient1";
+		String base64Creds = Base64.getEncoder().encodeToString(authStr.getBytes());
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("Authorization", "Basic " + base64Creds);
+
+		Map<String, Object> map = new HashMap<>();
+		map.put("username", "root");
+		map.put("password", "passroot");
+		map.put("grant_type", "password");
+
+// build the request
+		HttpEntity<Map<String, Object>> entity = new HttpEntity<>(map, headers);
+
+		// make a request
+		template.setUriTemplateHandler(new DefaultUriBuilderFactory("http://localhost:8040"));
+		ResponseEntity<String> result = template.postForEntity("/oauth/token",entity, String.class);
+		//ResponseEntity<String> result = template.withBasicAuth("idClient1", "passClient1").postForEntity("/oauth/token", String.class);
+		assertEquals(HttpStatus.OK, result.getStatusCode());
+		/*
 		mvc.perform(post("http://localhost:8040/user/add")
 				.contentType(MediaType.APPLICATION_JSON)
-				.header("Authorization", "Bearer " + accessToken)
 				.content(mockUser.toString())
 				.accept(MediaType.APPLICATION_JSON))
 				.andExpect(status().isCreated());
-
+		*/
 	}
 
 

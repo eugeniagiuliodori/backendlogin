@@ -46,6 +46,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		auth.userDetailsService(userService).passwordEncoder(encoder());
 	}
 
+
+
 	//CON OAUTH2 ESTE METODO CAMBIA Y SOLO SE DEFINE EL ENDPOINT PARA OBTENER TOKEN
 	@Override
 	protected void configure(HttpSecurity http) throws Exception{
