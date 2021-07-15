@@ -5,6 +5,9 @@ import com.example.demo.entity.ERole;
 import com.example.demo.entity.EUser;
 import com.example.demo.service.impl.RoleServiceImpl;
 import com.example.demo.service.impl.UserServiceImpl;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.message.BasicNameValuePair;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +23,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -31,6 +35,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.BootstrapWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -45,6 +50,8 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.WebApplicationContext;
+
+import java.nio.charset.Charset;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -61,8 +68,9 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 @RunWith(SpringRunner.class)
 @ContextConfiguration(classes = DemoApplication.class)
 @AutoConfigureMockMvc
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 //@WebMvcTest(UserController.class)
+@ActiveProfiles("test")
 public class DemoApplicationTests{
 
 
@@ -116,10 +124,8 @@ public class DemoApplicationTests{
 
 	*/
 
-
-
 	@Test
-	//@WithMockUser(username = "root", authorities = { "add" })
+	//@WithMockUser(roles = { "add" })
 	public void addCorrectUser() throws Exception {
 		EUser mockUser = new EUser();
 		ERole mockRole = new ERole();
@@ -139,20 +145,22 @@ public class DemoApplicationTests{
 		String s = mockUser.toString();
 		String authStr = "idClient1:passClient1";
 		String base64Creds = Base64.getEncoder().encodeToString(authStr.getBytes());
-
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Authorization", "Basic " + base64Creds);
-
-		Map<String, Object> map = new HashMap<>();
-		map.put("username", "root");
-		map.put("password", "passroot");
-		map.put("grant_type", "password");
+		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+		MultiValueMap<String, String> params = new LinkedMultiValueMap<String, String>();
+		params.set("username", "root");
+		params.set("password", "passroot");
+		params.set("grant_type", "password");
+		params.add("scope","read write");
 
 // build the request
-		HttpEntity<Map<String, Object>> entity = new HttpEntity<>(map, headers);
+		HttpEntity<MultiValueMap<String, String>>  entity = new HttpEntity<>(params, headers);
 
 		// make a request
 		template.setUriTemplateHandler(new DefaultUriBuilderFactory("http://localhost:8040"));
+
+		//ResponseEntity<String> result = template.exchange("/oauth/token", HttpMethod.POST, entity, String.class);
 		ResponseEntity<String> result = template.postForEntity("/oauth/token",entity, String.class);
 		//ResponseEntity<String> result = template.withBasicAuth("idClient1", "passClient1").postForEntity("/oauth/token", String.class);
 		assertEquals(HttpStatus.OK, result.getStatusCode());
