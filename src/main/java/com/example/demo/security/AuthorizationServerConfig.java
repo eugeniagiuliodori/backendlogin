@@ -8,6 +8,7 @@ import com.example.demo.service.impl.UserServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -33,7 +34,6 @@ import java.util.Iterator;
 @Configuration
 @EnableAuthorizationServer
 @Component
-@Slf4j
 public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdapter{
 
 
