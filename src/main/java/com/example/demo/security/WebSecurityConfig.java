@@ -21,6 +21,7 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
+@Profile("test")
 //@Component COMENTADO PARA OAUTH2
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 

@@ -50,16 +50,10 @@ public class UserController {
     private HttpServletRequest context;
 
     @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
+    private AuthorizationServerTokenServices authorizationServerTokenServices;
 
     @Autowired
-    private AuthorizationServerConfig auth;
-
-    @Autowired
-    AuthorizationServerTokenServices authorizationServerTokenServices;
-
-    @Autowired
-    ConsumerTokenServices consumerTokenServices;
+    private ConsumerTokenServices consumerTokenServices;
 
 
 
@@ -147,7 +141,7 @@ public class UserController {
                     if ((bodyUser != null && !authenticatedUser.equals(bodyUser))||
                     (bodyPassUser != null && !authuser.getPassword().equals(bodyPassUser)) ||
                             (changesRoles)){
-                        String new_token_refreshToken = revoquesToken(usermod.getName(),user.getPassword(),user.getPassword() != null ,tokenValue, auth.getIdClient(), auth.getPassClient());
+                        String new_token_refreshToken = revoquesToken(usermod.getName(),user.getPassword(),user.getPassword() != null ,tokenValue, "idClient1", "passClient1");
                         if(new_token_refreshToken.contains("error")){
                             new_token_refreshToken="{\"error\":\""+new_token_refreshToken+"\"}";
                         }

@@ -7,6 +7,7 @@ import com.example.demo.extras.IteratorOfSet;
 import com.example.demo.service.impl.UserServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -34,7 +35,10 @@ import java.util.Iterator;
 @Configuration
 @EnableAuthorizationServer
 @Component
+@Profile("test")
 public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdapter{
+
+
 
 
 
@@ -47,11 +51,7 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 	@Autowired
 	private UserServiceImpl userService;
 
-
-
-
 	private ClientDetailsServiceConfigurer clients;
-
 
 	public  ClientDetailsServiceConfigurer getClients() {
 		return clients;
