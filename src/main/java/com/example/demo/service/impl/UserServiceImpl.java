@@ -17,13 +17,15 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.test.context.support.WithSecurityContext;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
+import org.springframework.security.oauth2.provider.token.ConsumerTokenServices;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.test.context.support.WithMockUser;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
-import java.lang.annotation.*;
+import java.security.Principal;
 import java.util.*;
 
 @Service
@@ -39,7 +41,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     private RoleServiceImpl roleService;
 
     @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
+    private BCryptPasswordEncoder encoder;
 
     @Autowired
     private AuthorizationServerConfig auth;
@@ -47,7 +49,19 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     @Autowired
     private HttpServletRequest context;
 
+    @Autowired
+    private AuthorizationServerTokenServices authorizationServerTokenServices;
 
+    @Autowired
+    private ConsumerTokenServices consumerTokenServices;
+
+    @Autowired
+    private UserDetailsService userDetailsService;
+
+    @Bean
+    public UserDetailsService myUserService(){
+        return userDetailsService;
+    }
 
     @PostConstruct
     public void init() {
@@ -143,7 +157,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 String ss = user.getName();
                 if(userDao.findByName(user.getName())== null) {
                     euser.setName(user.getName());
-                    euser.setPassword(passwordEncoder.encode(user.getPassword()));
+                    euser.setPassword(encoder.encode(user.getPassword()));
                     for (ERole role : getNotFoundUserRolesInBD(user)) {
                         try {
                             if(role.getId() != null){
@@ -282,7 +296,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                     euser.setPassword(oldUser.getPassword());
                 }
                 else{
-                    euser.setPassword(passwordEncoder.encode(user.getPassword()));
+                    euser.setPassword(encoder.encode(user.getPassword()));
                 }
 
                 if(!existBodyRoles){
@@ -450,6 +464,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        log.info("USERNAME:"+username);
         authenticatedUser=username;
         authenticatedPassUser=context.getParameter("password");
         EUser user;
@@ -476,6 +491,16 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         return new org.springframework.security.core.userdetails.User(user.getName(), user.getPassword(), Arrays.asList(arrayRoles));
     }
 
+
+    @Override
+    @Transactional
+    public void logout(Principal principal){
+        OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) principal;
+        OAuth2AccessToken accessToken = authorizationServerTokenServices.getAccessToken(oAuth2Authentication);
+        consumerTokenServices.revokeToken(accessToken.getValue());
+        //String redirectUrl = "user/logout?myRedirect=/user";
+        //response.sendRedirect(redirectUrl); por ahora no hasta definir url home
+    }
 
 
     private void registerUser(String username, String password){

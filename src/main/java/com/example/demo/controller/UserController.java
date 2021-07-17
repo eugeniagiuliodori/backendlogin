@@ -1,7 +1,6 @@
 package com.example.demo.controller;
 
 import com.example.demo.customExceptions.CustomException;
-import com.example.demo.entity.ERole;
 import com.example.demo.entity.EUser;
 import com.example.demo.extras.IteratorOfSet;
 import com.example.demo.mapper.RolesMapper;
@@ -9,7 +8,6 @@ import com.example.demo.mapper.UserMapper;
 import com.example.demo.mapper.UsersMapper;
 import com.example.demo.model.Role;
 import com.example.demo.model.User;
-import com.example.demo.security.AuthorizationServerConfig;
 import com.example.demo.service.impl.UserServiceImpl;
 import com.example.demo.service.interfaces.IRoleService;
 import lombok.extern.slf4j.Slf4j;
@@ -17,18 +15,11 @@ import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
-import org.springframework.security.oauth2.provider.token.ConsumerTokenServices;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.security.Principal;
 import java.util.*;
 
@@ -48,13 +39,6 @@ public class UserController {
 
     @Autowired
     private HttpServletRequest context;
-
-    @Autowired
-    private AuthorizationServerTokenServices authorizationServerTokenServices;
-
-    @Autowired
-    private ConsumerTokenServices consumerTokenServices;
-
 
 
     @PreAuthorize("hasRole('add')")
@@ -182,14 +166,8 @@ public class UserController {
 
 
     @PostMapping ("/logout")
-    public ResponseEntity<?> logout(Principal principal, HttpServletRequest request, HttpServletResponse response) throws IOException {
-
-        OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) principal;
-        OAuth2AccessToken accessToken = authorizationServerTokenServices.getAccessToken(oAuth2Authentication);
-        consumerTokenServices.revokeToken(accessToken.getValue());
-        //String redirectUrl = "user/logout?myRedirect=/user";
-        //response.sendRedirect(redirectUrl); por ahora no hasta definir url home
-
+    public ResponseEntity<?> logout(Principal principal) {
+        userService.logout(principal);
         return new ResponseEntity<Void>(HttpStatus.OK);
     }
 

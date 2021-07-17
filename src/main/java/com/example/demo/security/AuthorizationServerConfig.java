@@ -34,8 +34,7 @@ import java.util.Iterator;
 
 @Configuration
 @EnableAuthorizationServer
-@Component
-@Profile("test")
+
 public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdapter{
 
 
@@ -43,7 +42,7 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 
 
 	@Autowired
-	private BCryptPasswordEncoder bCryptPasswordEncoder;
+	private BCryptPasswordEncoder encoder;
 
 	@Autowired
 	private AuthenticationManager authenticationManager;
@@ -84,7 +83,7 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 		//bCryptPasswordEncoder=new BCryptPasswordEncoder();//por q no funciona autowired?
 		ClientDetailsServiceBuilder<InMemoryClientDetailsServiceBuilder>.ClientBuilder client =
 				clients.inMemory().withClient(idClient);
-		client.secret(bCryptPasswordEncoder.encode(passClient));
+		client.secret(encoder.encode(passClient));
 		client.authorizedGrantTypes("password", "refresh_token");
 		client.scopes("read", "write");
 		userName=userService.getAuthenticatedUser();

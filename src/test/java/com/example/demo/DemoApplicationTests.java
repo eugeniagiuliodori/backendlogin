@@ -2,20 +2,39 @@ package com.example.demo;
 
 import com.example.demo.entity.ERole;
 import com.example.demo.entity.EUser;
+import com.example.demo.security.AuthorizationServerConfig;
+import com.example.demo.security.ResourceServerConfig;
 import com.example.demo.service.impl.RoleServiceImpl;
 import com.example.demo.service.impl.UserServiceImpl;
+import com.sun.org.apache.xerces.internal.parsers.SecurityConfiguration;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.json.JacksonJsonParser;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.http.*;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.*;
+import org.springframework.security.core.userdetails.cache.NullUserCache;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,23 +43,27 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
+
+import javax.persistence.EntityManager;
 import java.util.*;
+
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
-@RunWith(SpringRunner.class)
-@WebAppConfiguration
-@SpringBootTest(classes = DemoApplication.class)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class DemoApplicationTests {
 
+
+@RunWith(SpringRunner.class)
+@SpringBootTest
+@AutoConfigureMockMvc
+public class DemoApplicationTests{
+
+	@Autowired
 	private MockMvc mvc;
 
 	@Autowired
 	private WebApplicationContext wac;
-
-	@Autowired
-	private FilterChainProxy springSecurityFilterChain;
 
 
 	@MockBean
@@ -49,17 +72,15 @@ public class DemoApplicationTests {
 	@MockBean
 	private RoleServiceImpl roleServicesMock;
 
-	@Before
-	public void setup() {
-		mvc = MockMvcBuilders.webAppContextSetup(this.wac).addFilter(springSecurityFilterChain).build();// Initialize the MockMvc object, add the Security filter chain
-	}
+	private UsernamePasswordAuthenticationToken userAuth;
+
 
 	private String obtainAccessToken(String username, String password) throws Exception {
 
 		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
 		params.add("grant_type", "password");
-		params.add("username", "root");
-		params.add("password", "passroot");
+		params.add("username", username);
+		params.add("password", password);
 
 
 		String credential= "idClient1"+":"+"passClient1";
@@ -89,8 +110,7 @@ public class DemoApplicationTests {
 
 
 	@Test
-	@WithMockUser(username="idClient1", password="passClient1",roles = { "add" })
-	//@WithUserDetails("idClient1")
+	@WithUserDetails(value="root", userDetailsServiceBeanName="myUserDetailsService")
 	public void addCorrectUser() throws Exception {
 		EUser mockUser = new EUser();
 		ERole mockRole = new ERole();
@@ -110,8 +130,8 @@ public class DemoApplicationTests {
 		String s = new String("");
 		try {
 			s = obtainAccessToken("root", "passroot");
-		}
-		catch(Exception e){}
+		} catch (Exception e) {}
+
 		/*MultiValueMap<String, String> params = new LinkedMultiValueMap<String, String>();
 		params.set("username", "root");
 		params.set("password", "passroot");
@@ -123,16 +143,13 @@ public class DemoApplicationTests {
 				//.contentType("application/x-www-form-urlencoded")
 				//.params(params))
 				//.andExpect(status().isOk());
-		mvc.perform(post("http://localhost:8040/user/add")
+		/*mvc.perform(post("http://localhost:8040/user/add")
 				.header("Authorization","Bearer "+s)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(mockUser.toString())
 				.accept(MediaType.APPLICATION_JSON))
-				.andExpect(status().isCreated());
+				.andExpect(status().isCreated());*/
 
 	}
-
-
-
 }
 

@@ -14,15 +14,15 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.stereotype.Component;
 
 
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
-@Profile("test")
-//@Component COMENTADO PARA OAUTH2
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
 	@Autowired
@@ -40,6 +40,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	public BCryptPasswordEncoder encoder() {
 		return new BCryptPasswordEncoder();
 	}
+
 
 	//CON OAUTH2 ESTE METODO CAMBIA
 	@Override
@@ -64,6 +65,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 				// https://docs.spring.io/spring-security/site/docs/current/reference/html/csrf.html#csrf-logout
 				.logoutRequestMatcher(new AntPathRequestMatcher("/user/logout"));
 	}
+
 
 	/* SIN OAUTH 2
 	@Bean

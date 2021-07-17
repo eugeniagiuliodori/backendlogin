@@ -2,6 +2,9 @@ package com.example.demo.service.interfaces;
 
 import com.example.demo.entity.EUser;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,6 +37,8 @@ public interface IUserService {
     public long count();
 
     public void flush();
+
+    public void logout(Principal principal);
 
 
 }

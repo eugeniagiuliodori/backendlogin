@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 
-@Repository
+
 public interface IClientDao extends JpaRepository<EClient,String> {
 
     public EClient findByNameIdAndPassword(String id, String password);

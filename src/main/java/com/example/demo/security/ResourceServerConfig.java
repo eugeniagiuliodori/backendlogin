@@ -19,7 +19,7 @@ import org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHand
 
 @Configuration
 @EnableResourceServer
-@Profile("test")
+
 public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
 
 	@Override
