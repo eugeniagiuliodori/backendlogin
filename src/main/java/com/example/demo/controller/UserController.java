@@ -6,6 +6,7 @@ import com.example.demo.extras.IteratorOfSet;
 import com.example.demo.mapper.RolesMapper;
 import com.example.demo.mapper.UserMapper;
 import com.example.demo.mapper.UsersMapper;
+import com.example.demo.model.Login;
 import com.example.demo.model.Role;
 import com.example.demo.model.User;
 import com.example.demo.service.impl.UserServiceImpl;
@@ -169,6 +170,17 @@ public class UserController {
     public ResponseEntity<?> logout(Principal principal) {
         userService.logout(principal);
         return new ResponseEntity<Void>(HttpStatus.OK);
+    }
+
+    @PostMapping ("/login")
+    public ResponseEntity<?> login(@RequestBody final Login login) {
+        String userName = login.getUserName();
+        String userPass = login.getUserPass();
+        String clientId= login.getClientId();
+        String clientPass = login.getClientPass();
+
+        String jsonlogin = userService.login(login.getUserName(),login.getUserPass(),login.getClientId(),login.getClientPass());
+        return new ResponseEntity<>(jsonlogin,HttpStatus.OK);
     }
 
 

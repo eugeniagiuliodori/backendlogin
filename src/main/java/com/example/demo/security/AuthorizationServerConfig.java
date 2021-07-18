@@ -39,17 +39,11 @@ import java.util.Iterator;
 public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdapter{
 
 
-
-
-
-	@Autowired
-	private BCryptPasswordEncoder encoder;
-
 	@Autowired
 	private AuthenticationManager authenticationManager;
 
 	@Autowired
-	private UserServiceImpl userService;
+	private UserServiceImpl userServiceImpl;
 
 	private ClientDetailsServiceConfigurer clients;
 
@@ -67,7 +61,8 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 
 	private String passClient;
 
-
+	@Autowired
+	private BCryptPasswordEncoder encoder;
 
 	@Override
 	public void configure(ClientDetailsServiceConfigurer clients) throws Exception{
@@ -87,10 +82,10 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 		client.secret(encoder.encode(passClient));
 		client.authorizedGrantTypes("password", "refresh_token");
 		client.scopes("read", "write");
-		userName=userService.getAuthenticatedUser();
+		userName=userServiceImpl.getAuthenticatedUser();
 		EUser user;
 		try {
-			user = userService.findByUserName(userName);
+			user = userServiceImpl.findByUserName(userName);
 			if(user.getRoles() != null) {
 				IteratorOfSet iterator = new IteratorOfSet(user.getRoles());
 				String[] auths = new String[iterator.size()];
@@ -109,18 +104,18 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 	
 	@Override
 	public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception{
-		endpoints.authenticationManager(authenticationManager).userDetailsService((UserDetailsService)userService);
+		endpoints.authenticationManager(authenticationManager).userDetailsService((UserDetailsService)userServiceImpl);
 
 	}
 
 
 
 	public UserServiceImpl getUserService() {
-		return userService;
+		return userServiceImpl;
 	}
 
 	public void setUserService(UserServiceImpl userService) {
-		this.userService = userService;
+		this.userServiceImpl = userService;
 	}
 
 	public String getUserName() {

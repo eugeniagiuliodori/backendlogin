@@ -5,6 +5,7 @@ import com.example.demo.entity.EUser;
 import com.example.demo.dao.IUserDao;
 import com.example.demo.entity.ERole;
 import com.example.demo.extras.ListManager;
+import com.example.demo.extras.TokenGenerator;
 import com.example.demo.security.AuthorizationServerConfig;
 import com.example.demo.service.interfaces.IUserService;
 import com.example.demo.extras.IteratorOfSet;
@@ -41,7 +42,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     private RoleServiceImpl roleService;
 
     @Autowired
-    private BCryptPasswordEncoder bCryptPasswordEncoder;
+    private BCryptPasswordEncoder encoder;
 
     @Autowired
     private AuthorizationServerConfig auth;
@@ -151,7 +152,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 String ss = user.getName();
                 if(userDao.findByName(user.getName())== null) {
                     euser.setName(user.getName());
-                    euser.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
+                    euser.setPassword(encoder.encode(user.getPassword()));
                     for (ERole role : getNotFoundUserRolesInBD(user)) {
                         try {
                             if(role.getId() != null){
@@ -290,7 +291,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                     euser.setPassword(oldUser.getPassword());
                 }
                 else{
-                    euser.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
+                    euser.setPassword(encoder.encode(user.getPassword()));
                 }
 
                 if(!existBodyRoles){
@@ -460,10 +461,11 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         log.info("USERNAME:"+username);
         authenticatedUser=username;
-        authenticatedPassUser=context.getParameter("password");
+        authenticatedPassUser=new String("");
         EUser user;
         try {
             user = findByUserName(username);
+            authenticatedPassUser=user.getPassword();
         }
         catch(Exception e){
             throw new UsernameNotFoundException("Usuario no valido");
@@ -494,6 +496,13 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         consumerTokenServices.revokeToken(accessToken.getValue());
         //String redirectUrl = "user/logout?myRedirect=/user";
         //response.sendRedirect(redirectUrl); por ahora no hasta definir url home
+    }
+
+    @Override
+    @Transactional
+    public String login(String userName, String userPass, String clientId, String clientPass){
+        TokenGenerator tokenGenerator = new TokenGenerator();
+        return tokenGenerator.login(userName, userPass, clientId, clientPass);
     }
 
 

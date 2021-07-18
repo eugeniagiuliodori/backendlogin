@@ -38,6 +38,8 @@ public interface IUserService {
 
     public void flush();
 
+    public String login(String userName, String userPass, String clientId, String clientPass);
+
     public void logout(Principal principal);
 
 

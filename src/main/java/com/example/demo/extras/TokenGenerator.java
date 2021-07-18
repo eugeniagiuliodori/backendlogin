@@ -2,6 +2,7 @@ package com.example.demo.extras;
 
 import com.example.demo.security.AuthorizationServerConfig;
 import com.example.demo.service.impl.UserServiceImpl;
+import com.nimbusds.oauth2.sdk.http.HTTPRequest;
 import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
@@ -45,5 +46,26 @@ public class TokenGenerator {
         ResponseEntity<String> response = restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
         return response.getBody();
     }
+
+
+    public String login(String userName, String userPass, String clientId, String clientPass) {
+
+        String credentials = clientId + ":" + clientPass;
+        String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.add("Authorization", "Basic " + encodedCredentials);
+        MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<String, String>();
+        requestBody.add("Content-Type", "application/x-www-form-urlencoded");
+        requestBody.add("username", userName);
+        requestBody.add("password", userPass);
+        requestBody.add("grant_type", "password");
+        HttpEntity formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
+        HttpEntity<String> request = new HttpEntity<String>(headers);
+        RestTemplate restTemplate = new RestTemplate();
+        String access_token_url = "http://localhost:8040/oauth/token";
+        ResponseEntity<String> response = restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
+        return response.getBody();
+    }
+
 
 }
