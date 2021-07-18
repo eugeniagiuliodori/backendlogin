@@ -1,5 +1,6 @@
 package com.example.demo.security;
 
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -19,7 +20,7 @@ import org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHand
 
 @Configuration
 @EnableResourceServer
-
+@TestConfiguration
 public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
 
 	@Override

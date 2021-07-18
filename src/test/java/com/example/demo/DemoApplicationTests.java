@@ -9,11 +9,14 @@ import com.example.demo.service.impl.UserServiceImpl;
 import com.sun.org.apache.xerces.internal.parsers.SecurityConfiguration;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.json.JacksonJsonParser;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -53,10 +56,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 
-
+@EnableAutoConfiguration
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
+@ContextConfiguration
 public class DemoApplicationTests{
 
 	@Autowired
@@ -75,12 +79,16 @@ public class DemoApplicationTests{
 	private UsernamePasswordAuthenticationToken userAuth;
 
 
+
+
+
 	private String obtainAccessToken(String username, String password) throws Exception {
 
 		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-		params.add("grant_type", "password");
 		params.add("username", username);
 		params.add("password", password);
+		params.add("grant_type", "password");
+
 
 
 		String credential= "idClient1"+":"+"passClient1";
@@ -90,14 +98,14 @@ public class DemoApplicationTests{
 				= mvc.perform(post("/oauth/token")
 				.header("Authorization", "Basic " +base64ClientCredentials)
 				.contentType(MediaType.APPLICATION_FORM_URLENCODED)
-				.params(params))
+				.param("username", username)
+				.param("password", password)
+				.param("grant_type", "password"))
 				.andExpect(status().isOk());
 		if(result != null){
 			String str = "";
 		}
-
 		String resultString = result.andReturn().getResponse().getContentAsString();
-
 		JacksonJsonParser jsonParser = new JacksonJsonParser();
 		return jsonParser.parseMap(resultString).get("access_token").toString();
 	}
@@ -110,7 +118,8 @@ public class DemoApplicationTests{
 
 
 	@Test
-	@WithUserDetails(value="root", userDetailsServiceBeanName="myUserDetailsService")
+	@WithMockUser(username="root",roles={"add"})
+	//@WithUserDetails(value="root")
 	public void addCorrectUser() throws Exception {
 		EUser mockUser = new EUser();
 		ERole mockRole = new ERole();

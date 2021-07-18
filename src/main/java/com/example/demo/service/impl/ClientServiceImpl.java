@@ -23,9 +23,6 @@ public class ClientServiceImpl implements IClientService{
     @Autowired
     private IRoleService roleService;
 
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
-
 
     @PostConstruct
     public void init() {
@@ -60,7 +57,8 @@ public class ClientServiceImpl implements IClientService{
             EClient eclient = new EClient();
             if(client.getNameId() !=null && client.getPassword() != null && !client.getNameId().isEmpty() && !client.getPassword().isEmpty() ) {
                 eclient.setStrId(client.getNameId());
-                eclient.setPassword(passwordEncoder.encode(client.getPassword()));
+                BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+                eclient.setPassword(bCryptPasswordEncoder.encode(client.getPassword()));
                 eclient.setDate(client.getDate());
                 //int i = client.getRoles().size();
                 //String s = client.getRoles().iterator().next().getNameRole();

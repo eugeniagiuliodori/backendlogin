@@ -41,7 +41,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     private RoleServiceImpl roleService;
 
     @Autowired
-    private BCryptPasswordEncoder encoder;
+    private BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Autowired
     private AuthorizationServerConfig auth;
@@ -55,13 +55,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     @Autowired
     private ConsumerTokenServices consumerTokenServices;
 
-    @Autowired
-    private UserDetailsService userDetailsService;
 
-    @Bean
-    public UserDetailsService myUserService(){
-        return userDetailsService;
-    }
 
     @PostConstruct
     public void init() {
@@ -157,7 +151,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 String ss = user.getName();
                 if(userDao.findByName(user.getName())== null) {
                     euser.setName(user.getName());
-                    euser.setPassword(encoder.encode(user.getPassword()));
+                    euser.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
                     for (ERole role : getNotFoundUserRolesInBD(user)) {
                         try {
                             if(role.getId() != null){
@@ -296,7 +290,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                     euser.setPassword(oldUser.getPassword());
                 }
                 else{
-                    euser.setPassword(encoder.encode(user.getPassword()));
+                    euser.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
                 }
 
                 if(!existBodyRoles){
