@@ -524,7 +524,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
     @Override
     @Transactional
-    public String login(String userName, String userPass, String clientId, String clientPass){
+    public String login(String userName, String userPass, String clientId, String clientPass)throws Exception{
         TokenGenerator tokenGenerator = new TokenGenerator();
         return tokenGenerator.login(userName, userPass, clientId, clientPass);
     }

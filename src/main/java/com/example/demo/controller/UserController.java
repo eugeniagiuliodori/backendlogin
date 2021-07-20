@@ -10,10 +10,13 @@ import com.example.demo.mapper.UsersMapper;
 import com.example.demo.model.Login;
 import com.example.demo.model.Role;
 import com.example.demo.model.User;
+import com.example.demo.model.UserWithID;
 import com.example.demo.service.impl.UserServiceImpl;
 import com.example.demo.service.interfaces.IRoleService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -241,9 +244,17 @@ public class UserController {
         String userPass = login.getUserPass();
         String clientId= login.getClientId();
         String clientPass = login.getClientPass();
+        try {
+            String jsonlogin = userService.login(login.getUserName(), login.getUserPass(), login.getClientId(), login.getClientPass());
+            return new ResponseEntity<>(jsonlogin,HttpStatus.OK);
+        }
+        catch (Exception e){
+            String mssge = e.getMessage().split("\\{")[1];
+            mssge = mssge.split("}")[0];
+            mssge = "{"+mssge+"}";
+            return new ResponseEntity<>(mssge,HttpStatus.BAD_REQUEST);
+        }
 
-        String jsonlogin = userService.login(login.getUserName(),login.getUserPass(),login.getClientId(),login.getClientPass());
-        return new ResponseEntity<>(jsonlogin,HttpStatus.OK);
     }
 
 
@@ -361,6 +372,22 @@ public class UserController {
                 return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_ACCEPTABLE);
             }
             return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
+        }
+    }
+
+
+    @GetMapping("/getWithID/name/{name}")
+    public ResponseEntity<?> getUserWithID(@PathVariable(value="name") String name){
+        try{
+            EUser euser = userService.findByUserName(name);
+            UserWithID user = UserMapper.translateWithID(euser);
+            return new ResponseEntity<>(user.toString(), HttpStatus.OK);
+        }
+        catch(Exception e){
+            if(e instanceof CustomException){
+                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_FOUND);
+            }
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_FOUND);
         }
     }
 

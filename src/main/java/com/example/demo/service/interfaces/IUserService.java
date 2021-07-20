@@ -38,7 +38,7 @@ public interface IUserService {
 
     public void flush();
 
-    public String login(String userName, String userPass, String clientId, String clientPass);
+    public String login(String userName, String userPass, String clientId, String clientPass) throws Exception;
 
     public void logout(Principal principal);
 

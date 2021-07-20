@@ -48,7 +48,7 @@ public class TokenGenerator {
     }
 
 
-    public String login(String userName, String userPass, String clientId, String clientPass) {
+    public String login(String userName, String userPass, String clientId, String clientPass) throws Exception {
 
         String credentials = clientId + ":" + clientPass;
         String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));HttpHeaders headers = new HttpHeaders();

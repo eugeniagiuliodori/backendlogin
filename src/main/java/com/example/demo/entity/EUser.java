@@ -95,7 +95,6 @@ public class EUser implements Serializable {
     }
 
     public String toString() {
-        String s = new String("");
         String roles = new String("");
         if(getRoles() != null && !getRoles().isEmpty()){
             Iterator iterator = getRoles().iterator();
@@ -106,8 +105,21 @@ public class EUser implements Serializable {
                 roles=roles+",";
             }
         }
-        s = "{\"name\":\""+getName()+"\",\"password\":\""+getPassword()+"\",\"roles\":["+roles+"]}";
-        return s;
+        return new String( "{\"name\":\""+getName()+"\",\"password\":\""+getPassword()+"\",\"roles\":["+roles+"]}");
+    }
+
+    public String toStringWithID() {
+        String roles = new String("");
+        if(getRoles() != null && !getRoles().isEmpty()){
+            Iterator iterator = getRoles().iterator();
+            for(ERole role : getRoles()) {
+                roles = roles + "{\"nameRole\":\""+((ERole)iterator.next()).getNameRole()+"\"}";
+            }
+            if(iterator.hasNext()){
+                roles=roles+",";
+            }
+        }
+        return new String( "{\"id\":\""+getId().toString()+"\",\"name\":\""+getName()+"\",\"password\":\""+getPassword()+"\",\"roles\":["+roles+"]}");
     }
 
     private static final long serialVersionUID = 1L;
