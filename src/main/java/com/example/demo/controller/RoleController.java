@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.customExceptions.CustomException;
 import com.example.demo.entity.ERole;
+import com.example.demo.entity.EUser;
 import com.example.demo.extras.RoleRepository;
 import com.example.demo.extras.TokenGenerator;
 import com.example.demo.mapper.RoleMapper;
@@ -38,100 +39,105 @@ public class RoleController {
 
 //    @PreAuthorize("hasRole('add')")
     @PostMapping("/add")
-    public ResponseEntity<?> addRole(HttpServletRequest httprequest, @RequestBody final ERole role) {
-        try {
-            ERole erole = roleService.save(role);
-            if(erole.getWarnings().isEmpty()) {
-                return new ResponseEntity<Void>(HttpStatus.CREATED);
+    public ResponseEntity<?> addRole(@RequestBody Map<String, Object> request) {
+        Iterator it = request.keySet().iterator();
+        ERole role = new ERole();
+        boolean badRequest = false;
+        while(it.hasNext() && !badRequest){
+            String key = (String)it.next();
+            if(key.equals("id")){
+                role.setId((Long)request.get("id"));
             }
-            else{
-                return new ResponseEntity<>("{\"warnings\":["+erole.getWarnings()+"]}",HttpStatus.CREATED);
+            if(key.equals("nameRole")){
+                role.setNameRole((String)request.get("nameRole"));
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            if (e instanceof CustomException) {
-                return new ResponseEntity<>(((CustomException)e).toString(), HttpStatus.NOT_ACCEPTABLE);
-            } else {
-                return new ResponseEntity<>(new String("{\"error\":\"unespected error\"}"), HttpStatus.NOT_ACCEPTABLE);
+            if(key.equals("description")){
+                role.setDescription((String)request.get("description"));
             }
+            if(!key.equals("nameRole")&&!key.equals("id")&&(!key.equals("description"))){
+                badRequest=true;
+            }
+        }
+        if(!badRequest) {
+            try {
+                ERole erole = roleService.save(role);
+                if(erole.getWarnings().isEmpty()) {
+                    return new ResponseEntity<Void>(HttpStatus.CREATED);
+                }
+                else{
+                    return new ResponseEntity<>("{\"warnings\":["+erole.getWarnings()+"]}",HttpStatus.CREATED);
+                }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                if (e instanceof CustomException) {
+                    return new ResponseEntity<>(((CustomException)e).toString(), HttpStatus.NOT_ACCEPTABLE);
+                } else {
+                    return new ResponseEntity<>(new String("{\"error\":\"unespected error\"}"), HttpStatus.NOT_ACCEPTABLE);
+                }
+            }
+        }
+        else{
+            return new ResponseEntity<>("{\"error\":\"Misspelled field/s\"}", HttpStatus.BAD_REQUEST);
         }
     }
 
  //   @PreAuthorize("hasRole('update')")
     @PutMapping("/update")
-    public ResponseEntity<?> updateRole(@RequestBody final ERole role){
-        try{
-            ERole roleold = roleService.findByRoleName(role.getNameRole());
-            //role.setId(roleold.getId());
-            if(role.getNameRole() != null && roleold !=null) {
-                ERole oldRole = roleService.save(role);
-                if(oldRole != null) {
-                    List<ERole> list = userService.getListRoles();
-                    boolean exist = false;
-                    String s1=roleold.getNameRole();
-                    for (int i = 0; i < list.size() && !exist; i++) {
-                        String s = list.get(i).getNameRole();
-                        if (s.equals(roleold.getNameRole())) {
-                            exist = true;
-                        }
-                    }
-                    if (exist) {
-                        String tokenValue = new String("");
-                        String authHeader = context.getHeader("Authorization");
-                        if (authHeader != null) {
-                            tokenValue = authHeader.replace("Bearer", "").trim();
-                        }
-                        String new_token_refreshToken = revoquesToken(userService.getAuthenticatedUser(), userService.getAuthenticatedPassUser(), false, tokenValue, new String("idClient1"), new String("passClient1"));
-                        if (new_token_refreshToken.contains("error")) {
-                            new_token_refreshToken = "{\"error\":\"" + new_token_refreshToken + "\"}";
-                        }
-                        return new ResponseEntity<>(new_token_refreshToken, HttpStatus.OK);
-                    }
-                    else {
-                        if(oldRole.getWarnings().isEmpty()) {
-                            return new ResponseEntity<Void>(HttpStatus.OK);
-                        }
-                        else{
-                            return new ResponseEntity<>("{\"warnings\":["+oldRole.getWarnings()+"]}",HttpStatus.CREATED);
-                        }
-                    }
-                }
-                else{
-                    return new ResponseEntity<>("{\"error\":\"role not found\"}", HttpStatus.NOT_ACCEPTABLE);
-                }
+    public ResponseEntity<?> updateRole(@RequestBody Map<String, Object> request){
+        Iterator it = request.keySet().iterator();
+        ERole role = new ERole();
+        boolean badRequest = false;
+        while(it.hasNext() && !badRequest){
+            String key = (String)it.next();
+            if(key.equals("id")){
+                role.setId((Long)request.get("id"));
             }
-            else {
-                roleold=null;
-                Optional<ERole> r = roleService.findById(role.getId());
-                if(r.isPresent()) {
-                    roleold = r.get();
-                }
-                if (role.getId() != null && roleold != null) {
+            if(key.equals("nameRole")){
+                role.setNameRole((String)request.get("nameRole"));
+            }
+            if(key.equals("description")){
+                role.setDescription((String)request.get("description"));
+            }
+            if(!key.equals("nameRole")&&!key.equals("id")&&(!key.equals("description"))){
+                badRequest=true;
+            }
+        }
+        if(!badRequest) {
+            try{
+                ERole roleold = roleService.findByRoleName(role.getNameRole());
+                //role.setId(roleold.getId());
+                if(role.getNameRole() != null && roleold !=null) {
                     ERole oldRole = roleService.save(role);
-                    if(oldRole != null){
+                    if(oldRole != null) {
                         List<ERole> list = userService.getListRoles();
                         boolean exist = false;
-                        for(int i = 0; i < list.size() && !exist; i++){
+                        String s1=roleold.getNameRole();
+                        for (int i = 0; i < list.size() && !exist; i++) {
                             String s = list.get(i).getNameRole();
-                            if(s.equals(roleold.getNameRole())){
-                                exist=true;
+                            if (s.equals(roleold.getNameRole())) {
+                                exist = true;
                             }
                         }
-                        if(exist){
+                        if (exist) {
                             String tokenValue = new String("");
                             String authHeader = context.getHeader("Authorization");
                             if (authHeader != null) {
                                 tokenValue = authHeader.replace("Bearer", "").trim();
                             }
-                            TokenGenerator tokenGenerator = new TokenGenerator();
-                            String new_token_refreshToken = tokenGenerator.revoquesToken(userService.getAuthenticatedUser(),userService.getAuthenticatedPassUser(),false,tokenValue,new String("idClient1"), new String("passClient1"));
-                            if(new_token_refreshToken.contains("error")){
-                                new_token_refreshToken="{\"error\":\""+new_token_refreshToken+"\"}";
+                            String new_token_refreshToken = revoquesToken(userService.getAuthenticatedUser(), userService.getAuthenticatedPassUser(), false, tokenValue, new String("idClient1"), new String("passClient1"));
+                            if (new_token_refreshToken.contains("error")) {
+                                new_token_refreshToken = "{\"error\":\"" + new_token_refreshToken + "\"}";
                             }
-                            return new ResponseEntity<>(new_token_refreshToken,HttpStatus.OK);
+                            return new ResponseEntity<>(new_token_refreshToken, HttpStatus.OK);
                         }
                         else {
-                            return new ResponseEntity<Void>(HttpStatus.OK);
+                            if(oldRole.getWarnings().isEmpty()) {
+                                return new ResponseEntity<Void>(HttpStatus.OK);
+                            }
+                            else{
+                                return new ResponseEntity<>("{\"warnings\":["+oldRole.getWarnings()+"]}",HttpStatus.CREATED);
+                            }
                         }
                     }
                     else{
@@ -139,17 +145,58 @@ public class RoleController {
                     }
                 }
                 else {
-                    return new ResponseEntity<>("{\"error\":\"role not found\"}", HttpStatus.NOT_ACCEPTABLE);
+                    roleold=null;
+                    Optional<ERole> r = roleService.findById(role.getId());
+                    if(r.isPresent()) {
+                        roleold = r.get();
+                    }
+                    if (role.getId() != null && roleold != null) {
+                        ERole oldRole = roleService.save(role);
+                        if(oldRole != null){
+                            List<ERole> list = userService.getListRoles();
+                            boolean exist = false;
+                            for(int i = 0; i < list.size() && !exist; i++){
+                                String s = list.get(i).getNameRole();
+                                if(s.equals(roleold.getNameRole())){
+                                    exist=true;
+                                }
+                            }
+                            if(exist){
+                                String tokenValue = new String("");
+                                String authHeader = context.getHeader("Authorization");
+                                if (authHeader != null) {
+                                    tokenValue = authHeader.replace("Bearer", "").trim();
+                                }
+                                TokenGenerator tokenGenerator = new TokenGenerator();
+                                String new_token_refreshToken = tokenGenerator.revoquesToken(userService.getAuthenticatedUser(),userService.getAuthenticatedPassUser(),false,tokenValue,new String("idClient1"), new String("passClient1"));
+                                if(new_token_refreshToken.contains("error")){
+                                    new_token_refreshToken="{\"error\":\""+new_token_refreshToken+"\"}";
+                                }
+                                return new ResponseEntity<>(new_token_refreshToken,HttpStatus.OK);
+                            }
+                            else {
+                                return new ResponseEntity<Void>(HttpStatus.OK);
+                            }
+                        }
+                        else{
+                            return new ResponseEntity<>("{\"error\":\"role not found\"}", HttpStatus.NOT_ACCEPTABLE);
+                        }
+                    }
+                    else {
+                        return new ResponseEntity<>("{\"error\":\"role not found\"}", HttpStatus.NOT_ACCEPTABLE);
+                    }
                 }
             }
-        }
-        catch(Exception e){
-            if(e instanceof CustomException){
-                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_ACCEPTABLE);
+            catch(Exception e){
+                if(e instanceof CustomException){
+                    return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_ACCEPTABLE);
+                }
+                return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
             }
-            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
         }
-
+        else{
+            return new ResponseEntity<>("{\"error\":\"Misspelled field/s\"}", HttpStatus.BAD_REQUEST);
+        }
 
     }
 
@@ -170,39 +217,56 @@ public class RoleController {
 
   //  @PreAuthorize("hasRole('delete')")
     @DeleteMapping("/delete")
-    public ResponseEntity<?> deleteRole(@RequestBody final ERole role){
-        boolean error=false;
-        if(role.getId() == null && role.getNameRole() != null){
-            ERole erole = roleService.findByRoleName(role.getNameRole());
-            if(erole != null){
-                role.setId(erole.getId());
+    public ResponseEntity<?> deleteRole(@RequestBody Map<String, Object> request){
+        Iterator it = request.keySet().iterator();
+        ERole role = new ERole();
+        boolean badRequest = false;
+        while(it.hasNext() && !badRequest){
+            String key = (String)it.next();
+            if(key.equals("id")){
+                role.setId((Long)request.get("id"));
+            }
+            if(!key.equals("id")){
+                badRequest=true;
+            }
+        }
+        if(!badRequest) {
+            boolean error=false;
+            if(role.getId() == null && role.getNameRole() != null){
+                ERole erole = roleService.findByRoleName(role.getNameRole());
+                if(erole != null){
+                    role.setId(erole.getId());
+                }
+                else{
+                    error = true;
+                }
             }
             else{
-                error = true;
+                if(role.getId() != null && role.getNameRole() != null){
+                    ERole erole = roleService.findByRoleName(role.getNameRole());
+                    if(erole == null){
+                        Optional<ERole> frole = roleService.findById(role.getId());
+                        if(frole.isPresent()){
+                            role.setId(frole.get().getId());
+                        }
+                        else{
+                            error = true;
+                        }
+                    }
+                    else{
+                        role.setId(erole.getId());
+                    }
+                }
+            }
+            if(error){
+                return new ResponseEntity<>("{\"error\":\"role not found\"}",HttpStatus.NOT_ACCEPTABLE);
+            }
+            else {
+                return deleteRole(role.getId());
             }
         }
         else{
-            if(role.getId() != null && role.getNameRole() != null){
-                ERole erole = roleService.findByRoleName(role.getNameRole());
-                if(erole == null){
-                    Optional<ERole> frole = roleService.findById(role.getId());
-                    if(frole.isPresent()){
-                        role.setId(frole.get().getId());
-                    }
-                    else{
-                        error = true;
-                    }
-                }
-                else{
-                    role.setId(erole.getId());
-                }
-            }
-        }
-        if(error){
-            return new ResponseEntity<>("{\"error\":\"role not found\"}",HttpStatus.NOT_ACCEPTABLE);
-        }
-        else {
-            return deleteRole(role.getId());
+            return new ResponseEntity<>("{\"error\":\"Misspelled field/s\"}", HttpStatus.BAD_REQUEST);
         }
     }
 

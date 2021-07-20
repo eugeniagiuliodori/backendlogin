@@ -5,11 +5,16 @@ import com.example.demo.entity.EUser;
 import com.example.demo.dao.IUserDao;
 import com.example.demo.entity.ERole;
 import com.example.demo.extras.ListManager;
+
 import com.example.demo.extras.TokenGenerator;
 import com.example.demo.security.AuthorizationServerConfig;
 import com.example.demo.service.interfaces.IUserService;
 import com.example.demo.extras.IteratorOfSet;
+import com.google.gson.JsonObject;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tomcat.util.http.fileupload.IOUtils;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.Modifying;
@@ -28,6 +33,9 @@ import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.security.Principal;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -139,6 +147,23 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     }
 
 
+    private boolean containsBadFieldName(String requestData) {
+        try {
+            String[] fields = requestData.split(",");
+            boolean contains = true;
+            for (int i = 0; i < fields.length && contains; i++) {
+                if ((!fields[i].contains("\"name\":")) && (!fields[i].contains("\"password\":"))
+                        && (!fields[i].contains("\"roles\":")) && (!fields[i].contains("\"id\":"))) {
+                    contains = false;
+                }
+            }
+            return contains;
+        }
+        catch(Exception e){
+            return false;
+        }
+    }
+
     @Override
     @Modifying(clearAutomatically=true, flushAutomatically=true)
     @Transactional(rollbackFor = Exception.class)
@@ -164,8 +189,6 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                     }
                     euser = userDao.save(euser);//the assigment permit id value
                     euser.setRoles(getRolesWithID(user.getRoles()));//aca puede reescribirse una relacion user-rol pero eso no es problema
-                    Long iu = euser.getId();
-                    Long ir = euser.getRoles().iterator().next().getId();
                     euser = userDao.save(euser);
                     String strWarnings = new String("");
                     if(user.getId() != null){
@@ -173,7 +196,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                         //throw new CustomException("warning","User not necesarily has the number id given");
                     }
                     List<ERole> distinctRoles = (List<ERole>)ListManager.hasDuplicates(user.getRoles());
-                    if(distinctRoles.size() < user.getRoles().size()){
+                    if(user.getRoles() != null && distinctRoles.size() < user.getRoles().size()){
                         if(!strWarnings.isEmpty()){
                             strWarnings = strWarnings + ",";
                         }
@@ -187,6 +210,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                         strWarnings = strWarnings + "{\"warning\":\"There roles that not necesarily has registered with the number id given\"}";
                     }
                     euser.setWarning(strWarnings);
+
                     return euser;
                 }
                 else{
@@ -197,15 +221,15 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 String str = new String("");
                 boolean b=false;
                 if(user.getName()==null  || user.getName().isEmpty()) {
-                    str="Excepted name user";
+                    str="Excepted name user (possible misspelled field)";
                     b=true;
                 }
                 if(user.getPassword()==null  || user.getPassword().isEmpty()) {
                     if(b){
-                        str=" and excepted password user";
+                        str=" and excepted password user (possible misspelled field)";
                     }
                     else{
-                        str="Excepted password user";
+                        str="Excepted password user (possible misspelled field)";
                     }
 
                 }

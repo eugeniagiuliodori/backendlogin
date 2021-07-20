@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import com.example.demo.customExceptions.CustomException;
+import com.example.demo.entity.ERole;
 import com.example.demo.entity.EUser;
 import com.example.demo.extras.IteratorOfSet;
 import com.example.demo.mapper.RolesMapper;
@@ -21,6 +22,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 import java.security.Principal;
 import java.util.*;
 
@@ -44,23 +46,54 @@ public class UserController {
 
     @PreAuthorize("hasRole('add')")
     @PostMapping("/add")
-    public ResponseEntity<?> addUser(@RequestBody final EUser user) {
-        try {
-            EUser euser = userService.addUser(user);
-            if(!euser.getWarning().isEmpty()){
-                return new ResponseEntity<>("{\"warnings\":["+euser.getWarning()+"]}",HttpStatus.CREATED);
+    public ResponseEntity<?> addUser(@RequestBody Map<String, Object> request) {
+        Iterator it = request.keySet().iterator();
+        EUser user = new EUser();
+        boolean badRequest = false;
+        while(it.hasNext() && !badRequest){
+            String key = (String)it.next();
+            if(key.equals("name")){
+                user.setName((String)request.get("name"));
             }
-            else {
-                return new ResponseEntity<Void>(HttpStatus.CREATED);
+            if(key.equals("password")){
+                user.setPassword((String)request.get("password"));
+            }
+            if(key.equals("roles")){
+                List<LinkedHashMap> list = (List<LinkedHashMap>)request.get("roles");
+                Set<ERole> set = new HashSet<>();
+                for(int i = 0; i<list.size();i++){
+                    ERole role = new ERole();
+                    LinkedHashMap map = (LinkedHashMap)list.get(i);
+                    role.setId((Long)map.get("id"));
+                    role.setNameRole((String)map.get("nameRole"));
+                    role.setDescription((String)map.get("description"));
+                    set.add(role);
+                }
+                user.setRoles(set);
+            }
+            if(!key.equals("name")&&!key.equals("password")&&!key.equals("roles")){
+                badRequest=true;
             }
         }
-        catch (Exception e) {
-            e.printStackTrace();
-            if (e instanceof CustomException) {
-                return new ResponseEntity<>(((CustomException)e).toString(), HttpStatus.NOT_ACCEPTABLE);
-            } else {
-                return new ResponseEntity<>(new String("{\"error\":\"unespected error\"}"), HttpStatus.NOT_ACCEPTABLE);
+        if(!badRequest) {
+            try {
+                EUser euser = userService.addUser(user);
+                if (!euser.getWarning().isEmpty()) {
+                    return new ResponseEntity<>("{\"warnings\":[" + euser.getWarning() + "]}", HttpStatus.CREATED);
+                } else {
+                    return new ResponseEntity<Void>(HttpStatus.CREATED);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                if (e instanceof CustomException) {
+                    return new ResponseEntity<>(((CustomException) e).toString(), HttpStatus.NOT_ACCEPTABLE);
+                } else {
+                    return new ResponseEntity<>(new String("{\"error\":\"unespected error\"}"), HttpStatus.NOT_ACCEPTABLE);
+                }
             }
+        }
+        else{
+            return new ResponseEntity<>(new String("{\"error\":\"Mispelled field/s\"}"), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -68,100 +101,130 @@ public class UserController {
 
     @PreAuthorize("hasRole('update')")
     @PutMapping("/update")
-    public ResponseEntity<?> updateUser(@RequestBody final EUser user){
-        try{
-            String tokenValue = new String("");
-            String authHeader = context.getHeader("Authorization");
-            if (authHeader != null) {
-                tokenValue = authHeader.replace("Bearer", "").trim();
+    public ResponseEntity<?> updateUser(@RequestBody Map<String, Object> request){
+        Iterator it = request.keySet().iterator();
+        EUser user = new EUser();
+        boolean badRequest = false;
+        while(it.hasNext() && !badRequest){
+            String key = (String)it.next();
+            if(key.equals("name")){
+                user.setName((String)request.get("name"));
             }
-            String authenticatedUser = userService.getAuthenticatedUser();
-            EUser authuser = userService.findByUserName(authenticatedUser);
-            Long authenticatedUserId = authuser.getId();
-            Long bodyUserId = user.getId();
-            String bodyUser = user.getName();
-            String bodyPassUser = user.getPassword();
-            boolean existBodyRoles=user.getRoles() != null;
-            String s=null;
-            if(bodyUserId != null || bodyUser != null) {
-                EUser oldUser = null;
-                try {
-                    EUser old = userService.findByUserName(user.getName());
-                    oldUser = new EUser();
-                    oldUser.setId(old.getId());
-                    oldUser.setName(old.getName());
-                    oldUser.setDate(old.getDate());
-                    oldUser.setPassword(old.getPassword());
-                    oldUser.setRoles(new HashSet<>(old.getRoles()));//si no pongo un new EUser para oldUser, me da problema de aliasing cuando hace el update (no entiendo donde)
+            if(key.equals("password")){
+                user.setPassword((String)request.get("password"));
+            }
+            if(key.equals("roles")){
+                List<LinkedHashMap> list = (List<LinkedHashMap>)request.get("roles");
+                Set<ERole> set = new HashSet<>();
+                for(int i = 0; i<list.size();i++){
+                    ERole role = new ERole();
+                    LinkedHashMap map = (LinkedHashMap)list.get(i);
+                    role.setId((Long)map.get("id"));
+                    role.setNameRole((String)map.get("nameRole"));
+                    role.setDescription((String)map.get("description"));
+                    set.add(role);
                 }
-                catch(Exception e){}
-                EUser usermod = userService.updateUser(user, existBodyRoles);
-                if ((bodyUserId != null && bodyUserId.equals(authenticatedUserId)) ||
-                        (bodyUser != null && bodyUser.equals(authenticatedUser))) {//if update is of authenticated user
-                    Optional<EUser> euser = null;
-                    Set<Role> oldRoles = null;
-                    if (oldUser == null) {
-                        euser = userService.findById(user.getId());
-                        if (euser.isPresent()) {
-                            oldRoles = RolesMapper.translate(euser.get().getRoles());
+                user.setRoles(set);
+            }
+            if(key.equals("id")){
+                user.setId((Long)request.get("id"));
+            }
+            if(!key.equals("name")&&!key.equals("password")&&!key.equals("roles")&&!key.equals("id")){
+                badRequest=true;
+            }
+        }
+        if(!badRequest) {
+            try {
+                String tokenValue = new String("");
+                String authHeader = context.getHeader("Authorization");
+                if (authHeader != null) {
+                    tokenValue = authHeader.replace("Bearer", "").trim();
+                }
+                String authenticatedUser = userService.getAuthenticatedUser();
+                EUser authuser = userService.findByUserName(authenticatedUser);
+                Long authenticatedUserId = authuser.getId();
+                Long bodyUserId = user.getId();
+                String bodyUser = user.getName();
+                String bodyPassUser = user.getPassword();
+                boolean existBodyRoles = user.getRoles() != null;
+                String s = null;
+                if (bodyUserId != null || bodyUser != null) {
+                    EUser oldUser = null;
+                    try {
+                        EUser old = userService.findByUserName(user.getName());
+                        oldUser = new EUser();
+                        oldUser.setId(old.getId());
+                        oldUser.setName(old.getName());
+                        oldUser.setDate(old.getDate());
+                        oldUser.setPassword(old.getPassword());
+                        oldUser.setRoles(new HashSet<>(old.getRoles()));//si no pongo un new EUser para oldUser, me da problema de aliasing cuando hace el update (no entiendo donde)
+                    } catch (Exception e) {
+                    }
+                    EUser usermod = userService.updateUser(user, existBodyRoles);
+                    if ((bodyUserId != null && bodyUserId.equals(authenticatedUserId)) ||
+                            (bodyUser != null && bodyUser.equals(authenticatedUser))) {//if update is of authenticated user
+                        Optional<EUser> euser = null;
+                        Set<Role> oldRoles = null;
+                        if (oldUser == null) {
+                            euser = userService.findById(user.getId());
+                            if (euser.isPresent()) {
+                                oldRoles = RolesMapper.translate(euser.get().getRoles());
+                            }
+                        } else {
+                            oldRoles = RolesMapper.translate(oldUser.getRoles());
                         }
-                    }
-                    else {
-                        oldRoles = RolesMapper.translate(oldUser.getRoles());
-                    }
 
-                    Set<Role> updateRoles = RolesMapper.translate(usermod.getRoles());
-                    IteratorOfSet iteratorOld = new IteratorOfSet(oldRoles);
-                    IteratorOfSet iteratorUpdate = new IteratorOfSet(updateRoles);
-                    boolean changesCountRoles = iteratorOld.size() != iteratorUpdate.size();
-                    boolean equalsContentRoles = true;
-                    if(!changesCountRoles) {
-                        while (iteratorUpdate.hasNext() && equalsContentRoles) {
-                            if (!iteratorOld.contains(((Role) iteratorUpdate.next()))) {
-                                equalsContentRoles = false;
+                        Set<Role> updateRoles = RolesMapper.translate(usermod.getRoles());
+                        IteratorOfSet iteratorOld = new IteratorOfSet(oldRoles);
+                        IteratorOfSet iteratorUpdate = new IteratorOfSet(updateRoles);
+                        boolean changesCountRoles = iteratorOld.size() != iteratorUpdate.size();
+                        boolean equalsContentRoles = true;
+                        if (!changesCountRoles) {
+                            while (iteratorUpdate.hasNext() && equalsContentRoles) {
+                                if (!iteratorOld.contains(((Role) iteratorUpdate.next()))) {
+                                    equalsContentRoles = false;
+                                }
                             }
                         }
-                    }
-                    boolean changesRoles = changesCountRoles || !equalsContentRoles;
-                    if ((bodyUser != null && !authenticatedUser.equals(bodyUser))||
-                    (bodyPassUser != null && !authuser.getPassword().equals(bodyPassUser)) ||
-                            (changesRoles)){
-                        String new_token_refreshToken = revoquesToken(usermod.getName(),user.getPassword(),user.getPassword() != null ,tokenValue, "idClient1", "passClient1");
-                        if(new_token_refreshToken.contains("error")){
-                            new_token_refreshToken="{\"error\":\""+new_token_refreshToken+"\"}";
+                        boolean changesRoles = changesCountRoles || !equalsContentRoles;
+                        if ((bodyUser != null && !authenticatedUser.equals(bodyUser)) ||
+                                (bodyPassUser != null && !authuser.getPassword().equals(bodyPassUser)) ||
+                                (changesRoles)) {
+                            String new_token_refreshToken = revoquesToken(usermod.getName(), user.getPassword(), tokenValue, "idClient1", "passClient1");
+                            if (new_token_refreshToken.contains("error")) {
+                                new_token_refreshToken = "{\"error\":\"" + new_token_refreshToken + "\"}";
+                            }
+                            return new ResponseEntity<>(new_token_refreshToken, HttpStatus.OK);
+                        } else {
+                            if (!usermod.getWarning().isEmpty()) {
+                                return new ResponseEntity<>("{\"warnings\":[" + usermod.getWarning() + "]}", HttpStatus.CREATED);
+                            } else {
+                                return new ResponseEntity<Void>(HttpStatus.CREATED);
+                            }
                         }
-                        return new ResponseEntity<>(new_token_refreshToken , HttpStatus.OK);
-                    }
-                    else{
-                        if(!usermod.getWarning().isEmpty()){
-                            return new ResponseEntity<>("{\"warnings\":["+usermod.getWarning()+"]}",HttpStatus.CREATED);
-                        }
-                        else {
+                    } else {
+                        if (!usermod.getWarning().isEmpty()) {
+                            return new ResponseEntity<>("{\"warnings\":[" + usermod.getWarning() + "]}", HttpStatus.CREATED);
+                        } else {
                             return new ResponseEntity<Void>(HttpStatus.CREATED);
                         }
                     }
+                } else {
+                    return new ResponseEntity<>("{\"error\":\"insuficient information\"}", HttpStatus.NOT_ACCEPTABLE);
                 }
-                else{
-                    if(!usermod.getWarning().isEmpty()){
-                        return new ResponseEntity<>("{\"warnings\":["+usermod.getWarning()+"]}",HttpStatus.CREATED);
-                    }
-                    else {
-                        return new ResponseEntity<Void>(HttpStatus.CREATED);
-                    }
+            } catch (Exception e) {
+                e.printStackTrace();
+                e.printStackTrace();
+                if (e instanceof CustomException) {
+                    return new ResponseEntity<>(((CustomException) e).toString(), HttpStatus.NOT_ACCEPTABLE);
                 }
-            }
-            else{
-                return new ResponseEntity<>("{\"error\":\"insuficient information\"}",HttpStatus.NOT_ACCEPTABLE);
+                return new ResponseEntity<>("{\"error\":\"" + e.toString() + "\"}", HttpStatus.NOT_ACCEPTABLE);
             }
         }
-        catch(Exception e){
-            e.printStackTrace();
-            e.printStackTrace();
-            if(e instanceof CustomException){
-                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_ACCEPTABLE);
-            }
-            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
+        else{
+            return new ResponseEntity<>("{\"error\":\"Misspelled field/s\"}", HttpStatus.BAD_REQUEST);
         }
+
 
     }
 
@@ -198,27 +261,44 @@ public class UserController {
 
     @PreAuthorize("hasRole('delete')")
     @DeleteMapping("/delete")
-    public ResponseEntity<?> deleteUser(@RequestBody final EUser user){
-        try {
-            if (user.getId() == null) {
-                 return deleteUser(user.getName());
+    public ResponseEntity<?> deleteUser(@RequestBody Map<String, Object> request){
+        Iterator it = request.keySet().iterator();
+        EUser user = new EUser();
+        boolean badRequest = false;
+        while(it.hasNext() && !badRequest){
+            String key = (String)it.next();
+            if(key.equals("id")){
+                user.setId((Long)request.get("id"));
             }
-            else {
-                ResponseEntity<?> response = deleteUser(user.getId());
-                HttpStatus status =  response.getStatusCode() ;//id not store in BD
-                if(status.isError()){
-                    return deleteUser(user.getName());
-                }
-                else{
-                    return response;
-                }
+            if(!key.equals("id")){
+                badRequest=true;
             }
         }
-        catch(Exception e){
-            if(e instanceof CustomException){
-                return new ResponseEntity<>(new String("{\"error\":\"unespected error\"}"), HttpStatus.NOT_ACCEPTABLE);
+        if(!badRequest) {
+            try {
+                if (user.getId() == null) {
+                     return deleteUser(user.getName());
+                }
+                else {
+                    ResponseEntity<?> response = deleteUser(user.getId());
+                    HttpStatus status =  response.getStatusCode() ;//id not store in BD
+                    if(status.isError()){
+                        return deleteUser(user.getName());
+                    }
+                    else{
+                        return response;
+                    }
+                }
             }
-            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_FOUND);
+            catch(Exception e){
+                if(e instanceof CustomException){
+                    return new ResponseEntity<>(new String("{\"error\":\"unespected error\"}"), HttpStatus.NOT_ACCEPTABLE);
+                }
+                return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_FOUND);
+            }
+        }
+        else{
+            return new ResponseEntity<>("{\"error\":\"Misspelled field/s\"}", HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -301,7 +381,7 @@ public class UserController {
     }
 
 
-    private String revoquesToken(String userName, String userPass, boolean passInRequest, String tokenValue, String idClient,String passClient) {
+    private String revoquesToken(String userName, String userPass, String tokenValue, String idClient,String passClient) {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
@@ -319,9 +399,6 @@ public class UserController {
             requestBody = new LinkedMultiValueMap<String, String>();
             requestBody.add("Content-Type", "application/x-www-form-urlencoded");
             requestBody.add("username", userName);
-            if(!passInRequest){
-                userPass=userService.getAuthenticatedPassUser();
-            }
             requestBody.add("password", userPass);
             requestBody.add("grant_type", "password");
             formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
