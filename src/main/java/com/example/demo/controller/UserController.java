@@ -353,9 +353,9 @@ public class UserController {
         }
         catch(Exception e){
             if(e instanceof CustomException){
-                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_ACCEPTABLE);
+                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_FOUND);
             }
-            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_FOUND);
         }
     }
 
@@ -369,9 +369,9 @@ public class UserController {
         }
         catch(Exception e){
             if(e instanceof CustomException){
-                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_ACCEPTABLE);
+                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_FOUND);
             }
-            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_FOUND);
         }
     }
 
@@ -401,9 +401,9 @@ public class UserController {
         }
         catch(Exception e){
             if(e instanceof CustomException){
-                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_ACCEPTABLE);
+                return new ResponseEntity<>(((CustomException)e).toString(),HttpStatus.NOT_FOUND);
             }
-            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_FOUND);
         }
     }
 

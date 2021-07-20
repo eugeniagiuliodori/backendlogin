@@ -296,7 +296,7 @@ public class RoleController {
             return new ResponseEntity<>(RolesMapper.getStringRoles(), HttpStatus.OK);
         }
         catch(Exception e){
-            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_FOUND);
         }
     }
 
@@ -310,11 +310,11 @@ public class RoleController {
                 return new ResponseEntity<>(role.toString(), HttpStatus.OK);
             }
             else{
-                return new ResponseEntity<>("{\"error\":\"role not found\"}",HttpStatus.NOT_ACCEPTABLE);
+                return new ResponseEntity<>("{\"error\":\"role not found\"}",HttpStatus.NOT_FOUND);
             }
         }
         catch(Exception e){
-            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_FOUND);
         }
     }
 
@@ -327,11 +327,11 @@ public class RoleController {
                 return new ResponseEntity<>(role.toString(), HttpStatus.OK);
             }
             else{
-                return new ResponseEntity<>("{\"error\":\"role not found\"}",HttpStatus.NOT_ACCEPTABLE);
+                return new ResponseEntity<>("{\"error\":\"role not found\"}",HttpStatus.NOT_FOUND);
             }
         }
         catch(Exception e){
-            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_FOUND);
         }
     }
 
