@@ -240,19 +240,40 @@ public class UserController {
 
     @PostMapping ("/login")
     public ResponseEntity<?> login(@RequestBody final Login login) {
-        String userName = login.getUserName();
-        String userPass = login.getUserPass();
-        String clientId= login.getClientId();
-        String clientPass = login.getClientPass();
-        try {
+        /*try {
             String jsonlogin = userService.login(login.getUserName(), login.getUserPass(), login.getClientId(), login.getClientPass());
             return new ResponseEntity<>(jsonlogin,HttpStatus.OK);
         }
         catch (Exception e){
-            String mssge = e.getMessage().split("\\{")[1];
-            mssge = mssge.split("}")[0];
-            mssge = "{"+mssge+"}";
-            return new ResponseEntity<>(mssge,HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(e.getMessage(),HttpStatus.BAD_REQUEST);
+        }*/
+        try {
+            String credentials = "idClient1" + ":" + "passClient1";
+            String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Accept", "application/json");
+            headers.add("Accept-Encoding", "gzip, deflate, br");
+            headers.add("Host", "<calculated when request is sent>");
+            headers.add("Connection", "keep-alive");
+            headers.add("Content-Type", "application/x-www-form-urlencoded");
+            headers.add("Authorization", "Basic " + encodedCredentials);
+
+
+            MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<String, String>();
+            requestBody.add("username", "root");
+            requestBody.add("password", "passroot");
+            requestBody.add("grant_type", "password");
+            requestBody.add("client_id", "idClient1");
+            requestBody.add("client_secret", "passClient1");
+            HttpEntity formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
+            RestTemplate restTemplate = new RestTemplate();
+            String access_token_url = "http://localhost:8040/oauth/token";
+            ResponseEntity<String> response = restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
+            int s = response.getStatusCode().value();
+            return new ResponseEntity<>(response.getBody(),HttpStatus.OK);
+        } catch (Exception e) {
+            String m = e.getMessage();
+            return new ResponseEntity<>(e.getMessage(),HttpStatus.BAD_REQUEST);
         }
 
     }

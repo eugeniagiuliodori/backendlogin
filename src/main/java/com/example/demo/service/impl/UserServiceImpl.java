@@ -63,7 +63,10 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
     @Autowired
     private ConsumerTokenServices consumerTokenServices;
-
+    private String userName;
+    private String userPass;
+    private String clientId;
+    private String clientPass;
 
 
     @PostConstruct

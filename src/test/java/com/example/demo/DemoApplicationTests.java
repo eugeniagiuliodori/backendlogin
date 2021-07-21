@@ -8,6 +8,7 @@ import com.example.demo.security.ResourceServerConfig;
 import com.example.demo.security.WebSecurityConfig;
 import com.example.demo.service.impl.RoleServiceImpl;
 import com.example.demo.service.impl.UserServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.Assert;
@@ -16,20 +17,29 @@ import org.junit.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.json.JacksonJsonParser;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.*;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.test.context.support.WithUserDetails;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.ResultMatcher;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.springframework.test.web.servlet.result.StatusResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import java.time.LocalDateTime;
@@ -40,9 +50,11 @@ import org.junit.runners.Parameterized.Parameters;
 
 @EnableAutoConfiguration
 @RunWith(SpringRunner.class)
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @AutoConfigureMockMvc
 @ContextConfiguration(classes={AuthorizationServerConfig.class,ResourceServerConfig.class, WebSecurityConfig.class})
+@TestPropertySource("/application-test.properties")
+@Slf4j
 public class DemoApplicationTests{
 
 
@@ -57,10 +69,10 @@ public class DemoApplicationTests{
 	private WebApplicationContext wac;
 
 
-	@Autowired
+	@Mock
 	private UserServiceImpl userServicesImpl;
 
-	@Autowired
+	@Mock
 	private RoleServiceImpl roleServicesImpl;
 
 	private UsernamePasswordAuthenticationToken userAuth;
@@ -71,6 +83,7 @@ public class DemoApplicationTests{
 
 	@Before
 	public void setUp() throws Exception {
+
 		mvc = MockMvcBuilders.standaloneSetup(userController).build();
 	}
 
@@ -801,6 +814,8 @@ public class DemoApplicationTests{
 	}
 
 
+
+
 	/*
 		Modificar de usuario existente (distinto al nombre de usuario autenticado por medio del cliente),
 		descripcion de rol de usuario con campo y valor sintácticamente correcto.
@@ -1151,6 +1166,51 @@ public class DemoApplicationTests{
 		} catch (Exception e) {}
 
 	}
+	@ParameterizedTest
+	@WithUserDetails(value = "root", userDetailsServiceBeanName = "userServiceImpl")
+	public MvcResult updateUserOKWithoutExpect(EUser euser) throws Exception {
+		try {
+			userServicesImpl.findByUserName(euser.getName());
+		}
+		catch(Exception e){ }
+		String str_token_refreshToken = obtainAccessToken("root", "passroot", "idClient1", "passClient1");
+		JSONParser parser = new JSONParser();
+		JSONObject json = (JSONObject) parser.parse(str_token_refreshToken);
+		return mvc.perform(put("http://localhost:8040/user/update")
+				.header("Authorization", "Bearer " + json.get("acces_token"))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(euser.toString())
+				.accept(MediaType.APPLICATION_JSON)).andReturn();
+
+	}
+
+
+	/*
+		Modificar usuario inexistente
+	*/
+	@Test
+	@WithUserDetails(value = "root", userDetailsServiceBeanName = "userServiceImpl")
+	public void updateUserNOTOK1() throws Exception {
+		String currUserName = new String("");//current user name
+		try {
+			userServicesImpl.findByUserName("root");
+		}
+		catch(Exception e){
+			updateUserOK5("rootmodif","root");
+		}
+		currUserName = "root";
+		//try {
+			String str_token_refreshToken = obtainAccessToken(currUserName, "passroot", "idClient1", "passClient1");
+			EUser user = new EUser();
+			user.setName("notExist");
+			user.setPassword("pass");
+			user.setRoles(new HashSet<>());
+			MvcResult result = updateUserOKWithoutExpect(user);
+			MockMvcResultMatchers.status().isNotFound().match(result);
+		//} catch (Exception e) {}
+
+
+	}
 
 
 
@@ -1242,10 +1302,12 @@ public class DemoApplicationTests{
 
 
 	private String obtainAccessToken(String username, String password, String clientId, String clientPass) throws Exception {
+		String json = "{\"userName\":\""+username+"\",\"userPass\":\""+password+"\",\"clientId\":\""+clientId+"\",\"clientPass\":\""+clientPass+"\"}";
+		log.info(json);
 		ResultActions result
 				= mvc.perform(post("http://localhost:8040/user/login")
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"userName\":\""+username+"\",\"userPass\":\""+password+"\",\"clientId\":\""+clientId+"\",\"clientPass\":\""+clientPass+"\",\"\":\"\"}"))
+				.content(json))
 				.andExpect(status().isOk());
 		if(result != null){
 			String str = "";
