@@ -15,17 +15,20 @@ import com.example.demo.service.impl.UserServiceImpl;
 import com.example.demo.service.interfaces.IRoleService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
+import org.springframework.security.oauth2.client.OAuth2RestTemplate;
+import org.springframework.security.oauth2.client.resource.OAuth2AccessDeniedException;
+import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
 import java.security.Principal;
 import java.util.*;
 
@@ -46,6 +49,24 @@ public class UserController {
     @Autowired
     private HttpServletRequest context;
 
+
+    @Bean
+    public OAuth2RestTemplate oAuth2RestTemplate(){
+        String clientSecret = "passClient1";
+        String[] scopes = {"read","write"};
+        String strToken = new String("");
+        try {
+            ResourceOwnerPasswordResourceDetails details = packPasswordResourceDetails("idClient1", clientSecret, "root", "passroot", scopes);
+            DefaultOAuth2ClientContext clientContext = new DefaultOAuth2ClientContext();
+            oAuth2RestTemplate = new OAuth2RestTemplate(details, clientContext);
+            return oAuth2RestTemplate;
+        }catch(OAuth2AccessDeniedException ex){
+            throw new OAuth2AccessDeniedException("Error getting jwt token, the reason is:" + ex.getCause().getMessage());
+        }
+    }
+
+    @Autowired
+    private OAuth2RestTemplate oAuth2RestTemplate;
 
     @PreAuthorize("hasRole('add')")
     @PostMapping("/add")
@@ -238,37 +259,43 @@ public class UserController {
         return new ResponseEntity<Void>(HttpStatus.OK);
     }
 
+
+    private ResourceOwnerPasswordResourceDetails packPasswordResourceDetails(String clientId, String clientSecret, String username, String password, String... scopes){
+        ResourceOwnerPasswordResourceDetails details = new ResourceOwnerPasswordResourceDetails();
+        //String cryptPsw = base64Encoder.encodeToString(password.getBytes());
+        //Set the address of the server requesting authentication and authorization
+        details.setAccessTokenUri("http://localhost:8040/oauth/token");
+        //The following are all authentication information: the permissions possessed, the authenticated client, and the specific user
+        details.setScope(Arrays.asList(scopes));
+        details.setClientId(clientId);
+        details.setClientSecret(clientSecret);
+        details.setUsername(username);
+        details.setPassword(password);
+        return details;
+
+    }
+
+    private String generateToken(String username, String password, String clientId, String clientPass) throws ParseException {
+        String credentials = clientId + ":" + clientPass;
+        String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Content-Type","application/x-www-form-urlencoded");
+        headers.set("Accept","application/json");
+        headers.set("Accept-Encoding","gzip, deflate, br");
+        headers.set("Authorization", "Basic "+encodedCredentials);
+        String tokenUri = "http://localhost:8040/oauth/token";
+        String parameters = "username="+username+"&password="+password+"&grant_type=password&client_id="+clientId+"&client_secret="+clientPass;
+        HttpEntity<String> request = new HttpEntity<String>(parameters,headers);
+        HttpEntity<String> token = oAuth2RestTemplate.postForEntity(tokenUri,request, String.class);
+        return token.getBody();
+    }
+
     @PostMapping ("/login")
     public ResponseEntity<?> login(@RequestBody final Login login) {
-        /*try {
-            String jsonlogin = userService.login(login.getUserName(), login.getUserPass(), login.getClientId(), login.getClientPass());
-            return new ResponseEntity<>(jsonlogin,HttpStatus.OK);
-        }
-        catch (Exception e){
-            return new ResponseEntity<>(e.getMessage(),HttpStatus.BAD_REQUEST);
-        }*/
         try {
-            String credentials = "idClient1" + ":" + "passClient1";
-            String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
-            HttpHeaders headers = new HttpHeaders();
-            headers.add("Accept", "application/json;charset=UTF-8");
-            headers.add("Content-Type", "application/x-www-form-urlencoded");
-            headers.add("Authorization", "Basic " + encodedCredentials);
-            MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<String, String>();
-            requestBody.add("username", "root");
-            requestBody.add("password", "passroot");
-            requestBody.add("grant_type", "password");
-            requestBody.add("client_id", "idClient1");
-            requestBody.add("client_secret", "passClient1");
-            requestBody.add("scope","read write");
-            HttpEntity formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
-            RestTemplate restTemplate = new RestTemplate();
-            String access_token_url = "http://localhost:8040/oauth/token";
-            ResponseEntity<String> response = restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
-            int s = response.getStatusCode().value();
-            return new ResponseEntity<>(response.getBody(),HttpStatus.OK);
+            String token= generateToken(new String(login.getUserName()),new String(login.getUserPass()),new String(login.getClientId()),new String(login.getClientPass()));
+            return new ResponseEntity<>(token,HttpStatus.OK);
         } catch (Exception e) {
-            String m = e.getMessage();
             return new ResponseEntity<>(e.getMessage(),HttpStatus.BAD_REQUEST);
         }
 

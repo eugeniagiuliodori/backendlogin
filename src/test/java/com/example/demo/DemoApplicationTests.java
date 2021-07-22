@@ -109,6 +109,9 @@ public class DemoApplicationTests{
 
 	@Mock
 	private RoleServiceImpl roleServicesImpl;
+
+	@Mock
+	private OAuth2RestTemplate oAuth2RestTemplate;
 	
 	@InjectMocks
 	private UserController userController;
@@ -1210,9 +1213,11 @@ public class DemoApplicationTests{
 	@WithUserDetails(value = "root", userDetailsServiceBeanName = "userServiceImpl")
 	public MvcResult updateUserOKWithoutExpect(EUser euser) throws Exception {
 		userServicesImpl.findByUserName(euser.getName());
-		OAuth2AccessToken token = generateToken("root","passroot","idClient1","passClient1");
+		String token = obtainAccessToken("root","passroot","idClient1","passClient1");
+		JSONParser jp = new JSONParser();
+		JSONObject jo = (JSONObject) jp.parse(token);
 		return mvc.perform(put("http://localhost:8040/user/update")
-				.header("Authorization", "Bearer " + token.getValue())
+				.header("Authorization", "Bearer " + (String) jo.get("access_token"))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(euser.toString())
 				.accept(MediaType.APPLICATION_JSON)).andReturn();
@@ -1322,71 +1327,25 @@ public class DemoApplicationTests{
 		ResultActions result
 				= mvc.perform(post("http://localhost:8040/user/login")
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"userName\":\""+username+"\",\"userPass\":\""+password+"\",\"clientId\":\""+clientId+"\",\"clientPass\":\""+clientPass+"\",\"\":\"\"}"))
+				.content("{\"userName\":\"" + username + "\",\"userPass\":\"" + password + "\",\"clientId\":\"" + clientId + "\",\"clientPass\":\"" + clientPass + "\",\"\":\"\"}"))
 				.andExpect(status().isBadRequest());
 
 	}
 
-	private ResourceOwnerPasswordResourceDetails packPasswordResourceDetails(String clientId, String clientSecret, String username, String password, String... scopes){
-		ResourceOwnerPasswordResourceDetails details = new ResourceOwnerPasswordResourceDetails();
-		//String cryptPsw = base64Encoder.encodeToString(password.getBytes());
-		//Set the address of the server requesting authentication and authorization
-		details.setAccessTokenUri("http://localhost:8040/oauth/token");
-		//The following are all authentication information: the permissions possessed, the authenticated client, and the specific user
-		details.setScope(Arrays.asList(scopes));
-		details.setClientId(clientId);
-		details.setClientSecret(clientSecret);
-		details.setUsername(username);
-		details.setPassword(password);
-		return details;
 
-	}
-
-	private OAuth2AccessToken generateToken(String username, String password, String clientId, String clientPass){
-		String credentials = "idClient1" + ":" + "passClient1";
+	private String obtainAccessToken(String username, String password, String clientId, String clientPass) throws Exception {
+		String credentials = clientId + ":" + clientPass;
 		String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
 		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+		headers.set("Content-Type","application/x-www-form-urlencoded");
 		headers.set("Accept","application/json");
 		headers.set("Accept-Encoding","gzip, deflate, br");
 		headers.set("Authorization", "Basic "+encodedCredentials);
-		String tokenUri = "https://localhost:8040/oauth/token";
-		String clientSecret = "passClient1";
-		String[] scopes = {"read","write"};
-		ResourceOwnerPasswordAccessTokenProvider provider = new ResourceOwnerPasswordAccessTokenProvider();
-		OAuth2AccessToken accessToken = null;
-		try {
-			//Get AccessToken
-			// 1. (Introduction to the internal process: Based on the above information, an http request with the request header "Basic Base64(username:password)" in the previous article will be constructed
-			//2. After that, a request will be sent to the oauth/token endpoint of the authentication and authorization server in an attempt to obtain AccessToken
-			ResourceOwnerPasswordResourceDetails details = packPasswordResourceDetails(clientId, clientSecret, username, password, scopes);
-			DefaultOAuth2ClientContext clientContext = new DefaultOAuth2ClientContext();
-			OAuth2RestTemplate oAuth2RestTemplate = new OAuth2RestTemplate(details, clientContext);
-			String parameters = "username=root&password=passroot&grant_type=password&client_id=idClient1&client_secret=passClient1";
-			HttpEntity<String> request = new HttpEntity<String>(parameters,headers);
-			HttpEntity<String> token = oAuth2RestTemplate.postForEntity(tokenUri,request, String.class);
-			String s = token.getBody();
-		}catch(OAuth2AccessDeniedException ex){
-			throw new OAuth2AccessDeniedException("Error getting jwt token, the reason is:" + ex.getCause().getMessage());
-		}
-		String t = accessToken.getValue();
-		return accessToken;
-	}
-
-	private String obtainAccessToken(String username, String password, String clientId, String clientPass) throws Exception {
-		String json = "{\"userName\":\""+username+"\",\"userPass\":\""+password+"\",\"clientId\":\""+clientId+"\",\"clientPass\":\""+clientPass+"\"}";
-		log.info(json);
-		ResultActions result
-				= mvc.perform(post("/user/login")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(json))
-				.andExpect(status().isOk());
-		if(result != null){
-			String str = "";
-		}
-		String resultString = result.andReturn().getResponse().getContentAsString();
-		JacksonJsonParser jsonParser = new JacksonJsonParser();
-		return jsonParser.parseMap(resultString).get("access_token").toString();
+		String tokenUri = "http://localhost:8040/oauth/token";
+		String parameters = "username="+username+"&password="+password+"&grant_type=password&client_id="+clientId+"&client_secret="+clientPass;
+		HttpEntity<String> request = new HttpEntity<String>(parameters,headers);
+		HttpEntity<String> token = oAuth2RestTemplate.postForEntity(tokenUri,request, String.class);
+		return token.getBody();
 
 	}
 
