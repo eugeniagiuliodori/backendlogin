@@ -251,20 +251,16 @@ public class UserController {
             String credentials = "idClient1" + ":" + "passClient1";
             String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
             HttpHeaders headers = new HttpHeaders();
-            headers.add("Accept", "application/json");
-            headers.add("Accept-Encoding", "gzip, deflate, br");
-            headers.add("Host", "<calculated when request is sent>");
-            headers.add("Connection", "keep-alive");
+            headers.add("Accept", "application/json;charset=UTF-8");
             headers.add("Content-Type", "application/x-www-form-urlencoded");
             headers.add("Authorization", "Basic " + encodedCredentials);
-
-
             MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<String, String>();
             requestBody.add("username", "root");
             requestBody.add("password", "passroot");
             requestBody.add("grant_type", "password");
             requestBody.add("client_id", "idClient1");
             requestBody.add("client_secret", "passClient1");
+            requestBody.add("scope","read write");
             HttpEntity formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
             RestTemplate restTemplate = new RestTemplate();
             String access_token_url = "http://localhost:8040/oauth/token";

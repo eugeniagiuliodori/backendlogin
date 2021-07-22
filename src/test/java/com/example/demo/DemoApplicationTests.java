@@ -8,7 +8,9 @@ import com.example.demo.security.ResourceServerConfig;
 import com.example.demo.security.WebSecurityConfig;
 import com.example.demo.service.impl.RoleServiceImpl;
 import com.example.demo.service.impl.UserServiceImpl;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.binary.Base64;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.Assert;
@@ -27,38 +29,71 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.*;
+import org.springframework.http.MediaType;
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.servlet.configuration.EnableWebMvcSecurity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
+import org.springframework.security.oauth2.client.OAuth2RestTemplate;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.resource.OAuth2AccessDeniedException;
+import org.springframework.security.oauth2.client.token.DefaultAccessTokenRequest;
+import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordAccessTokenProvider;
+import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
+import org.springframework.security.oauth2.common.AuthenticationScheme;
+import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.config.annotation.web.configuration.EnableOAuth2Client;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.TokenRequest;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
+import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.security.test.context.support.WithUserDetails;
+import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.ResultMatcher;
+import org.springframework.test.web.servlet.*;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.result.StatusResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.util.Base64Utils;
 import org.springframework.web.context.WebApplicationContext;
 import java.time.LocalDateTime;
 import java.util.*;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import org.junit.runners.Parameterized.Parameters;
-
-@EnableAutoConfiguration
+import okhttp3.*;
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @AutoConfigureMockMvc
 @ContextConfiguration(classes={AuthorizationServerConfig.class,ResourceServerConfig.class, WebSecurityConfig.class})
 @TestPropertySource("/application-test.properties")
 @Slf4j
+@EnableOAuth2Client
 public class DemoApplicationTests{
 
 
 	private MockMvc mvc;
+
+
+	@Autowired
+	private FilterChainProxy springSecurityFilterChain;
 
 
 	@Autowired
@@ -74,16 +109,21 @@ public class DemoApplicationTests{
 
 	@Mock
 	private RoleServiceImpl roleServicesImpl;
-
-	private UsernamePasswordAuthenticationToken userAuth;
-
+	
 	@InjectMocks
 	private UserController userController;
 
+	private static String baseUrl = "http://localhost:8040";
+	private static String tokenUrl = "http://localhost:8040/oauth/token";
+
+	@Mock
+	private ResourceOwnerPasswordAccessTokenProvider resourceOwnerPasswordAccessTokenProvider;
+
+	@Mock
+	private ResourceOwnerPasswordResourceDetails resourceOwnerPasswordResourceDetails;
 
 	@Before
 	public void setUp() throws Exception {
-
 		mvc = MockMvcBuilders.standaloneSetup(userController).build();
 	}
 
@@ -1169,15 +1209,10 @@ public class DemoApplicationTests{
 	@ParameterizedTest
 	@WithUserDetails(value = "root", userDetailsServiceBeanName = "userServiceImpl")
 	public MvcResult updateUserOKWithoutExpect(EUser euser) throws Exception {
-		try {
-			userServicesImpl.findByUserName(euser.getName());
-		}
-		catch(Exception e){ }
-		String str_token_refreshToken = obtainAccessToken("root", "passroot", "idClient1", "passClient1");
-		JSONParser parser = new JSONParser();
-		JSONObject json = (JSONObject) parser.parse(str_token_refreshToken);
+		userServicesImpl.findByUserName(euser.getName());
+		OAuth2AccessToken token = generateToken("root","passroot","idClient1","passClient1");
 		return mvc.perform(put("http://localhost:8040/user/update")
-				.header("Authorization", "Bearer " + json.get("acces_token"))
+				.header("Authorization", "Bearer " + token.getValue())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(euser.toString())
 				.accept(MediaType.APPLICATION_JSON)).andReturn();
@@ -1191,16 +1226,8 @@ public class DemoApplicationTests{
 	@Test
 	@WithUserDetails(value = "root", userDetailsServiceBeanName = "userServiceImpl")
 	public void updateUserNOTOK1() throws Exception {
-		String currUserName = new String("");//current user name
-		try {
-			userServicesImpl.findByUserName("root");
-		}
-		catch(Exception e){
-			updateUserOK5("rootmodif","root");
-		}
-		currUserName = "root";
+		String currUserName = "root";
 		//try {
-			String str_token_refreshToken = obtainAccessToken(currUserName, "passroot", "idClient1", "passClient1");
 			EUser user = new EUser();
 			user.setName("notExist");
 			user.setPassword("pass");
@@ -1300,12 +1327,57 @@ public class DemoApplicationTests{
 
 	}
 
+	private ResourceOwnerPasswordResourceDetails packPasswordResourceDetails(String clientId, String clientSecret, String username, String password, String... scopes){
+		ResourceOwnerPasswordResourceDetails details = new ResourceOwnerPasswordResourceDetails();
+		//String cryptPsw = base64Encoder.encodeToString(password.getBytes());
+		//Set the address of the server requesting authentication and authorization
+		details.setAccessTokenUri("http://localhost:8040/oauth/token");
+		//The following are all authentication information: the permissions possessed, the authenticated client, and the specific user
+		details.setScope(Arrays.asList(scopes));
+		details.setClientId(clientId);
+		details.setClientSecret(clientSecret);
+		details.setUsername(username);
+		details.setPassword(password);
+		return details;
+
+	}
+
+	private OAuth2AccessToken generateToken(String username, String password, String clientId, String clientPass){
+		String credentials = "idClient1" + ":" + "passClient1";
+		String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+		headers.set("Accept","application/json");
+		headers.set("Accept-Encoding","gzip, deflate, br");
+		headers.set("Authorization", "Basic "+encodedCredentials);
+		String tokenUri = "https://localhost:8040/oauth/token";
+		String clientSecret = "passClient1";
+		String[] scopes = {"read","write"};
+		ResourceOwnerPasswordAccessTokenProvider provider = new ResourceOwnerPasswordAccessTokenProvider();
+		OAuth2AccessToken accessToken = null;
+		try {
+			//Get AccessToken
+			// 1. (Introduction to the internal process: Based on the above information, an http request with the request header "Basic Base64(username:password)" in the previous article will be constructed
+			//2. After that, a request will be sent to the oauth/token endpoint of the authentication and authorization server in an attempt to obtain AccessToken
+			ResourceOwnerPasswordResourceDetails details = packPasswordResourceDetails(clientId, clientSecret, username, password, scopes);
+			DefaultOAuth2ClientContext clientContext = new DefaultOAuth2ClientContext();
+			OAuth2RestTemplate oAuth2RestTemplate = new OAuth2RestTemplate(details, clientContext);
+			String parameters = "username=root&password=passroot&grant_type=password&client_id=idClient1&client_secret=passClient1";
+			HttpEntity<String> request = new HttpEntity<String>(parameters,headers);
+			HttpEntity<String> token = oAuth2RestTemplate.postForEntity(tokenUri,request, String.class);
+			String s = token.getBody();
+		}catch(OAuth2AccessDeniedException ex){
+			throw new OAuth2AccessDeniedException("Error getting jwt token, the reason is:" + ex.getCause().getMessage());
+		}
+		String t = accessToken.getValue();
+		return accessToken;
+	}
 
 	private String obtainAccessToken(String username, String password, String clientId, String clientPass) throws Exception {
 		String json = "{\"userName\":\""+username+"\",\"userPass\":\""+password+"\",\"clientId\":\""+clientId+"\",\"clientPass\":\""+clientPass+"\"}";
 		log.info(json);
 		ResultActions result
-				= mvc.perform(post("http://localhost:8040/user/login")
+				= mvc.perform(post("/user/login")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(json))
 				.andExpect(status().isOk());
@@ -1315,6 +1387,7 @@ public class DemoApplicationTests{
 		String resultString = result.andReturn().getResponse().getContentAsString();
 		JacksonJsonParser jsonParser = new JacksonJsonParser();
 		return jsonParser.parseMap(resultString).get("access_token").toString();
+
 	}
 
 }
