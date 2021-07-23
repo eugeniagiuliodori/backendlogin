@@ -13,6 +13,7 @@ import com.example.demo.model.User;
 import com.example.demo.model.UserWithID;
 import com.example.demo.service.impl.UserServiceImpl;
 import com.example.demo.service.interfaces.IRoleService;
+import io.jsonwebtoken.Jwts;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.json.simple.parser.ParseException;
@@ -20,15 +21,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.resource.OAuth2AccessDeniedException;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
+import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import javax.servlet.http.HttpServletRequest;
+import javax.xml.bind.DatatypeConverter;
 import java.security.Principal;
 import java.util.*;
 
@@ -39,15 +45,17 @@ import java.util.*;
 @Slf4j
 public class UserController {
 
+
+
     @Autowired
-    private UserServiceImpl userService;
+    private UserServiceImpl userServiceImpl;
 
 
     @Autowired
     private IRoleService roleService;
 
     @Autowired
-    private HttpServletRequest context;
+    private HttpServletRequest httpServletRequest;
 
 
     @Bean
@@ -64,6 +72,8 @@ public class UserController {
             throw new OAuth2AccessDeniedException("Error getting jwt token, the reason is:" + ex.getCause().getMessage());
         }
     }
+
+
 
     @Autowired
     private OAuth2RestTemplate oAuth2RestTemplate;
@@ -101,7 +111,7 @@ public class UserController {
         }
         if(!badRequest) {
             try {
-                EUser euser = userService.addUser(user);
+                EUser euser = userServiceImpl.addUser(user);
                 if (!euser.getWarning().isEmpty()) {
                     return new ResponseEntity<>("{\"warnings\":[" + euser.getWarning() + "]}", HttpStatus.CREATED);
                 } else {
@@ -125,7 +135,7 @@ public class UserController {
 
     @PreAuthorize("hasRole('update')")
     @PutMapping("/update")
-    public ResponseEntity<?> updateUser(@RequestBody Map<String, Object> request){
+    public ResponseEntity<?> updateUser(@RequestBody Map<String, Object> request,HttpServletRequest httpServletRequest){
         Iterator it = request.keySet().iterator();
         EUser user = new EUser();
         boolean badRequest = false;
@@ -159,13 +169,25 @@ public class UserController {
         }
         if(!badRequest) {
             try {
+                String authenticatedUser = new String("");
                 String tokenValue = new String("");
-                String authHeader = context.getHeader("Authorization");
+                String authHeader = httpServletRequest.getHeader("Authorization");
                 if (authHeader != null) {
                     tokenValue = authHeader.replace("Bearer", "").trim();
                 }
-                String authenticatedUser = userService.getAuthenticatedUser();
-                EUser authuser = userService.findByUserName(authenticatedUser);
+                try { authenticatedUser = Jwts.parser()
+                            .setSigningKey("123")
+                            .parseClaimsJws(tokenValue) //este metodo es el que valida
+                            .getBody()
+                            .getSubject();
+                    //userServiceImpl.getAuthenticatedUser();
+                }
+                catch(Exception e){
+                    String s = e.getMessage();
+                    String a = "";
+                    e.printStackTrace();
+                }
+                EUser authuser = userServiceImpl.findByUserName(authenticatedUser);
                 Long authenticatedUserId = authuser.getId();
                 Long bodyUserId = user.getId();
                 String bodyUser = user.getName();
@@ -175,7 +197,7 @@ public class UserController {
                 if (bodyUserId != null || bodyUser != null) {
                     EUser oldUser = null;
                     try {
-                        EUser old = userService.findByUserName(user.getName());
+                        EUser old = userServiceImpl.findByUserName(user.getName());
                         oldUser = new EUser();
                         oldUser.setId(old.getId());
                         oldUser.setName(old.getName());
@@ -184,13 +206,13 @@ public class UserController {
                         oldUser.setRoles(new HashSet<>(old.getRoles()));//si no pongo un new EUser para oldUser, me da problema de aliasing cuando hace el update (no entiendo donde)
                     } catch (Exception e) {
                     }
-                    EUser usermod = userService.updateUser(user, existBodyRoles);
+                    EUser usermod = userServiceImpl.updateUser(user, existBodyRoles);
                     if ((bodyUserId != null && bodyUserId.equals(authenticatedUserId)) ||
                             (bodyUser != null && bodyUser.equals(authenticatedUser))) {//if update is of authenticated user
                         Optional<EUser> euser = null;
                         Set<Role> oldRoles = null;
                         if (oldUser == null) {
-                            euser = userService.findById(user.getId());
+                            euser = userServiceImpl.findById(user.getId());
                             if (euser.isPresent()) {
                                 oldRoles = RolesMapper.translate(euser.get().getRoles());
                             }
@@ -255,7 +277,7 @@ public class UserController {
 
     @PostMapping ("/logout")
     public ResponseEntity<?> logout(Principal principal) {
-        userService.logout(principal);
+        userServiceImpl.logout(principal);
         return new ResponseEntity<Void>(HttpStatus.OK);
     }
 
@@ -306,7 +328,7 @@ public class UserController {
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable(value="id") Long idUser){
         try{
-            EUser delUser = userService.deleteUser(idUser);
+            EUser delUser = userServiceImpl.deleteUser(idUser);
             return new ResponseEntity<>(HttpStatus.OK);
         }
         catch(Exception e){
@@ -361,7 +383,7 @@ public class UserController {
     @DeleteMapping("/deleteAll")
     public ResponseEntity<?> deleteAllUsers(){
         try{
-            userService.deleteAllUsers();
+            userServiceImpl.deleteAllUsers();
             return new ResponseEntity<Void>(HttpStatus.OK);
         }
         catch(Exception e){
@@ -375,7 +397,7 @@ public class UserController {
 
     private ResponseEntity<?> deleteUser(String name){
         try{
-            EUser delUser = userService.deleteUser(name);
+            EUser delUser = userServiceImpl.deleteUser(name);
             return new ResponseEntity<>(HttpStatus.OK);
         }
         catch(Exception e){
@@ -390,7 +412,7 @@ public class UserController {
     @GetMapping("/get")
     public ResponseEntity<?> getUser(){
         try{
-            List<EUser> eiterable = userService.findAll();
+            List<EUser> eiterable = userServiceImpl.findAll();
             Set<EUser> eusers = new HashSet<EUser>(eiterable);
             Set<User> users = UsersMapper.translate(eusers);
                 return new ResponseEntity<>(UsersMapper.getStringUsers(), HttpStatus.OK);
@@ -407,7 +429,7 @@ public class UserController {
     @GetMapping("/get/name/{name}")
     public ResponseEntity<?> getUser(@PathVariable(value="name") String name){
         try{
-            EUser euser = userService.findByUserName(name);
+            EUser euser = userServiceImpl.findByUserName(name);
             User user = UserMapper.translate(euser);
             return new ResponseEntity<>(user.toString(), HttpStatus.OK);
         }
@@ -423,7 +445,7 @@ public class UserController {
     @GetMapping("/getWithID/name/{name}")
     public ResponseEntity<?> getUserWithID(@PathVariable(value="name") String name){
         try{
-            EUser euser = userService.findByUserName(name);
+            EUser euser = userServiceImpl.findByUserName(name);
             UserWithID user = UserMapper.translateWithID(euser);
             return new ResponseEntity<>(user.toString(), HttpStatus.OK);
         }
@@ -439,7 +461,7 @@ public class UserController {
     @GetMapping("/get/id/{id}")
     public ResponseEntity<?> getUser(@PathVariable(value="id") Long id){
         try{
-            Optional<EUser> euser = userService.findById(id);
+            Optional<EUser> euser = userServiceImpl.findById(id);
             User user = UserMapper.translate(euser.get());
             return new ResponseEntity<>(user.toString(), HttpStatus.OK);
         }

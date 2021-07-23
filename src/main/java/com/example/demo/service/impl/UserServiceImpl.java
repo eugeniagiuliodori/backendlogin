@@ -56,7 +56,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     private AuthorizationServerConfig auth;
 
     @Autowired
-    private HttpServletRequest context;
+    private HttpServletRequest httpServletRequest;
 
     @Autowired
     private AuthorizationServerTokenServices authorizationServerTokenServices;
@@ -474,6 +474,10 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
     public String getAuthenticatedPassUser() {
         return authenticatedPassUser;
+    }
+
+    public String setAuthenticatedUser(String name) {
+        return authenticatedUser = name;
     }
 
     public List<ERole> getListRoles() {
