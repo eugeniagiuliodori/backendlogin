@@ -27,6 +27,7 @@ import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.oauth2.provider.token.ConsumerTokenServices;
+import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.PostConstruct;
@@ -280,7 +281,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 strWarnings = strWarnings + "{\"warning\":\"Incorrect or missing user roles\"}";
             }
             List<ERole> distinctRoles = (List<ERole>)ListManager.hasDuplicates(user.getRoles());
-            if(distinctRoles.size() < user.getRoles().size()){
+            if(user.getRoles() != null && distinctRoles.size() < user.getRoles().size()){
                 if(!strWarnings.isEmpty()){
                     strWarnings = strWarnings + ",";
                 }

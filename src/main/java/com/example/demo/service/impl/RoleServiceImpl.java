@@ -28,7 +28,7 @@ public class RoleServiceImpl implements IRoleService {
     private IServiceDao serviceDao;
 
     @Autowired
-    private IUserService userService;
+    private UserServiceImpl userServiceImpl;
 
     @Autowired
     private RoleRepository roleRepository;
@@ -85,7 +85,7 @@ public class RoleServiceImpl implements IRoleService {
                     if (user.getName() != null) {//en el caso de add de rol (no desde user) no se permite en el request, poner el id
                         EUser fuser = null;
                         try {
-                            fuser = userService.findByUserName(user.getName());
+                            fuser = userServiceImpl.findByUserName(user.getName());
                             user.setId(fuser.getId());
                         }
                         catch(Exception ex){

@@ -11,9 +11,10 @@ import com.example.demo.model.Login;
 import com.example.demo.model.Role;
 import com.example.demo.model.User;
 import com.example.demo.model.UserWithID;
+import com.example.demo.security.RevokeTokenEndpoint;
 import com.example.demo.service.impl.UserServiceImpl;
 import com.example.demo.service.interfaces.IRoleService;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.json.simple.parser.ParseException;
@@ -24,17 +25,24 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.resource.OAuth2AccessDeniedException;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
+import org.springframework.security.oauth2.common.util.JsonParser;
+import org.springframework.security.oauth2.common.util.JsonParserFactory;
+import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+
+import javax.crypto.spec.SecretKeySpec;
 import javax.servlet.http.HttpServletRequest;
 import javax.xml.bind.DatatypeConverter;
+import java.security.Key;
 import java.security.Principal;
 import java.util.*;
 
@@ -53,6 +61,10 @@ public class UserController {
 
     @Autowired
     private IRoleService roleService;
+
+
+    @Autowired
+    private JwtAccessTokenConverter accessTokenConverter;
 
     @Autowired
     private HttpServletRequest httpServletRequest;
@@ -169,31 +181,20 @@ public class UserController {
         }
         if(!badRequest) {
             try {
-                String authenticatedUser = new String("");
                 String tokenValue = new String("");
                 String authHeader = httpServletRequest.getHeader("Authorization");
-                if (authHeader != null) {
-                    tokenValue = authHeader.replace("Bearer", "").trim();
-                }
-                try { authenticatedUser = Jwts.parser()
-                            .setSigningKey("123")
-                            .parseClaimsJws(tokenValue) //este metodo es el que valida
-                            .getBody()
-                            .getSubject();
-                    //userServiceImpl.getAuthenticatedUser();
-                }
-                catch(Exception e){
-                    String s = e.getMessage();
-                    String a = "";
-                    e.printStackTrace();
-                }
+                tokenValue = authHeader.replace("Bearer", "").trim();
+                JsonParser objectMapper = JsonParserFactory.create();
+                Map<String, Object> claims = objectMapper.parseMap(JwtHelper.decode(tokenValue).getClaims());
+               String sss = JwtHelper.decode(tokenValue).toString();
+                String c = claims.toString();
+                String authenticatedUser = (String)claims.get("user_name");//userServiceImpl.getAuthenticatedUser();
                 EUser authuser = userServiceImpl.findByUserName(authenticatedUser);
                 Long authenticatedUserId = authuser.getId();
                 Long bodyUserId = user.getId();
                 String bodyUser = user.getName();
                 String bodyPassUser = user.getPassword();
-                boolean existBodyRoles = user.getRoles() != null;
-                String s = null;
+                boolean existBodyRoles = user.getRoles() != null && !user.getRoles().isEmpty();
                 if (bodyUserId != null || bodyUser != null) {
                     EUser oldUser = null;
                     try {
@@ -205,6 +206,10 @@ public class UserController {
                         oldUser.setPassword(old.getPassword());
                         oldUser.setRoles(new HashSet<>(old.getRoles()));//si no pongo un new EUser para oldUser, me da problema de aliasing cuando hace el update (no entiendo donde)
                     } catch (Exception e) {
+                        String s="";
+                    }
+                    if(user == null){
+                        String s="";
                     }
                     EUser usermod = userServiceImpl.updateUser(user, existBodyRoles);
                     if ((bodyUserId != null && bodyUserId.equals(authenticatedUserId)) ||
@@ -236,7 +241,7 @@ public class UserController {
                         if ((bodyUser != null && !authenticatedUser.equals(bodyUser)) ||
                                 (bodyPassUser != null && !authuser.getPassword().equals(bodyPassUser)) ||
                                 (changesRoles)) {
-                            String new_token_refreshToken = revoquesToken(usermod.getName(), user.getPassword(), tokenValue, "idClient1", "passClient1");
+                            String new_token_refreshToken = RevokeTokenEndpoint.revoquesTokenAndGenerateNew(usermod.getName(), user.getPassword(), tokenValue, "idClient1", "passClient1");
                             if (new_token_refreshToken.contains("error")) {
                                 new_token_refreshToken = "{\"error\":\"" + new_token_refreshToken + "\"}";
                             }
@@ -274,12 +279,6 @@ public class UserController {
 
     }
 
-
-    @PostMapping ("/logout")
-    public ResponseEntity<?> logout(Principal principal) {
-        userServiceImpl.logout(principal);
-        return new ResponseEntity<Void>(HttpStatus.OK);
-    }
 
 
     private ResourceOwnerPasswordResourceDetails packPasswordResourceDetails(String clientId, String clientSecret, String username, String password, String... scopes){
@@ -473,7 +472,7 @@ public class UserController {
         }
     }
 
-
+/*
     private String revoquesToken(String userName, String userPass, String tokenValue, String idClient,String passClient) {
 
         HttpHeaders headers = new HttpHeaders();
@@ -503,7 +502,7 @@ public class UserController {
     }
 
 
-
+*/
 
 
 

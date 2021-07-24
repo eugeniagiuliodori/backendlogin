@@ -5,13 +5,16 @@ import com.example.demo.entity.ERole;
 import com.example.demo.entity.EUser;
 import com.example.demo.extras.IteratorOfSet;
 import com.example.demo.service.impl.UserServiceImpl;
+import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -27,9 +30,12 @@ import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
 import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
 import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
+import org.springframework.security.oauth2.provider.token.store.KeyStoreKeyFactory;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.spec.SecretKeySpec;
 import javax.xml.bind.DatatypeConverter;
+import java.security.Key;
 import java.util.Iterator;
 
 
@@ -45,6 +51,7 @@ import java.util.Iterator;
 @EnableAuthorizationServer
 @EnableWebSecurity
 @TestConfiguration
+@Slf4j
 public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdapter{
 
 
@@ -113,8 +120,12 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 
 	@Override
 	public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception{
-		endpoints.authenticationManager(authenticationManager).userDetailsService((UserDetailsService)userServiceImpl);
-
+		//endpoints.authenticationManager(authenticationManager).userDetailsService((UserDetailsService)userServiceImpl);
+		endpoints
+				.tokenStore(tokenStore())
+				.accessTokenConverter(accessTokenConverter())
+				.authenticationManager(authenticationManager)
+				.userDetailsService(userServiceImpl);
 	}
 
 

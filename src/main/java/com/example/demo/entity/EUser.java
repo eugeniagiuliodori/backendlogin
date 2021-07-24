@@ -100,9 +100,9 @@ public class EUser implements Serializable {
             Iterator iterator = getRoles().iterator();
             for(ERole role : getRoles()) {
                 roles = roles + "{\"nameRole\":\""+((ERole)iterator.next()).getNameRole()+"\"}";
-            }
-            if(iterator.hasNext()){
-                roles=roles+",";
+                if(iterator.hasNext()){
+                    roles=roles+",";
+                }
             }
         }
         return new String( "{\"name\":\""+getName()+"\",\"password\":\""+getPassword()+"\",\"roles\":["+roles+"]}");

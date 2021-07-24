@@ -15,14 +15,19 @@ public class RolesMapper {
     private static String str;
 
     public static Set<Role> translate(Set<ERole> roles){
-        str = new String();
+        str = new String("");
         Set<Role> mapperRoles = new HashSet<>();
-        IteratorOfSet iterator = new IteratorOfSet(roles);
-        while(iterator.hasNext()){
-            ERole erole = (ERole)iterator.next();
-            Role role = RoleMapper.translate(erole);
-            mapperRoles.add(role);
-            str = str + role.toString();
+        if(roles != null) {
+            IteratorOfSet iterator = new IteratorOfSet(roles);
+            while (iterator.hasNext()) {
+                ERole erole = (ERole) iterator.next();
+                Role role = RoleMapper.translate(erole);
+                mapperRoles.add(role);
+                str = str + role.toString();
+                if (iterator.hasNext()) {
+                    str = str + ",";
+                }
+            }
         }
         return mapperRoles;
     }

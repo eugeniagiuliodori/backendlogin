@@ -1,5 +1,6 @@
 package com.example.demo.model;
 
+import com.example.demo.entity.EUser;
 import com.example.demo.extras.ServiceList;
 
 import java.util.*;
@@ -74,9 +75,24 @@ public class Role {
                 "\"nameRole\":\"" + name + "\"" +
                 ", \"description\":\"" + description + "\"" +
                 ", \"date\":\"" + date + "\""+
-                ", \"services\":" + services.toString() + ""+
-                ", \"users\":" + users.toString() + ""+
-                "}";
+                ", \"services\":" + services.toString()+
+                ", \"users\":" + toStringUsers(users)
+                +"}";
+    }
+
+
+
+    private String toStringUsers(Set<User> users){
+        String str = new String("");
+        Iterator<User> it = users.iterator();
+        while(it.hasNext()){
+            str = str + (it.next()).toString();
+            if(it.hasNext()){
+                str = str+ ",";
+            }
+        }
+        str = "[" + str + "]";
+        return str;
     }
 
     @Override

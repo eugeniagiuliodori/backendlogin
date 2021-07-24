@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -21,6 +22,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.annotation.web.servlet.configuration.EnableWebMvcSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.stereotype.Component;
@@ -65,12 +67,15 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	//CON OAUTH2 ESTE METODO CAMBIA Y SOLO SE DEFINE EL ENDPOINT PARA OBTENER TOKEN
 	@Override
 	protected void configure(HttpSecurity http) throws Exception{
+		http.authorizeRequests().antMatchers(HttpMethod.GET).permitAll();
 		http
 				.authorizeRequests()
 				.antMatchers("/oauth/token/revoke/**").authenticated().
 				and().authorizeRequests()
 				.antMatchers("/oauth/token").permitAll();//este endpoint es fijo. Asi lo reconoce el framework oauth2 para generar token y token_refresh sin usar un controller
-
+		/*
+		@EnableAuthorizationServer is adding http security configuration for endpoints like /oauth/token, /oauth/token_key etc at order 0. So what you should do is to define a http security rule for /oauth/token endpoint only for the OPTIONS http method which is at a higher order.
+		*/
 		http
 				.logout()
 				.logoutSuccessUrl("/user/logout")

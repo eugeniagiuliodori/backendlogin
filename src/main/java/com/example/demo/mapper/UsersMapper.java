@@ -16,17 +16,19 @@ public class UsersMapper {
     private static String str;
 
     public static Set<User> translate(Set<EUser> users){
-        str = new String();
         Set<User> mapperUsers = new HashSet<>();
-        IteratorOfSet iterator = new IteratorOfSet(users);
-        while(iterator.hasNext()){
-            EUser euser = (EUser)iterator.next();
-            User user = new User(euser.getName());
-            //User user = UserMapper.translate(euser);// esto genera recursividad infinita
-            mapperUsers.add(user);
-            str = str + user.toString();
-            if (iterator.hasNext()){
-                str = str + ",";
+        if(users != null) {
+            str = new String();
+            IteratorOfSet iterator = new IteratorOfSet(users);
+            while (iterator.hasNext()) {
+                EUser euser = (EUser) iterator.next();
+                User user = new User(euser.getName());
+                //User user = UserMapper.translate(euser);// esto genera recursividad infinita
+                mapperUsers.add(user);
+                str = str + user.toString();
+                if (iterator.hasNext()) {
+                    str = str + ",";
+                }
             }
         }
         return mapperUsers;

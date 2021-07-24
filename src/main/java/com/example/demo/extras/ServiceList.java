@@ -35,13 +35,15 @@ public class ServiceList extends HashSet<Service> {
     @Override
     public String toString(){
         String str = new String("");
-        Iterator iterator = new IteratorOfSet(services);
-        while(iterator.hasNext()){
-            EService eservice = (EService) iterator.next();
-            Service service = new Service(eservice.getId(), eservice.getName(), eservice.getDescription(), eservice.getDate()) ;
-            str = str + service.toString();
-            if(iterator.hasNext()){
-                str = str + ",";
+        if(services != null) {
+            Iterator iterator = new IteratorOfSet(services);
+            while (iterator.hasNext()) {
+                EService eservice = (EService) iterator.next();
+                Service service = new Service(eservice.getId(), eservice.getName(), eservice.getDescription(), eservice.getDate());
+                str = str + service.toString();
+                if (iterator.hasNext()) {
+                    str = str + ",";
+                }
             }
         }
         return "["+str+"]";

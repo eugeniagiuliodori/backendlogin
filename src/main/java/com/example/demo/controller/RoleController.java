@@ -31,7 +31,7 @@ public class RoleController {
     IRoleService roleService;
 
     @Autowired
-    UserServiceImpl userService;
+    UserServiceImpl userServiceImpl;
 
     @Autowired
     private HttpServletRequest context;
@@ -110,7 +110,7 @@ public class RoleController {
                 if(role.getNameRole() != null && roleold !=null) {
                     ERole oldRole = roleService.save(role);
                     if(oldRole != null) {
-                        List<ERole> list = userService.getListRoles();
+                        List<ERole> list = userServiceImpl.getListRoles();
                         boolean exist = false;
                         String s1=roleold.getNameRole();
                         for (int i = 0; i < list.size() && !exist; i++) {
@@ -125,7 +125,7 @@ public class RoleController {
                             if (authHeader != null) {
                                 tokenValue = authHeader.replace("Bearer", "").trim();
                             }
-                            String new_token_refreshToken = revoquesToken(userService.getAuthenticatedUser(), userService.getAuthenticatedPassUser(), false, tokenValue, new String("idClient1"), new String("passClient1"));
+                            String new_token_refreshToken = revoquesToken(userServiceImpl.getAuthenticatedUser(), userServiceImpl.getAuthenticatedPassUser(), false, tokenValue, new String("idClient1"), new String("passClient1"));
                             if (new_token_refreshToken.contains("error")) {
                                 new_token_refreshToken = "{\"error\":\"" + new_token_refreshToken + "\"}";
                             }
@@ -153,7 +153,7 @@ public class RoleController {
                     if (role.getId() != null && roleold != null) {
                         ERole oldRole = roleService.save(role);
                         if(oldRole != null){
-                            List<ERole> list = userService.getListRoles();
+                            List<ERole> list = userServiceImpl.getListRoles();
                             boolean exist = false;
                             for(int i = 0; i < list.size() && !exist; i++){
                                 String s = list.get(i).getNameRole();
@@ -168,7 +168,7 @@ public class RoleController {
                                     tokenValue = authHeader.replace("Bearer", "").trim();
                                 }
                                 TokenGenerator tokenGenerator = new TokenGenerator();
-                                String new_token_refreshToken = tokenGenerator.revoquesToken(userService.getAuthenticatedUser(),userService.getAuthenticatedPassUser(),false,tokenValue,new String("idClient1"), new String("passClient1"));
+                                String new_token_refreshToken = tokenGenerator.revoquesToken(userServiceImpl.getAuthenticatedUser(),userServiceImpl.getAuthenticatedPassUser(),false,tokenValue,new String("idClient1"), new String("passClient1"));
                                 if(new_token_refreshToken.contains("error")){
                                     new_token_refreshToken="{\"error\":\""+new_token_refreshToken+"\"}";
                                 }
@@ -355,7 +355,7 @@ public class RoleController {
         requestBody.add("Content-Type", "application/x-www-form-urlencoded");
         requestBody.add("username", userName);
         if(!passInRequest){
-            userPass=userService.getAuthenticatedPassUser();
+            userPass=userServiceImpl.getAuthenticatedPassUser();
         }
         requestBody.add("password", userPass);
         requestBody.add("grant_type", "password");
