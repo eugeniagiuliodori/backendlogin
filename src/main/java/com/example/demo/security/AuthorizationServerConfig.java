@@ -27,7 +27,10 @@ import org.springframework.security.oauth2.config.annotation.web.configuration.E
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
 import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
+import org.springframework.security.oauth2.provider.token.TokenEnhancer;
+import org.springframework.security.oauth2.provider.token.TokenEnhancerChain;
 import org.springframework.security.oauth2.provider.token.TokenStore;
+import org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore;
 import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
 import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
 import org.springframework.security.oauth2.provider.token.store.KeyStoreKeyFactory;
@@ -36,6 +39,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.bind.DatatypeConverter;
 import java.security.Key;
+import java.util.Arrays;
 import java.util.Iterator;
 
 
@@ -98,6 +102,7 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 		client.secret(encoder.encode(passClient));
 		client.authorizedGrantTypes("password", "refresh_token");
 		client.scopes("read", "write");
+		client.resourceIds(idClient);
 		userName=userServiceImpl.getAuthenticatedUser();
 		EUser user;
 		try {
@@ -118,6 +123,7 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 		client.refreshTokenValiditySeconds(2 * 180);
 	}
 
+
 	@Override
 	public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception{
 		//endpoints.authenticationManager(authenticationManager).userDetailsService((UserDetailsService)userServiceImpl);
@@ -125,8 +131,13 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 				.tokenStore(tokenStore())
 				.accessTokenConverter(accessTokenConverter())
 				.authenticationManager(authenticationManager)
-				.userDetailsService(userServiceImpl);
+				.userDetailsService((UserDetailsService)userServiceImpl)
+				.userDetailsService(userServiceImpl)
+				.tokenEnhancer(accessTokenConverter())
+				 .reuseRefreshTokens(false)
+				.accessTokenConverter(accessTokenConverter());
 	}
+
 
 
 	public UserServiceImpl getUserService() {
@@ -166,7 +177,8 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 	//ESTO ES CON OAUTH2 Y ES OPCIONAL
 	@Bean
 	public TokenStore tokenStore() {
-		return new JwtTokenStore(accessTokenConverter());
+		return new InMemoryTokenStore();
+		//return new JwtTokenStore(accessTokenConverter());
 	}
 
 	@Bean
@@ -184,5 +196,6 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 		defaultTokenServices.setSupportRefreshToken(true);
 		return defaultTokenServices;
 	}
+
 
 }

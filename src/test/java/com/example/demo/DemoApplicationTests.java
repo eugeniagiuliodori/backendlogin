@@ -40,6 +40,7 @@ import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
 import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.security.web.FilterChainProxy;
@@ -76,7 +77,7 @@ public class DemoApplicationTests{
 	@Mock
 	private IRoleDao iRoleDao;
 
-	@Mock
+	@Autowired
 	private UserServiceImpl userServiceImpl;
 
 	@Mock
@@ -120,9 +121,11 @@ public class DemoApplicationTests{
 	}
 
 	@ParameterizedTest
+	@WithMockUser(username="root",roles={"update"})
 	public MvcResult updateUserOKWithoutExpect(EUser euser) throws Exception {
 
 		EUser user = new EUser();
+		//user.setId(new Long(1));
 		user.setName("root");
 		user.setPassword("passroot");
 		Set<ERole> roles = new HashSet<>();
@@ -137,17 +140,17 @@ public class DemoApplicationTests{
 		roles.add(role);
 		user.setRoles(roles);
 		String token = obtainAccessToken(user.getName(),user.getPassword(),"idClient1","passClient1");
-
 		JsonParser objectMapper = JsonParserFactory.create();
 		Map<String, Object> claims = objectMapper.parseMap(JwtHelper.decode(token).getClaims());
 		String sa = claims.toString();
-
 		Mockito.when(userServiceImpl.findByUserName(user.getName())).thenReturn(user);
-//		Mockito.when(userServiceImpl.findById(user.getId()).get()).thenReturn(user);
+		Mockito.when(userServiceImpl.findById(euser.getId())).thenReturn(Optional.of(euser));
 		Mockito.when(userServiceImpl.findByUserName(user.getName())).thenReturn(user);
 		Mockito.when(userServiceImpl.findByUserName(euser.getName())).thenReturn(euser);
+		Mockito.when(userServiceImpl.addUser(user)).thenReturn(user);
 		Mockito.when(userServiceImpl.updateUser(euser,false)).thenReturn(euser);
-		mvc.perform(put("http://localhost:8040/user/add")
+		Mockito.when(userServiceImpl.updateUser(euser,true)).thenReturn(euser);
+		mvc.perform(post("http://localhost:8040/user/add")
 				.header("Authorization", "Bearer " + token)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(user.toString()));

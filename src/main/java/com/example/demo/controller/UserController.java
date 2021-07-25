@@ -30,8 +30,10 @@ import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.resource.OAuth2AccessDeniedException;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.JsonParser;
 import org.springframework.security.oauth2.common.util.JsonParserFactory;
+import org.springframework.security.oauth2.provider.token.ConsumerTokenServices;
 import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
 import org.springframework.util.LinkedMultiValueMap;
@@ -39,6 +41,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import javax.annotation.Resource;
 import javax.crypto.spec.SecretKeySpec;
 import javax.servlet.http.HttpServletRequest;
 import javax.xml.bind.DatatypeConverter;
@@ -53,6 +56,11 @@ import java.util.*;
 @Slf4j
 public class UserController {
 
+    @Autowired
+    private TokenStore tokenStore;
+
+    @Autowired
+    private ConsumerTokenServices consumerTokenServices;
 
 
     @Autowired
@@ -124,6 +132,12 @@ public class UserController {
         if(!badRequest) {
             try {
                 EUser euser = userServiceImpl.addUser(user);
+                Long i = user.getId();
+                String n = user.getName();
+                String p = user.getPassword();
+                int r = user.getRoles().size();
+                String w = user.getWarning();
+                Date d = user.getDate();
                 if (!euser.getWarning().isEmpty()) {
                     return new ResponseEntity<>("{\"warnings\":[" + euser.getWarning() + "]}", HttpStatus.CREATED);
                 } else {
@@ -241,7 +255,8 @@ public class UserController {
                         if ((bodyUser != null && !authenticatedUser.equals(bodyUser)) ||
                                 (bodyPassUser != null && !authuser.getPassword().equals(bodyPassUser)) ||
                                 (changesRoles)) {
-                            String new_token_refreshToken = RevokeTokenEndpoint.revoquesTokenAndGenerateNew(usermod.getName(), user.getPassword(), tokenValue, "idClient1", "passClient1");
+                            //RevokeTokenEndpoint managerRevokes = new RevokeTokenEndpoint();
+                            String new_token_refreshToken = revoquesTokensAndGenerateNew(usermod.getName(), user.getPassword(), tokenValue, "idClient1", "passClient1");
                             if (new_token_refreshToken.contains("error")) {
                                 new_token_refreshToken = "{\"error\":\"" + new_token_refreshToken + "\"}";
                             }
@@ -471,6 +486,41 @@ public class UserController {
             return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_FOUND);
         }
     }
+
+
+    public String revoquesTokensAndGenerateNew(String userName, String userPass, String tokenValue, String idClient,String passClient) {
+        //  final OAuth2Authentication auth = (OAuth2Authentication) SecurityContextHolder
+        //        .getContext().getAuthentication();
+        //final String token = tokenStore.getAccessToken(auth).getValue();
+        //tokenServices.revokeToken(token);
+
+        Collection<OAuth2AccessToken> tokens = tokenStore.findTokensByClientIdAndUserName(
+                idClient,
+                userName);
+        for (OAuth2AccessToken token : tokens) {
+            consumerTokenServices.revokeToken(token.getValue());
+        }
+
+        String credentials = idClient + ":" + passClient;
+        String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.add("Authorization", "Basic " + encodedCredentials);
+        MultiValueMap<String, String> requestBody  = new LinkedMultiValueMap<String, String>();
+        requestBody.add("Content-Type", "application/x-www-form-urlencoded");
+        requestBody.add("username", userName);
+        requestBody.add("password", userPass);
+        requestBody.add("grant_type", "password");
+        HttpEntity formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
+        HttpEntity<String> request = new HttpEntity<String>(headers);
+        RestTemplate restTemplate = new RestTemplate();
+        String access_token_url = "http://localhost:8040/oauth/token";
+        ResponseEntity<String> response = restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
+        return response.getBody();
+    }
+
+
+
 
 /*
     private String revoquesToken(String userName, String userPass, String tokenValue, String idClient,String passClient) {

@@ -1,9 +1,15 @@
 package com.example.demo.security;
 
 import org.apache.commons.codec.binary.Base64;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.endpoint.FrameworkEndpoint;
 import org.springframework.security.oauth2.provider.token.ConsumerTokenServices;
+import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
+import org.springframework.security.oauth2.provider.token.TokenStore;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,9 +20,18 @@ import org.springframework.web.client.RestTemplate;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
+import java.util.Collection;
 
 @FrameworkEndpoint
 public class RevokeTokenEndpoint {
+
+
+    @Autowired
+    private TokenStore tokenStore;
+
+    @Autowired
+    private ConsumerTokenServices consumerTokenServices;
+
 
     @Resource(name = "tokenServices")
     ConsumerTokenServices tokenServices;
@@ -33,18 +48,21 @@ public class RevokeTokenEndpoint {
 
 
 
-    public static String revoquesTokenAndGenerateNew(String userName, String userPass, String tokenValue, String idClient,String passClient) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-        headers.add("Authorization", "Bearer " + tokenValue);
-        HttpEntity formEntity = new HttpEntity<>(headers);
-        RestTemplate restTemplate = new RestTemplate();
-        String access_token_url = "http://localhost:8040/oauth/token";
-        restTemplate.exchange(access_token_url, HttpMethod.DELETE, formEntity, String.class);
+    public String revoquesTokensAndGenerateNew(String userName, String userPass, String tokenValue, String idClient,String passClient) {
+      //  final OAuth2Authentication auth = (OAuth2Authentication) SecurityContextHolder
+        //        .getContext().getAuthentication();
+        //final String token = tokenStore.getAccessToken(auth).getValue();
+        //tokenServices.revokeToken(token);
+        Collection<OAuth2AccessToken> tokens = tokenStore.findTokensByClientIdAndUserName(
+                "idClient1",
+                userName);
+        for (OAuth2AccessToken token : tokens) {
+            consumerTokenServices.revokeToken(token.getValue());
+        }
 
         String credentials = idClient + ":" + passClient;
         String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
-        headers = new HttpHeaders();
+        HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", "Basic " + encodedCredentials);
         MultiValueMap<String, String> requestBody  = new LinkedMultiValueMap<String, String>();
@@ -52,10 +70,10 @@ public class RevokeTokenEndpoint {
         requestBody.add("username", userName);
         requestBody.add("password", userPass);
         requestBody.add("grant_type", "password");
-        formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
+        HttpEntity formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
         HttpEntity<String> request = new HttpEntity<String>(headers);
-        restTemplate = new RestTemplate();
-        access_token_url = "http://localhost:8040/oauth/token";
+        RestTemplate restTemplate = new RestTemplate();
+        String access_token_url = "http://localhost:8040/oauth/token";
         ResponseEntity<String> response = restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
         return response.getBody();
     }
