@@ -56,8 +56,8 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     @Autowired
     private AuthorizationServerConfig auth;
 
-    @Autowired
-    private HttpServletRequest httpServletRequest;
+   // @Autowired
+   // private HttpServletRequest httpServletRequest;
 
     @Autowired
     private AuthorizationServerTokenServices authorizationServerTokenServices;

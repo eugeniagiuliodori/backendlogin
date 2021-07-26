@@ -74,8 +74,8 @@ public class UserController {
     @Autowired
     private JwtAccessTokenConverter accessTokenConverter;
 
-    @Autowired
-    private HttpServletRequest httpServletRequest;
+  //  @Autowired
+   // private HttpServletRequest httpServletRequest;
 
 
     @Bean
@@ -219,11 +219,18 @@ public class UserController {
                         oldUser.setDate(old.getDate());
                         oldUser.setPassword(old.getPassword());
                         oldUser.setRoles(new HashSet<>(old.getRoles()));//si no pongo un new EUser para oldUser, me da problema de aliasing cuando hace el update (no entiendo donde)
-                    } catch (Exception e) {
-                        String s="";
                     }
-                    if(user == null){
-                        String s="";
+                    catch (Exception e) {
+                        if(user.getId() != null) {
+                            Optional<EUser> euser = null;
+                            euser = userServiceImpl.findById(user.getId());
+                            if(!euser.isPresent()) {
+                                return new ResponseEntity<>("{\"error\":\"User not found\"}", HttpStatus.NOT_FOUND);
+                            }
+                        }
+                        else{
+                            return new ResponseEntity<>("{\"error\":\"User not found\"}", HttpStatus.NOT_FOUND);
+                        }
                     }
                     EUser usermod = userServiceImpl.updateUser(user, existBodyRoles);
                     if ((bodyUserId != null && bodyUserId.equals(authenticatedUserId)) ||
@@ -231,11 +238,17 @@ public class UserController {
                         Optional<EUser> euser = null;
                         Set<Role> oldRoles = null;
                         if (oldUser == null) {
-                            euser = userServiceImpl.findById(user.getId());
-                            if (euser.isPresent()) {
-                                oldRoles = RolesMapper.translate(euser.get().getRoles());
+                            if(user.getId() != null) {
+                                euser = userServiceImpl.findById(user.getId());
+                                if (euser.isPresent()) {
+                                    oldRoles = RolesMapper.translate(euser.get().getRoles());
+                                }
                             }
-                        } else {
+                            else{
+                                return new ResponseEntity<>("{\"error\":\"User not found\"}", HttpStatus.NOT_FOUND);
+                            }
+                        }
+                        else {
                             oldRoles = RolesMapper.translate(oldUser.getRoles());
                         }
 
@@ -265,14 +278,14 @@ public class UserController {
                             if (!usermod.getWarning().isEmpty()) {
                                 return new ResponseEntity<>("{\"warnings\":[" + usermod.getWarning() + "]}", HttpStatus.CREATED);
                             } else {
-                                return new ResponseEntity<Void>(HttpStatus.CREATED);
+                                return new ResponseEntity<Void>(HttpStatus.OK);
                             }
                         }
                     } else {
                         if (!usermod.getWarning().isEmpty()) {
-                            return new ResponseEntity<>("{\"warnings\":[" + usermod.getWarning() + "]}", HttpStatus.CREATED);
+                            return new ResponseEntity<>("{\"warnings\":[" + usermod.getWarning() + "]}", HttpStatus.OK);
                         } else {
-                            return new ResponseEntity<Void>(HttpStatus.CREATED);
+                            return new ResponseEntity<Void>(HttpStatus.OK);
                         }
                     }
                 } else {

@@ -1,5 +1,6 @@
 package com.example.demo.entity;
 
+import com.example.demo.extras.IteratorOfSet;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -120,6 +121,26 @@ public class EUser implements Serializable {
             }
         }
         return new String( "{\"id\":\""+getId().toString()+"\",\"name\":\""+getName()+"\",\"password\":\""+getPassword()+"\",\"roles\":["+roles+"]}");
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        EUser eUser = (EUser) o;
+        boolean equalRoles = true;
+        Iterator<ERole> it = eUser.getRoles().iterator();
+        Iterator<ERole> itR = new IteratorOfSet(roles);
+        while(itR.hasNext() && equalRoles){
+            equalRoles = roles.contains(it.next());//solo pregunta por nomeRole
+        }
+        return name.equals(eUser.name) && password.equals(eUser.password) && equalRoles;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, password, roles);
     }
 
     private static final long serialVersionUID = 1L;
