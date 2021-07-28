@@ -13,6 +13,7 @@ import com.example.demo.service.impl.UserServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -21,11 +22,14 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
@@ -41,6 +45,7 @@ import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenCo
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.*;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -51,7 +56,7 @@ import java.util.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
-
+//@ExtendWith(SpringExtension.class)
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @AutoConfigureMockMvc
@@ -65,20 +70,26 @@ public class DemoApplicationTests{
 	@InjectMocks
 	private UserController userController;
 
+	@InjectMocks
+	private UserServiceImpl userServiceImpl;
+
 	@Mock
 	private IUserDao iUserDao;
 
 	@Mock
 	private IRoleDao iRoleDao;
 
-	@Mock
-	private UserServiceImpl userServiceImpl;
 
 	@Mock
+	private BCryptPasswordEncoder encoder;
+
+
+	//@InjectMocks
 	private RoleServiceImpl roleServiceImpl;
 
-	@Mock
-	private OAuth2RestTemplate oAuth2RestTemplate;
+	//@Mock
+	//private OAuth2RestTemplate oAuth2RestTemplate;
+
 
 	@Mock
 	private TokenStore tokenStore;
@@ -93,11 +104,13 @@ public class DemoApplicationTests{
 
 	private static String tokenUrl = "http://localhost:8040/oauth/token";
 
+
 	private MockMvc mvc;
+
 
 	@Before
 	public void setUp() throws Exception {
-		mvc = MockMvcBuilders.standaloneSetup(userController, SecurityMockMvcConfigurers.springSecurity()).build();
+		mvc = MockMvcBuilders.standaloneSetup(new UserController(userServiceImpl), SecurityMockMvcConfigurers.springSecurity()).build();
 	}
 
 
@@ -113,16 +126,21 @@ public class DemoApplicationTests{
 		Map<String, Object> claims = objectMapper.parseMap(JwtHelper.decode(token).getClaims());
 		EUser oldUser = new EUser();
 		oldUser.setName(euser.getName());
-		oldUser.setPassword("pass");
+		oldUser.setPassword("passroot");
 		oldUser.setRoles(new HashSet<>());
-		Mockito.when(userServiceImpl.addUser(eq(authUser))).thenReturn(authUser);
-		authUser = userServiceImpl.addUser(authUser);
-		Mockito.when(userServiceImpl.findByUserName(strAuth)).thenReturn(authUser);
-		Mockito.when(userServiceImpl.updateUser(eq(euser),anyBoolean())).thenReturn(euser);
+		oldUser.setWarning(new String(""));
+		EUser suser = new EUser();
+		suser.setName(euser.getName());
+		suser.setPassword("$2a$10$SLbFhSYT9vMHYDuoHGvgxejUvwPVLyzI4rP7yCsS/FqAyjyKMdmi6");
+		suser.setRoles(euser.getRoles());
+		suser.setWarning(euser.getWarning());
+		suser.setDate(euser.getDate());
+		Mockito.when(encoder.encode("passroot")).thenReturn("$2a$10$SLbFhSYT9vMHYDuoHGvgxejUvwPVLyzI4rP7yCsS/FqAyjyKMdmi6");
+		Mockito.when(iUserDao.findByName(strAuth)).thenReturn(authUser);
+		Mockito.when(iUserDao.save(eq(suser))).thenReturn(euser);
 		if(existUser) {
-			Mockito.when(userServiceImpl.addUser(eq(oldUser))).thenReturn(oldUser);
-			Mockito.when(userServiceImpl.findByUserName(euser.getName())).thenReturn(euser);
-			userServiceImpl.addUser(oldUser);
+			Mockito.when(iUserDao.save(eq(oldUser))).thenReturn(oldUser);
+			Mockito.when(iUserDao.findByName(euser.getName())).thenReturn(euser);
 		}
 		return mvc.perform(put("http://localhost:8040/user/update")
 				.header("Authorization", "Bearer " + token)
@@ -139,7 +157,7 @@ public class DemoApplicationTests{
 	public void updateUserOK1() throws Exception {
 		EUser euser = new EUser();
 		euser.setName("userToUpdate");
-		euser.setPassword("pass");
+		euser.setPassword("passroot");
 		euser.setWarning(new String(""));
 		euser.setRoles(new HashSet<>());
 		MvcResult result = updateUserOKWithoutExpect(euser,true);
@@ -154,7 +172,7 @@ public class DemoApplicationTests{
 	public void updateUserNOTOK1() throws Exception {
 			EUser euser = new EUser();
 			euser.setName("userToUpdate");
-			euser.setPassword("pass");
+			euser.setPassword("passroot");
 			euser.setWarning(new String(""));
 			euser.setRoles(new HashSet<>());
 			MvcResult result = updateUserOKWithoutExpect(euser,false);
@@ -194,14 +212,12 @@ public class DemoApplicationTests{
 		List<Long> tenantIds = new ArrayList<>();
 		tenantIds.add(1L);
 		SimpleGrantedAuthority[] arrayRoles = new SimpleGrantedAuthority[3];
-		SimpleGrantedAuthority currAuth = new SimpleGrantedAuthority("ROLE_add");
-		arrayRoles[0]=currAuth;
-		ERole role = new ERole();
-		role.setNameRole("ROLE_add");
-		currAuth = new SimpleGrantedAuthority("ROLE_update");
-		arrayRoles[1]=currAuth;
-		currAuth = new SimpleGrantedAuthority("ROLE_delete");
-		arrayRoles[2]=currAuth;
+		SimpleGrantedAuthority authAdd = new SimpleGrantedAuthority("ROLE_add");
+		SimpleGrantedAuthority authUp = new SimpleGrantedAuthority("ROLE_update");
+		SimpleGrantedAuthority authDel = new SimpleGrantedAuthority("ROLE_delete");
+		arrayRoles[0]=authAdd;
+		arrayRoles[1]=authUp;
+		arrayRoles[2]=authDel;
 		claims.put("role", Arrays.asList(arrayRoles));
 		claims.put("tenants", tenantIds);
 		((DefaultOAuth2AccessToken) accessToken).setAdditionalInformation(claims);

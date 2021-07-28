@@ -315,10 +315,13 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 else{
                     euser.setName(user.getName());
                 }
+
                 if(user.getPassword()==null ){
                     euser.setPassword(oldUser.getPassword());
                 }
                 else{
+                    String p = user.getPassword();
+                    String en = encoder.encode(p);
                     euser.setPassword(encoder.encode(user.getPassword()));
                 }
 
@@ -368,6 +371,9 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
                 }
                 EUser suser = userDao.save(euser);
+                if(suser == null){
+                    String s = "";
+                }
                 suser.setWarning(strWarnings);
                 return suser;
 

@@ -12,6 +12,7 @@ import com.example.demo.model.Role;
 import com.example.demo.model.User;
 import com.example.demo.model.UserWithID;
 import com.example.demo.security.RevokeTokenEndpoint;
+import com.example.demo.service.impl.RoleServiceImpl;
 import com.example.demo.service.impl.UserServiceImpl;
 import com.example.demo.service.interfaces.IRoleService;
 import io.jsonwebtoken.*;
@@ -25,6 +26,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
@@ -68,15 +70,17 @@ public class UserController {
 
 
     @Autowired
-    private IRoleService roleService;
-
-
-    @Autowired
     private JwtAccessTokenConverter accessTokenConverter;
 
   //  @Autowired
    // private HttpServletRequest httpServletRequest;
 
+
+    @Autowired
+    public UserController(UserServiceImpl userServiceImpl){
+        super();
+        this.userServiceImpl = userServiceImpl;
+    }
 
     @Bean
     public OAuth2RestTemplate oAuth2RestTemplate(){
