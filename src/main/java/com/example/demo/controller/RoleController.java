@@ -8,6 +8,7 @@ import com.example.demo.extras.TokenGenerator;
 import com.example.demo.mapper.RoleMapper;
 import com.example.demo.mapper.RolesMapper;
 import com.example.demo.model.Role;
+import com.example.demo.service.impl.RoleServiceImpl;
 import com.example.demo.service.impl.UserServiceImpl;
 import com.example.demo.service.interfaces.IRoleService;
 import lombok.extern.slf4j.Slf4j;
@@ -28,13 +29,19 @@ import java.util.*;
 public class RoleController {
 
     @Autowired
-    IRoleService roleService;
+    RoleServiceImpl roleServiceImpl;
 
     @Autowired
     UserServiceImpl userServiceImpl;
 
     @Autowired
     private HttpServletRequest context;
+
+
+    public RoleController(RoleServiceImpl roleServiceImpl){
+        super();
+        this.roleServiceImpl = roleServiceImpl;
+    }
 
 
 //    @PreAuthorize("hasRole('add')")
@@ -60,7 +67,7 @@ public class RoleController {
         }
         if(!badRequest) {
             try {
-                ERole erole = roleService.save(role);
+                ERole erole = roleServiceImpl.save(role);
                 if(erole.getWarnings().isEmpty()) {
                     return new ResponseEntity<Void>(HttpStatus.CREATED);
                 }
@@ -105,10 +112,10 @@ public class RoleController {
         }
         if(!badRequest) {
             try{
-                ERole roleold = roleService.findByRoleName(role.getNameRole());
+                ERole roleold = roleServiceImpl.findByRoleName(role.getNameRole());
                 //role.setId(roleold.getId());
                 if(role.getNameRole() != null && roleold !=null) {
-                    ERole oldRole = roleService.save(role);
+                    ERole oldRole = roleServiceImpl.save(role);
                     if(oldRole != null) {
                         List<ERole> list = userServiceImpl.getListRoles();
                         boolean exist = false;
@@ -146,12 +153,12 @@ public class RoleController {
                 }
                 else {
                     roleold=null;
-                    Optional<ERole> r = roleService.findById(role.getId());
+                    Optional<ERole> r = roleServiceImpl.findById(role.getId());
                     if(r.isPresent()) {
                         roleold = r.get();
                     }
                     if (role.getId() != null && roleold != null) {
-                        ERole oldRole = roleService.save(role);
+                        ERole oldRole = roleServiceImpl.save(role);
                         if(oldRole != null){
                             List<ERole> list = userServiceImpl.getListRoles();
                             boolean exist = false;
@@ -204,7 +211,7 @@ public class RoleController {
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteRole(@PathVariable(value="id") Long idRole){
         try{
-            roleService.deleteById(idRole);
+            roleServiceImpl.deleteById(idRole);
             return new ResponseEntity<>(HttpStatus.OK);
         }
         catch(Exception e){
@@ -233,7 +240,7 @@ public class RoleController {
         if(!badRequest) {
             boolean error=false;
             if(role.getId() == null && role.getNameRole() != null){
-                ERole erole = roleService.findByRoleName(role.getNameRole());
+                ERole erole = roleServiceImpl.findByRoleName(role.getNameRole());
                 if(erole != null){
                     role.setId(erole.getId());
                 }
@@ -243,9 +250,9 @@ public class RoleController {
             }
             else{
                 if(role.getId() != null && role.getNameRole() != null){
-                    ERole erole = roleService.findByRoleName(role.getNameRole());
+                    ERole erole = roleServiceImpl.findByRoleName(role.getNameRole());
                     if(erole == null){
-                        Optional<ERole> frole = roleService.findById(role.getId());
+                        Optional<ERole> frole = roleServiceImpl.findById(role.getId());
                         if(frole.isPresent()){
                             role.setId(frole.get().getId());
                         }
@@ -274,7 +281,7 @@ public class RoleController {
     @DeleteMapping("/deleteAll")
     public ResponseEntity<?> deleteAllRoles(){
         try{
-            roleService.deleteAll();
+            roleServiceImpl.deleteAll();
             return new ResponseEntity<Void>(HttpStatus.OK);
         }
         catch(Exception e){
@@ -290,7 +297,7 @@ public class RoleController {
     @GetMapping("/get")
     public ResponseEntity<?> getRole(){
         try{
-            List<ERole> eiterable = roleService.findAll();
+            List<ERole> eiterable = roleServiceImpl.findAll();
             Set<ERole> eroles = new HashSet<ERole>(eiterable);
             Set<Role> roles = RolesMapper.translate(eroles);
             return new ResponseEntity<>(RolesMapper.getStringRoles(), HttpStatus.OK);
@@ -303,7 +310,7 @@ public class RoleController {
     @GetMapping("/get/name/{name}")
     public ResponseEntity<?> getRole(@PathVariable(value="name") String name){
         try{
-            ERole erole = roleService.findByRoleName(name);
+            ERole erole = roleServiceImpl.findByRoleName(name);
             if(erole != null) {
                 int size = erole.getUsers().size();
                 Role role = RoleMapper.translate(erole);
@@ -321,7 +328,7 @@ public class RoleController {
     @GetMapping("/get/id/{id}")
     public ResponseEntity<?> getRole(@PathVariable(value="id") Long id){
         try{
-            Optional<ERole> erole = roleService.findById(id);
+            Optional<ERole> erole = roleServiceImpl.findById(id);
             if(erole != null) {
                 Role role = RoleMapper.translate(erole.get());
                 return new ResponseEntity<>(role.toString(), HttpStatus.OK);

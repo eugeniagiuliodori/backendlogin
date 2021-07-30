@@ -113,4 +113,12 @@ public class ERole implements Serializable {
         ERole role = (ERole) o;
         return nameRole.equals(role.nameRole);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ERole role = (ERole) o;
+        return nameRole.equals(role.nameRole);
+    }
 }

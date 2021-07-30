@@ -79,7 +79,7 @@ public class UserController {
     @Autowired
     public UserController(UserServiceImpl userServiceImpl){
         super();
-        this.userServiceImpl = userServiceImpl;
+        this.userServiceImpl=userServiceImpl;
     }
 
     @Bean
@@ -191,7 +191,12 @@ public class UserController {
                 user.setRoles(set);
             }
             if(key.equals("id")){
-                user.setId((Long)request.get("id"));
+                try {
+                    user.setId((Long) request.get("id"));
+                }
+                catch (Exception e){
+                    user.setId(Long.valueOf((String)request.get("id")));
+                }
             }
             if(!key.equals("name")&&!key.equals("password")&&!key.equals("roles")&&!key.equals("id")){
                 badRequest=true;

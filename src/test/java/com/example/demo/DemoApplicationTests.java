@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import com.example.demo.controller.RoleController;
 import com.example.demo.controller.UserController;
 import com.example.demo.dao.IRoleDao;
 import com.example.demo.dao.IUserDao;
@@ -11,9 +12,11 @@ import com.example.demo.security.WebSecurityConfig;
 import com.example.demo.service.impl.RoleServiceImpl;
 import com.example.demo.service.impl.UserServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -22,18 +25,15 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.util.Pair;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.jwt.JwtHelper;
-import org.springframework.security.oauth2.client.OAuth2RestTemplate;
-import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.common.*;
 import org.springframework.security.oauth2.common.util.JsonParser;
 import org.springframework.security.oauth2.common.util.JsonParserFactory;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableOAuth2Client;
@@ -45,18 +45,22 @@ import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenCo
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.*;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import java.io.Serializable;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-//@ExtendWith(SpringExtension.class)
+
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @AutoConfigureMockMvc
@@ -73,23 +77,19 @@ public class DemoApplicationTests{
 	@InjectMocks
 	private UserServiceImpl userServiceImpl;
 
+	@InjectMocks
+	private RoleServiceImpl roleServiceImpl;
+
 	@Mock
 	private IUserDao iUserDao;
 
 	@Mock
 	private IRoleDao iRoleDao;
 
-
 	@Mock
 	private BCryptPasswordEncoder encoder;
 
-
-	//@InjectMocks
-	private RoleServiceImpl roleServiceImpl;
-
-	//@Mock
-	//private OAuth2RestTemplate oAuth2RestTemplate;
-
+	private final BCryptPasswordEncoder internalCrypt = new BCryptPasswordEncoder();
 
 	@Mock
 	private TokenStore tokenStore;
@@ -102,91 +102,209 @@ public class DemoApplicationTests{
 
 	private static String baseUrl = "http://localhost:8040";
 
-	private static String tokenUrl = "http://localhost:8040/oauth/token";
-
-
 	private MockMvc mvc;
 
-
+	private int internalId;
 	@Before
 	public void setUp() throws Exception {
+		userServiceImpl.setRoleServiceImpl(roleServiceImpl);
 		mvc = MockMvcBuilders.standaloneSetup(new UserController(userServiceImpl), SecurityMockMvcConfigurers.springSecurity()).build();
+		internalId=0;
 	}
 
 
 	@ParameterizedTest
-	public MvcResult updateUserOKWithoutExpect(EUser euser, boolean existUser) throws Exception {//no es un update donde se modifica el nombre de un user existente
-		String strAuth = "root";
-		EUser authUser = new EUser();
-		authUser.setName(strAuth);
-		authUser.setPassword("passroot");
-		authUser.setRoles(new HashSet<>());
-		String token = obtainAccessToken(strAuth,"passroot","idClient1","passClient1");
-		JsonParser objectMapper = JsonParserFactory.create();
-		Map<String, Object> claims = objectMapper.parseMap(JwtHelper.decode(token).getClaims());
-		EUser oldUser = new EUser();
-		oldUser.setName(euser.getName());
-		oldUser.setPassword("passroot");
-		oldUser.setRoles(new HashSet<>());
-		oldUser.setWarning(new String(""));
+	public void addUserOK(String username, String password, int sizeRoles) throws Exception {
+		Set<EUser> users = loadInfoUser(1,sizeRoles,false);
+		EUser user = users.iterator().next();
+		user.setName(username);
+		user.setPassword(password);
+		String passencode = internalCrypt.encode(user.getPassword());
 		EUser suser = new EUser();
-		suser.setName(euser.getName());
-		suser.setPassword("$2a$10$SLbFhSYT9vMHYDuoHGvgxejUvwPVLyzI4rP7yCsS/FqAyjyKMdmi6");
-		suser.setRoles(euser.getRoles());
-		suser.setWarning(euser.getWarning());
-		suser.setDate(euser.getDate());
-		Mockito.when(encoder.encode("passroot")).thenReturn("$2a$10$SLbFhSYT9vMHYDuoHGvgxejUvwPVLyzI4rP7yCsS/FqAyjyKMdmi6");
-		Mockito.when(iUserDao.findByName(strAuth)).thenReturn(authUser);
-		Mockito.when(iUserDao.save(eq(suser))).thenReturn(euser);
-		if(existUser) {
-			Mockito.when(iUserDao.save(eq(oldUser))).thenReturn(oldUser);
-			Mockito.when(iUserDao.findByName(euser.getName())).thenReturn(euser);
+		suser.setName(user.getName());
+		suser.setPassword(passencode);
+		suser.setRoles(user.getRoles());
+		EUser sruser = new EUser();
+		sruser.setName(user.getName());
+		sruser.setPassword(passencode);
+		sruser.setRoles(new HashSet<>());
+		String token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
+		Mockito.when(encoder.encode(user.getPassword())).thenReturn(passencode);
+		for(ERole role: user.getRoles()){
+			Mockito.when(iRoleDao.findByNameRole(role.getNameRole())).thenReturn(role);
 		}
-		return mvc.perform(put("http://localhost:8040/user/update")
-				.header("Authorization", "Bearer " + token)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(euser.toString())
-				.accept(MediaType.APPLICATION_JSON)).andReturn();
+		Mockito.when(iUserDao.save(eq(sruser))).thenReturn(sruser);
+		Mockito.when(iUserDao.save(eq(suser))).thenReturn(suser);
+		mvc.perform(post("http://localhost:8040/user/add")
+						.header("Authorization", "Bearer " + token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(user.toString())
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isCreated());
+	}
+
+
+	@ParameterizedTest
+	public void updateUserOK(String oldName, int sizeRoles) throws Exception {
+		Set<EUser> users = loadInfoUser(1,sizeRoles,true);
+		EUser authUser = new EUser();
+		authUser.setName("root");
+		authUser.setPassword("pass");
+		authUser.setRoles(new HashSet<>());
+		EUser user = users.iterator().next();
+		user.setName("usermodif");
+		user.setPassword("pass");
+		Optional<EUser> optionalUser = Optional.of(user);
+		optionalUser.get().setId(user.getId());
+		optionalUser.get().setName(oldName);
+		optionalUser.get().setPassword(user.getPassword());
+		EUser oldUser = new EUser();
+		oldUser.setName(oldName);
+		oldUser.setPassword(user.getPassword());
+		String passencode = internalCrypt.encode("pass");
+		EUser suser = new EUser();
+		suser.setId(user.getId());
+		suser.setName(user.getName());
+		suser.setPassword(passencode);
+		suser.setRoles(user.getRoles());
+		Mockito.when(encoder.encode(user.getPassword())).thenReturn(passencode);
+		Mockito.when(iUserDao.findById(user.getId())).thenReturn(optionalUser);
+		Mockito.when(iUserDao.findByName("root")).thenReturn(authUser);
+		Mockito.when(iUserDao.save(eq(suser))).thenReturn(suser);
+		for(ERole role: user.getRoles()){
+			Mockito.when(iRoleDao.findByNameRole(role.getNameRole())).thenReturn(role);
+		}
+		String token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
+		token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
+		mvc.perform(put("http://localhost:8040/user/update")
+						.header("Authorization", "Bearer " + token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(user.toStringWithID())
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk());
 
 	}
 
+
+
+
+
+
 	/*
-		Modificar usuario existente
+		Insertar usuario al momento inexistente, con todos los campos (salvo el campo id) y
+		valores sintácticamente correctos, definiendo un rol sintácticamente correcto
+	*/
+	@Test
+	public void addUserOK1() throws Exception {
+		addUserOK("nameofuser1","pass",1);
+	}
+
+
+	/*
+		Modificar de usuario existente  (distinto al nombre de usuario autenticado por
+		medio del cliente), nombre de usuario con campo y valor sintácticamente correcto
 	*/
 	@Test
 	public void updateUserOK1() throws Exception {
-		EUser euser = new EUser();
-		euser.setName("userToUpdate");
-		euser.setPassword("passroot");
-		euser.setWarning(new String(""));
-		euser.setRoles(new HashSet<>());
-		MvcResult result = updateUserOKWithoutExpect(euser,true);
-		MockMvcResultMatchers.status().isOk().match(result);
+		updateUserOK("nameofuser1",1);
 	}
 
 
-	/*
-		Modificar usuario inexistente
-	*/
-	@Test
-	public void updateUserNOTOK1() throws Exception {
-			EUser euser = new EUser();
-			euser.setName("userToUpdate");
-			euser.setPassword("passroot");
-			euser.setWarning(new String(""));
-			euser.setRoles(new HashSet<>());
-			MvcResult result = updateUserOKWithoutExpect(euser,false);
-			MockMvcResultMatchers.status().isNotFound().match(result);
-	}
+
+
+
+
 
 
 	/***************************************** PRIVATES METHODS ******************************************/
 
-	private String obtainAccessToken(String username, String password, String clientId, String clientPass) throws Exception {
+	private String badNameValueToString(EUser user){
+		return "{\"name\":"+user.getName()+",\"password\":\""+user.getPassword()+"\"}";
+	}
+
+	private String badPasswordValueToString(EUser user){
+		return "{\"name\":\""+user.getName()+"\",\"password\":"+user.getPassword()+"}";
+	}
+
+	private String badNameRoleValueToString(EUser user){
+		return "{\"name\":\""+user.getName()+"\",\"password\":\""+user.getPassword()+"\",\"nameRole\":\""+user.getRoles().iterator().next().getNameRole()+"}";
+	}
+
+	private String badNameDescriptionValueToString(EUser user){
+		return "{\"name\":\""+user.getName()+"\",\"password\":\""+user.getPassword()+"\",\"nameRole\":\""+user.getRoles().iterator().next().getNameRole()+"\",\"description\":\""+user.getRoles().iterator().next().getDescription()+"}";
+	}
+
+	private Set<ERole> loadInfoRoles(int size){
+		Set<ERole> setRoles = new HashSet<>();
+		for(int i = 0; i < size; i++) {
+			ERole mockRole = new ERole();
+			mockRole.setNameRole("role"+ internalId);
+			mockRole.setDate(new Date());
+			mockRole.setId(Long.valueOf(internalId));
+			mockRole.setDescription("description role"+internalId);
+			internalId++;
+			setRoles.add(mockRole);
+		}
+		return setRoles;
+	}
+
+	private Set<EUser>  loadInfoUser(int sizeUser,int sizeRoles, boolean idInfo){
+		Set<EUser> setUsers = new HashSet<>();
+		EUser mockUser = new EUser();
+		for(int i = 0; i < sizeUser; i++) {
+			mockUser.setName("username"+internalId);
+			mockUser.setPassword("pass"+internalId);
+			if(idInfo) {
+				mockUser.setId(Long.valueOf(internalId));
+			}
+			if(sizeRoles > 0) {
+				mockUser.setRoles(loadInfoRoles(sizeRoles));
+			}
+			else{
+				mockUser.setRoles(new HashSet<>());
+			}
+			internalId++;
+			setUsers.add(mockUser);
+		}
+		return setUsers;
+	}
+
+	private Set<EUser> loadInfoUserWithIdRole(int sizeUser,int sizeRoles, boolean idInfo){
+		Set<EUser> users = loadInfoUser(sizeUser,sizeRoles,idInfo);
+		if(sizeRoles > 0) {
+			for (EUser user : users) {
+				for(ERole role: user.getRoles()){
+					long currentMilliseconds = new Date().getTime();
+					role.setId(Long.valueOf(currentMilliseconds));
+				}
+			}
+		}
+		return users;
+	}
+
+	private EUser  loadInfoExistingUser(){
+		EUser mockUser = new EUser();
+		mockUser.setName("root");
+		mockUser.setPassword("passroot");
+		return mockUser;
+	}
+
+	private void checkBadAccessToken(String username, String password, String clientId, String clientPass) throws Exception {
+		ResultActions result
+				= mvc.perform(post("http://localhost:8040/user/login")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"userName\":\""+username+"\",\"userPass\":\""+password+"\",\"clientId\":\""+clientId+"\",\"clientPass\":\""+clientPass+"\",\"\":\"\"}"))
+				.andExpect(status().isBadRequest());
+
+	}
+
+
+	private Pair<String,String> obtainAccessToken(String username, String password, String clientId, String clientPass) throws Exception {
 		String authorities = "add,update,delete";
 		DefaultTokenServices tokenService = new DefaultTokenServices();
 		tokenService.setTokenStore(tokenStore);
 		tokenService.setTokenEnhancer(accessTokenConverter);
+		tokenService.setSupportRefreshToken(true);
 		Collection<GrantedAuthority> grantAuthorities = new ArrayList<>();
 		if (authorities != null) {
 			for (String authority: authorities.split(",")) {
@@ -208,6 +326,8 @@ public class DemoApplicationTests{
 				new UsernamePasswordAuthenticationToken(userPrincipal, null, grantAuthorities);
 		OAuth2Authentication auth = new OAuth2Authentication(oAuth2Request, authenticationToken);
 		OAuth2AccessToken accessToken = tokenService.createAccessToken(auth);
+		OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
+		String rt = refreshToken.getValue();
 		Map<String, Object> claims = new HashMap<>();
 		List<Long> tenantIds = new ArrayList<>();
 		tenantIds.add(1L);
@@ -221,7 +341,7 @@ public class DemoApplicationTests{
 		claims.put("role", Arrays.asList(arrayRoles));
 		claims.put("tenants", tenantIds);
 		((DefaultOAuth2AccessToken) accessToken).setAdditionalInformation(claims);
-		return accessToken.getValue();
+		return Pair.of(accessToken.getValue(),rt);
 
 	}
 

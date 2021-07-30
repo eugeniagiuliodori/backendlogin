@@ -22,7 +22,7 @@ import java.util.*;
 public class RoleServiceImpl implements IRoleService {
 
     @Autowired
-    private IRoleDao roleDao;
+    private IRoleDao iRoleDao;
 
     @Autowired
     private IServiceDao serviceDao;
@@ -36,13 +36,13 @@ public class RoleServiceImpl implements IRoleService {
     @Override
     @Transactional(readOnly=true)
     public ERole findByRoleName(String nameRole){
-        return roleDao.findByNameRole(nameRole);
+        return iRoleDao.findByNameRole(nameRole);
     }
 
     @Override
     @Transactional(readOnly=true)
     public Optional<ERole> findById(Long id){
-        return roleDao.findById(id);
+        return iRoleDao.findById(id);
     }
 
     @Override
@@ -51,11 +51,11 @@ public class RoleServiceImpl implements IRoleService {
         if(role != null) {
             ERole frole=null;
             if(role.getNameRole() != null){
-                frole = roleDao.findByNameRole(role.getNameRole());
+                frole = iRoleDao.findByNameRole(role.getNameRole());
             }
             if(frole == null){
                 if(role.getId() != null) {
-                    Optional<ERole> r = roleDao.findById(role.getId());
+                    Optional<ERole> r = iRoleDao.findById(role.getId());
                     if (r.isPresent()) {
                         frole = r.get();
                     }
@@ -136,7 +136,7 @@ public class RoleServiceImpl implements IRoleService {
                 strWarnings = strWarnings + "{\"warning\":\"There are duplicated services\"}";
                 role.setServices(new HashSet<EService>(distinctServices));
             }
-            ERole srole =  roleDao.save(role);
+            ERole srole =  iRoleDao.save(role);
             srole.setWarnings(strWarnings);
             return srole;
         }
@@ -148,13 +148,13 @@ public class RoleServiceImpl implements IRoleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ERole saveAndFlush(ERole role) throws Exception{
-        return roleDao.saveAndFlush(role);
+        return iRoleDao.saveAndFlush(role);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ERole deleteByNameRole(String name) throws Exception{
-        ERole delRole = roleDao.findByNameRole(name);
+        ERole delRole = iRoleDao.findByNameRole(name);
         if(delRole != null) {
             roleRepository.deleteByNameRole(name);
             return delRole;
@@ -167,7 +167,7 @@ public class RoleServiceImpl implements IRoleService {
     @Override
     @Transactional(readOnly=true)
     public List<ERole> findAll(){
-        return roleDao.findAll();
+        return iRoleDao.findAll();
     }
 
 
@@ -185,7 +185,7 @@ public class RoleServiceImpl implements IRoleService {
     */
     public Optional<ERole> deleteById(Long id) throws Exception{
         if(id != null) {
-            Optional<ERole> delRole = roleDao.findById(id);
+            Optional<ERole> delRole = iRoleDao.findById(id);
             if (delRole.isPresent()) {
                 roleRepository.deleteById(id);
                 return delRole;
@@ -209,6 +209,6 @@ public class RoleServiceImpl implements IRoleService {
     @Override
     @Transactional(readOnly=true)
     public long count(){
-        return roleDao.count();
+        return iRoleDao.count();
     }
 }

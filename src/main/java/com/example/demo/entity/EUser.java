@@ -130,10 +130,23 @@ public class EUser implements Serializable {
         if (o == null || getClass() != o.getClass()) return false;
         EUser eUser = (EUser) o;
         boolean equalRoles = true;
-        Iterator<ERole> it = eUser.getRoles().iterator();
-        Iterator<ERole> itR = new IteratorOfSet(roles);
-        while(itR.hasNext() && equalRoles){
-            equalRoles = roles.contains(it.next());//solo pregunta por nomeRole
+        if(this.getRoles() == null && eUser.getRoles() == null){
+            equalRoles = true;
+        }
+        if(this.getRoles() == null && eUser.getRoles() != null){
+            equalRoles = eUser.getRoles().isEmpty();
+        }
+        if(this.roles != null && eUser.getRoles() == null){
+            equalRoles = this.getRoles().isEmpty();
+        }
+        if(this.getRoles() != null && eUser.getRoles() != null && !eUser.getRoles().isEmpty()) {
+            Iterator<ERole> it = eUser.getRoles().iterator();
+            while (it.hasNext() && equalRoles) {
+                equalRoles = this.getRoles().contains(it.next());//solo pregunta por nomeRole
+            }
+        }
+        if(this.getRoles() != null && eUser.getRoles() != null && eUser.getRoles().isEmpty()) {
+            equalRoles = this.getRoles().isEmpty();
         }
         return name.equals(eUser.name) && password.equals(eUser.password) && equalRoles;
     }

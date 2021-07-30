@@ -45,19 +45,16 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
 
     @Autowired
-    private IUserDao userDao;
+    private IUserDao iUserDao;
 
     @Autowired
-    private RoleServiceImpl roleService;
+    private RoleServiceImpl roleServiceImpl;
 
     @Autowired
     private BCryptPasswordEncoder encoder;
 
     @Autowired
     private AuthorizationServerConfig auth;
-
-   // @Autowired
-   // private HttpServletRequest httpServletRequest;
 
     @Autowired
     private AuthorizationServerTokenServices authorizationServerTokenServices;
@@ -69,6 +66,9 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     private String clientId;
     private String clientPass;
 
+    public void setRoleServiceImpl(RoleServiceImpl roleServiceImpl){
+        this.roleServiceImpl = roleServiceImpl;
+    }
 
     @PostConstruct
     public void init() {
@@ -87,7 +87,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     public EUser findByUserName(String name)throws Exception{
         EUser user;
         try {
-            user = userDao.findByName(name);
+            user = iUserDao.findByName(name);
             if(user == null){
                 throw new CustomException("Not found","User name not found");
             }
@@ -125,7 +125,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     public EUser findByPasswordAndName(String password,String name)throws Exception{
         EUser user;
         try {
-            user = userDao.findByPasswordAndName(password,name);
+            user = iUserDao.findByPasswordAndName(password,name);
             if(user == null){
                 String str = strUserAndOrPassNotFound(name, password);
                 throw new CustomException("Not found", str);
@@ -141,13 +141,13 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public List<EUser> findAll(){
-        return userDao.findAll();
+        return iUserDao.findAll();
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<EUser> findById(Long id){
-        return userDao.findById(id);
+        return iUserDao.findById(id);
     }
 
 
@@ -177,9 +177,9 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
             EUser euser = new EUser();
             //minimal parameters to add: name and password
             if(user.getName()!=null && user.getPassword() != null && !user.getName().isEmpty() && !user.getPassword().isEmpty() ) {
-                boolean b = userDao.findByName(user.getName()) != null;
+                boolean b = iUserDao.findByName(user.getName()) != null;
                 String ss = user.getName();
-                if(userDao.findByName(user.getName())== null) {
+                if(iUserDao.findByName(user.getName())== null) {
                     euser.setName(user.getName());
                     euser.setPassword(encoder.encode(user.getPassword()));
                     for (ERole role : getNotFoundUserRolesInBD(user)) {
@@ -187,13 +187,14 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                             if(role.getId() != null){
                                 warning = true;
                             }
-                            roleService.save(role);
+                            roleServiceImpl.save(role);
                         }
                         catch(Exception ex){}//omit duplicated role
                     }
-                    euser = userDao.save(euser);//the assigment permit id value
+                    log.info(euser.toString());
+                    euser = iUserDao.save(euser);//the assigment permit id value
                     euser.setRoles(getRolesWithID(user.getRoles()));//aca puede reescribirse una relacion user-rol pero eso no es problema
-                    euser = userDao.save(euser);
+                    euser = iUserDao.save(euser);
                     String strWarnings = new String("");
                     if(user.getId() != null){
                         strWarnings = "{\"warning\":\"User not necesarily has the number id given\"}";
@@ -248,14 +249,14 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public EUser save(EUser user)  throws Exception{
-        return userDao.save(user);
+        return iUserDao.save(user);
     }
 
 
     @Override
     @Transactional(readOnly = true, rollbackFor = Exception.class)
     public EUser findByPassword(String password)throws Exception{
-        return userDao.findByPassword(password);
+        return iUserDao.findByPassword(password);
     }
 
 
@@ -334,11 +335,11 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                         String roleName = role.getNameRole();
                         ERole currRole = null;
                         try {
-                            currRole = roleService.findByRoleName(roleName);
+                            currRole = roleServiceImpl.findByRoleName(roleName);
                         }
                         catch(Exception e){
                             try {
-                                currRole = roleService.findById(role.getId()).get();
+                                currRole = roleServiceImpl.findById(role.getId()).get();
                             }
                             catch(Exception ex){
                                 if(roleName == null && role.getId() == null) {
@@ -362,15 +363,15 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                             }
                         }
                         else{
-                            roleService.save(role);
+                            roleServiceImpl.save(role);
                         }
                     }
                     Set<ERole> rolesWithID = getRolesWithID(rolesUpdate);
                     euser.setRoles(getRolesWithID(rolesUpdate));
-                    //euser = userDao.save(euser);
+                    //euser = iUserDao.save(euser);
 
                 }
-                EUser suser = userDao.save(euser);
+                EUser suser = iUserDao.save(euser);
                 if(suser == null){
                     String s = "";
                 }
@@ -391,9 +392,9 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     @Transactional(rollbackFor = Exception.class)
     public EUser deleteUser(Long id) throws Exception{
         if(id!=null) {
-            Optional<EUser> delUser = userDao.findById(id);
+            Optional<EUser> delUser = iUserDao.findById(id);
             if (delUser != null) {
-                userDao.deleteById(id);
+                iUserDao.deleteById(id);
                 return delUser.get();
             }
             else {
@@ -413,7 +414,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
             try {
                 delUser = findByUserName(name);
                 if(delUser != null) {
-                    userDao.deleteByName(name);
+                    iUserDao.deleteByName(name);
                 }
                 else{
                     throw new CustomException("User not found","user is null");
@@ -454,7 +455,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteAllUsers() throws Exception{
         try {
-            userDao.deleteAll();
+            iUserDao.deleteAll();
             return count() == 0;
         }
         catch(Exception e){
@@ -466,13 +467,13 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public long count(){
-        return userDao.count();
+        return iUserDao.count();
     }
 
     @Override
     @Transactional
     public void flush(){
-        userDao.flush();
+        iUserDao.flush();
     }
 
     public String getAuthenticatedUser() {
@@ -564,12 +565,12 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     }
 
     private ERole registersRole(String strRole){
-        ERole role = roleService.findByRoleName(strRole);
+        ERole role = roleServiceImpl.findByRoleName(strRole);
         if(role == null){
             role = new ERole();
             role.setNameRole(strRole);
             role.setDescription("permission for "+strRole + " user");
-            try { roleService.save(role); } catch(Exception e){}
+            try { roleServiceImpl.save(role); } catch(Exception e){}
         }
         return role;
     }
@@ -584,10 +585,10 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                     throw new CustomException("Missing mandatory info", "Missing id and name of role");
                 } else {
                     boolean present = true;
-                    if ((currRole.getId() != null) && !roleService.findById(currRole.getId()).isPresent()) {
+                    if ((currRole.getId() != null) && !roleServiceImpl.findById(currRole.getId()).isPresent()) {
                         present = false;
                     }
-                    if ((currRole.getNameRole() != null) && roleService.findByRoleName(currRole.getNameRole()) == null) {
+                    if ((currRole.getNameRole() != null) && roleServiceImpl.findByRoleName(currRole.getNameRole()) == null) {
                         present = false;
                     } else {
                         present = true;
@@ -605,7 +606,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         Set<ERole> rolesWithID = new HashSet<>();
         if(roles != null && !roles.isEmpty()) {
             for (ERole role : roles) {
-                ERole frole = roleService.findByRoleName(role.getNameRole());
+                ERole frole = roleServiceImpl.findByRoleName(role.getNameRole());
                 frole.setDescription(role.getDescription());
                 frole.setDate(role.getDate());
                 rolesWithID.add(frole);
