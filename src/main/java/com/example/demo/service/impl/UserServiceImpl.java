@@ -171,14 +171,12 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     @Override
     @Modifying(clearAutomatically=true, flushAutomatically=true)
     @Transactional(rollbackFor = Exception.class)
-    public EUser addUser(EUser user) throws Exception{
+    public EUser addUser(EUser user, List<LinkedHashMap> list) throws Exception{
         boolean warning = false;
         if(user !=null){
             EUser euser = new EUser();
             //minimal parameters to add: name and password
             if(user.getName()!=null && user.getPassword() != null && !user.getName().isEmpty() && !user.getPassword().isEmpty() ) {
-                boolean b = iUserDao.findByName(user.getName()) != null;
-                String ss = user.getName();
                 if(iUserDao.findByName(user.getName())== null) {
                     euser.setName(user.getName());
                     euser.setPassword(encoder.encode(user.getPassword()));
@@ -187,9 +185,9 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                             if(role.getId() != null){
                                 warning = true;
                             }
-                            roleServiceImpl.save(role);
+                            roleServiceImpl.save(role,new LinkedList<LinkedHashMap>());//new LinkedList<LinkedHashMap> es la lista de servicios (funcionalidades del servidor)
                         }
-                        catch(Exception ex){}//omit duplicated role
+                        catch(Exception ex){}
                     }
                     log.info(euser.toString());
                     euser = iUserDao.save(euser);//the assigment permit id value
@@ -200,8 +198,8 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                         strWarnings = "{\"warning\":\"User not necesarily has the number id given\"}";
                         //throw new CustomException("warning","User not necesarily has the number id given");
                     }
-                    List<ERole> distinctRoles = (List<ERole>)ListManager.hasDuplicates(user.getRoles());
-                    if(user.getRoles() != null && distinctRoles.size() < user.getRoles().size()){
+                   // List<ERole> distinctRoles = (List<ERole>)ListManager.hasDuplicates(list);
+                    if(ListManager.hasDuplicates(list)){
                         if(!strWarnings.isEmpty()){
                             strWarnings = strWarnings + ",";
                         }
@@ -263,7 +261,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public EUser updateUser(EUser user, boolean existBodyRoles) throws Exception{
+    public EUser updateUser(EUser user, boolean existBodyRoles, List<LinkedHashMap> list) throws Exception{
         if(user != null){
             String strWarnings = new String("");
             if(user.getName() == null){
@@ -281,8 +279,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 }
                 strWarnings = strWarnings + "{\"warning\":\"Incorrect or missing user roles\"}";
             }
-            List<ERole> distinctRoles = (List<ERole>)ListManager.hasDuplicates(user.getRoles());
-            if(user.getRoles() != null && distinctRoles.size() < user.getRoles().size()){
+            if(ListManager.hasDuplicates(list)){
                 if(!strWarnings.isEmpty()){
                     strWarnings = strWarnings + ",";
                 }
@@ -363,7 +360,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                             }
                         }
                         else{
-                            roleServiceImpl.save(role);
+                            roleServiceImpl.save(role, new LinkedList<LinkedHashMap>());//new LinkedList<LinkedHashMap> es la lista de servicios (funcionalidades del servidor));
                         }
                     }
                     Set<ERole> rolesWithID = getRolesWithID(rolesUpdate);
@@ -545,7 +542,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     }
 
 
-    private void registerUser(String username, String password){
+    private void registerUser(String username, String password, List<LinkedHashMap> list){
         ERole roleAdd = registersRole("add");
         ERole roleUpdate = registersRole("update");
         ERole roleDel = registersRole("delete");
@@ -558,7 +555,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
             user.setName(username);
             user.setPassword(password);
             user.setRoles(roles);
-            addUser(user);
+            addUser(user,list);
         }
         catch (Exception e) {}
 
@@ -570,7 +567,10 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
             role = new ERole();
             role.setNameRole(strRole);
             role.setDescription("permission for "+strRole + " user");
-            try { roleServiceImpl.save(role); } catch(Exception e){}
+            try {
+                roleServiceImpl.save(role, new LinkedList<LinkedHashMap>());//new LinkedList<LinkedHashMap> es la lista de servicios (funcionalidades del servidor));
+            }
+            catch(Exception e){}
         }
         return role;
     }

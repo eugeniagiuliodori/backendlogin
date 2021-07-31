@@ -6,12 +6,12 @@ import com.example.demo.dao.IRoleDao;
 import com.example.demo.dao.IUserDao;
 import com.example.demo.entity.ERole;
 import com.example.demo.entity.EUser;
+import com.example.demo.extras.IteratorOfSet;
 import com.example.demo.security.AuthorizationServerConfig;
 import com.example.demo.security.ResourceServerConfig;
 import com.example.demo.security.WebSecurityConfig;
 import com.example.demo.service.impl.RoleServiceImpl;
 import com.example.demo.service.impl.UserServiceImpl;
-import kotlin.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -20,7 +20,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.runner.RunWith;
-import org.junit.runner.notification.Failure;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -52,12 +51,7 @@ import org.springframework.test.web.servlet.*;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import java.io.Serializable;
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -116,10 +110,80 @@ public class DemoApplicationTests{
 		userServiceImpl.setRoleServiceImpl(roleServiceImpl);
 		mvc = MockMvcBuilders.standaloneSetup(new UserController(userServiceImpl), SecurityMockMvcConfigurers.springSecurity()).build();
 		internalId=0;
-		maxUsers=100;
-		maxRoles=35;
+		maxUsers=1;
+		maxRoles=2;
 	}
 
+
+	@ParameterizedTest
+	public void addRolesAtUser(EUser user, Set<ERole> roles, String warningsExpected) throws Exception {
+		for(ERole role : roles){
+			IteratorOfSet iterator = new IteratorOfSet(user.getRoles());
+			if(iterator.contains(role)) {
+				addRoleAtUser(role, user, warningsExpected);
+			}
+			else{
+				addRoleAtUser(role, user, "");
+			}
+		}
+	}
+
+	@ParameterizedTest
+	public void addRoleAtUser(ERole role, EUser user, String warningsExpected) throws Exception {
+		user.getRoles().add(role);
+		Set<ERole> roles = user.getRoles();
+		String passencode = internalCrypt.encode(user.getPassword());
+		user.setPassword(passencode);
+		EUser euser = new EUser();
+		euser.setName(user.getName());
+		euser.setRoles(new HashSet<>());
+		euser.setPassword(user.getPassword());
+		Mockito.when(encoder.encode(user.getPassword())).thenReturn(passencode);
+		Mockito.when(iUserDao.save(eq(euser))).thenReturn(euser);
+		Mockito.when(iUserDao.save(eq(user))).thenReturn(user);
+		ERole roleWithId = new ERole();
+		roleWithId.setNameRole(role.getNameRole());
+		roleWithId.setId(Long.valueOf(internalId));
+		internalId++;
+		roleWithId.setDescription(role.getDescription());
+		roleWithId.setDate(role.getDate());
+		Mockito.when(iRoleDao.findByNameRole(role.getNameRole())).thenReturn(roleWithId);
+		for(ERole erole : user.getRoles()){
+			roleWithId = new ERole();
+			roleWithId.setNameRole(erole.getNameRole());
+			roleWithId.setId(Long.valueOf(internalId));
+			internalId++;
+			roleWithId.setDescription(erole.getDescription());
+			roleWithId.setDate(erole.getDate());
+			Mockito.when(iRoleDao.findByNameRole(erole.getNameRole())).thenReturn(roleWithId);
+		}
+		String token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
+		token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
+		IteratorOfSet iterator = new IteratorOfSet(user.getRoles());
+		boolean definedDuplicateRoles = iterator.contains(role);
+		MvcResult result = mvc.perform(post("http://localhost:8040/user/add")
+						.header("Authorization", "Bearer " + token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(user.toString())
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isCreated()).andReturn();
+		if(result.getResponse()!= null && result.getResponse().getContentAsString() != null && !result.getResponse().getContentAsString().isEmpty()) {
+			String strResult = result.getResponse().getContentAsString();
+			JSONParser jp = new JSONParser();
+			JSONObject jo = (JSONObject) jp.parse(strResult);
+			if(jo.get("warnings") != null) {
+				if(definedDuplicateRoles){
+					Assert.assertEquals(warningsExpected, "There are duplicated roles");
+				}
+			}
+			if(jo.get("warnings") == null) {
+				Assert.assertTrue(warningsExpected.trim().isEmpty());
+			}
+		}
+		else{
+			Assert.assertTrue(warningsExpected.trim().isEmpty());
+		}
+	}
 
 	@ParameterizedTest
 	public void addUser(boolean isPresent, int sizeUsers, int sizeRoles, boolean idPresent, String endpoint, String method, String bad, String warningsExpected) throws Exception {
@@ -512,21 +576,14 @@ public class DemoApplicationTests{
 		Insertar usuario con dos roles duplicados.
 		Persistir uno de ellos y dar aviso al cliente, de roles duplicados
 	*/
-	/*@Test
+	@Test
 	public void addUserWARNING2() throws Exception {
-		Set<EUser> users =  loadInfoUser(1,2,false);
-		EUser user = users.iterator().next();
-		String token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
-		MvcResult result = mvc.perform(put("http://localhost:8040/user/add")
-						.header("Authorization", "Bearer " + token)
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(user.toString())
-						.accept(MediaType.APPLICATION_JSON))
-				.andExpect(status().isOk())
-				.andReturn();
-		String content = result.getResponse().getContentAsString();
-		Assert.assertEquals(content, "{\"warnings\":[{\"warning\":\"There are duplicated roles\"}]}");
-	}*/
+		Set<EUser> users = loadInfoUser(maxUsers,maxRoles, false);
+		for(EUser user : users){
+			Set<ERole> newRoles = loadInfoDuplicateRoles(maxRoles);
+			addRolesAtUser(user, newRoles, "There are duplicated roles");
+		}
+	}
 
 	/*
 		Insertar usuario con un rol a agregar (nombre de rol hasta el momento inexistente).
@@ -575,6 +632,25 @@ public class DemoApplicationTests{
 		for(int i = 0; i < size; i++) {
 			ERole mockRole = new ERole();
 			mockRole.setNameRole("role"+ internalId);
+			mockRole.setDate(new Date());
+			mockRole.setId(Long.valueOf(internalId));
+			mockRole.setDescription("description role"+internalId);
+			internalId++;
+			setRoles.add(mockRole);
+		}
+		return setRoles;
+	}
+
+	private Set<ERole> loadInfoDuplicateRoles(int size){
+		Set<ERole> setRoles = new HashSet<>();
+		for(int i = 0; i < size; i++) {
+			ERole mockRole = new ERole();
+			if(i == 0 || i == 1){
+				mockRole.setNameRole("role");
+			}
+			else {
+				mockRole.setNameRole("role" + internalId);
+			}
 			mockRole.setDate(new Date());
 			mockRole.setId(Long.valueOf(internalId));
 			mockRole.setDescription("description role"+internalId);
@@ -682,4 +758,3 @@ public class DemoApplicationTests{
 	}
 
 }
-

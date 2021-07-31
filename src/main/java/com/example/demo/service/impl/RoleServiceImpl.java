@@ -47,7 +47,7 @@ public class RoleServiceImpl implements IRoleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ERole save(ERole role) throws Exception{
+    public ERole save(ERole role,List<LinkedHashMap> list) throws Exception{
         if(role != null) {
             ERole frole=null;
             if(role.getNameRole() != null){
@@ -122,19 +122,17 @@ public class RoleServiceImpl implements IRoleService {
                     }
                 }
             }
-            List<EUser> distinctUsers = (List<EUser>)ListManager.hasDuplicates(role.getUsers());
             String strWarnings = new String("");
-            if(role.getUsers() != null && (distinctUsers.size() < role.getUsers().size())){
+            if(ListManager.hasDuplicates(list)){
                 strWarnings = strWarnings + "{\"warning\":\"There are duplicated users\"}";
-                role.setUsers(new HashSet<EUser>(distinctUsers));
+                //role.setUsers(new HashSet<EUser>(distinctUsers));
             }
-            List<EService> distinctServices = (List<EService>)ListManager.hasDuplicates(role.getServices());
-            if(role.getServices() != null && (distinctServices.size() < role.getServices().size())){
+            if(ListManager.hasDuplicates(list)){
                 if(!strWarnings.isEmpty()){
                     strWarnings = strWarnings + ",";
                 }
                 strWarnings = strWarnings + "{\"warning\":\"There are duplicated services\"}";
-                role.setServices(new HashSet<EService>(distinctServices));
+                //role.setServices(new HashSet<EService>(distinctServices));
             }
             ERole srole =  iRoleDao.save(role);
             srole.setWarnings(strWarnings);

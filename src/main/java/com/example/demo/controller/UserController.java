@@ -108,6 +108,7 @@ public class UserController {
         Iterator it = request.keySet().iterator();
         EUser user = new EUser();
         boolean badRequest = false;
+        List<LinkedHashMap> list = new LinkedList<LinkedHashMap>();
         while(it.hasNext() && !badRequest){
             String key = (String)it.next();
             if(key.equals("id")){
@@ -126,7 +127,7 @@ public class UserController {
                 user.setPassword((String)request.get("password"));
             }
             if(key.equals("roles")){
-                List<LinkedHashMap> list = (List<LinkedHashMap>)request.get("roles");
+                list = (List<LinkedHashMap>)request.get("roles");
                 Set<ERole> set = new HashSet<>();
                 for(int i = 0; i<list.size();i++){
                     ERole role = new ERole();
@@ -144,7 +145,7 @@ public class UserController {
         }
         if(!badRequest) {
             try {
-                EUser euser = userServiceImpl.addUser(user);
+                EUser euser = userServiceImpl.addUser(user,list);
                 Long i = user.getId();
                 String n = user.getName();
                 String p = user.getPassword();
@@ -178,6 +179,7 @@ public class UserController {
         Iterator it = request.keySet().iterator();
         EUser user = new EUser();
         boolean badRequest = false;
+        List<LinkedHashMap> list = new LinkedList<LinkedHashMap>();
         while(it.hasNext() && !badRequest){
             String key = (String)it.next();
             if(key.equals("name")){
@@ -187,7 +189,7 @@ public class UserController {
                 user.setPassword((String)request.get("password"));
             }
             if(key.equals("roles")){
-                List<LinkedHashMap> list = (List<LinkedHashMap>)request.get("roles");
+                list = (List<LinkedHashMap>)request.get("roles");
                 Set<ERole> set = new HashSet<>();
                 for(int i = 0; i<list.size();i++){
                     ERole role = new ERole();
@@ -250,7 +252,7 @@ public class UserController {
                             return new ResponseEntity<>("{\"error\":\"User not found\"}", HttpStatus.NOT_FOUND);
                         }
                     }
-                    EUser usermod = userServiceImpl.updateUser(user, existBodyRoles);
+                    EUser usermod = userServiceImpl.updateUser(user, existBodyRoles,list);
                     if ((bodyUserId != null && bodyUserId.equals(authenticatedUserId)) ||
                             (bodyUser != null && bodyUser.equals(authenticatedUser))) {//if update is of authenticated user
                         Optional<EUser> euser = null;

@@ -50,6 +50,7 @@ public class RoleController {
         Iterator it = request.keySet().iterator();
         ERole role = new ERole();
         boolean badRequest = false;
+        List<LinkedHashMap> servicesList = new LinkedList<LinkedHashMap>();
         while(it.hasNext() && !badRequest){
             String key = (String)it.next();
             if(key.equals("id")){
@@ -64,10 +65,11 @@ public class RoleController {
             if(!key.equals("nameRole")&&!key.equals("id")&&(!key.equals("description"))){
                 badRequest=true;
             }
+            //falta capturar lista de servicios (funcionalidades del servidor). lista de usuarios no estaria bien que se defina aca
         }
         if(!badRequest) {
             try {
-                ERole erole = roleServiceImpl.save(role);
+                ERole erole = roleServiceImpl.save(role,servicesList);
                 if(erole.getWarnings().isEmpty()) {
                     return new ResponseEntity<Void>(HttpStatus.CREATED);
                 }
@@ -95,6 +97,7 @@ public class RoleController {
         Iterator it = request.keySet().iterator();
         ERole role = new ERole();
         boolean badRequest = false;
+        List<LinkedHashMap> servicesList = new LinkedList<LinkedHashMap>();
         while(it.hasNext() && !badRequest){
             String key = (String)it.next();
             if(key.equals("id")){
@@ -109,13 +112,14 @@ public class RoleController {
             if(!key.equals("nameRole")&&!key.equals("id")&&(!key.equals("description"))){
                 badRequest=true;
             }
+            //falta capturar lista de servicios (funcionalidades del servidor). lista de usuarios no estaria bien que se defina aca
         }
         if(!badRequest) {
             try{
                 ERole roleold = roleServiceImpl.findByRoleName(role.getNameRole());
                 //role.setId(roleold.getId());
                 if(role.getNameRole() != null && roleold !=null) {
-                    ERole oldRole = roleServiceImpl.save(role);
+                    ERole oldRole = roleServiceImpl.save(role,servicesList);
                     if(oldRole != null) {
                         List<ERole> list = userServiceImpl.getListRoles();
                         boolean exist = false;
@@ -158,7 +162,7 @@ public class RoleController {
                         roleold = r.get();
                     }
                     if (role.getId() != null && roleold != null) {
-                        ERole oldRole = roleServiceImpl.save(role);
+                        ERole oldRole = roleServiceImpl.save(role,servicesList);
                         if(oldRole != null){
                             List<ERole> list = userServiceImpl.getListRoles();
                             boolean exist = false;

@@ -5,6 +5,7 @@ import com.example.demo.entity.EUser;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.security.Principal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,11 +21,11 @@ public interface IUserService {
 
     public Optional<EUser> findById(Long id)throws Exception;
 
-    public EUser addUser(EUser user) throws Exception;
+    public EUser addUser(EUser user,List<LinkedHashMap> list) throws Exception;
 
     public EUser save(EUser user)  throws Exception;
 
-    public EUser updateUser(EUser user, boolean changesRoles) throws Exception; //return the user with de old values
+    public EUser updateUser(EUser user, boolean changesRoles,List<LinkedHashMap> list) throws Exception; //return the user with de old values
 
     public EUser deleteUser(String name) throws Exception; //return the deleted user
 
