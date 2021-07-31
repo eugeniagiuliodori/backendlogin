@@ -110,6 +110,15 @@ public class UserController {
         boolean badRequest = false;
         while(it.hasNext() && !badRequest){
             String key = (String)it.next();
+            if(key.equals("id")){
+                try {
+                    user.setId((Long) request.get("id"));
+                }
+                catch(Exception e){
+                    user.setId(Long.valueOf((String)request.get("id")));
+                }
+            }
+            Long l = user.getId();
             if(key.equals("name")){
                 user.setName((String)request.get("name"));
             }
@@ -129,7 +138,7 @@ public class UserController {
                 }
                 user.setRoles(set);
             }
-            if(!key.equals("name")&&!key.equals("password")&&!key.equals("roles")){
+            if(!key.equals("id") && !key.equals("name")&&!key.equals("password")&&!key.equals("roles")){
                 badRequest=true;
             }
         }

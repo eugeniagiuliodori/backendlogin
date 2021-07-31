@@ -11,6 +11,7 @@ import com.example.demo.security.ResourceServerConfig;
 import com.example.demo.security.WebSecurityConfig;
 import com.example.demo.service.impl.RoleServiceImpl;
 import com.example.demo.service.impl.UserServiceImpl;
+import kotlin.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -19,6 +20,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.runner.RunWith;
+import org.junit.runner.notification.Failure;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -105,89 +107,241 @@ public class DemoApplicationTests{
 	private MockMvc mvc;
 
 	private int internalId;
+
+	private int maxUsers;
+
+	private int maxRoles;
 	@Before
-	public void setUp() throws Exception {
+	public void setUp() {
 		userServiceImpl.setRoleServiceImpl(roleServiceImpl);
 		mvc = MockMvcBuilders.standaloneSetup(new UserController(userServiceImpl), SecurityMockMvcConfigurers.springSecurity()).build();
 		internalId=0;
+		maxUsers=100;
+		maxRoles=35;
 	}
 
 
 	@ParameterizedTest
-	public void addUserOK(String username, String password, int sizeRoles) throws Exception {
-		Set<EUser> users = loadInfoUser(1,sizeRoles,false);
-		EUser user = users.iterator().next();
-		user.setName(username);
-		user.setPassword(password);
-		String passencode = internalCrypt.encode(user.getPassword());
-		EUser suser = new EUser();
-		suser.setName(user.getName());
-		suser.setPassword(passencode);
-		suser.setRoles(user.getRoles());
-		EUser sruser = new EUser();
-		sruser.setName(user.getName());
-		sruser.setPassword(passencode);
-		sruser.setRoles(new HashSet<>());
-		String token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
-		Mockito.when(encoder.encode(user.getPassword())).thenReturn(passencode);
-		for(ERole role: user.getRoles()){
-			Mockito.when(iRoleDao.findByNameRole(role.getNameRole())).thenReturn(role);
+	public void addUser(boolean isPresent, int sizeUsers, int sizeRoles, boolean idPresent, String endpoint, String method, String bad, String warningsExpected) throws Exception {
+		Set<EUser> users = loadInfoUser(sizeUsers,sizeRoles,idPresent);
+		Long id = new Long(0);
+		for(EUser user : users) {
+			String passencode = internalCrypt.encode(user.getPassword());
+			EUser suser = new EUser();
+			suser.setName(user.getName());
+			suser.setPassword(passencode);
+			suser.setRoles(user.getRoles());
+			EUser sruser = new EUser();
+			sruser.setName(user.getName());
+			sruser.setPassword(passencode);
+			sruser.setRoles(new HashSet<>());
+			String token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
+			Mockito.when(encoder.encode(user.getPassword())).thenReturn(passencode);
+			int j = 0;
+			for (ERole role : user.getRoles()) {
+				Mockito.when(iRoleDao.findByNameRole(role.getNameRole())).thenReturn(role);
+			}
+			Mockito.when(iUserDao.save(eq(sruser))).thenReturn(sruser);
+			Mockito.when(iUserDao.save(eq(suser))).thenReturn(suser);
+			ResultMatcher rm = status().isCreated();
+			if(isPresent){
+				Mockito.when(iUserDao.findByName(user.getName())).thenReturn(user);
+				rm = status().isNotAcceptable();
+			}
+			String content = user.toString();
+			if(warningsExpected.equals("[{\"warning\":\"User not necesarily has the number id given\"}]")){
+				content = user.toStringWithID();
+			}
+			if(method.equals("put")){
+				rm = status().isMethodNotAllowed();
+			}
+			MvcResult result = null;
+			if(!bad.equals("")){
+				if(method.equals("post")) {
+					rm = status().isBadRequest();
+				}
+				switch (bad) {
+					case "name":{
+						content = content.replace("\"name\"","\"name");
+						break;
+					}
+					case "value_username":{
+						content = badNameValueToString(user);
+						break;
+					}
+					case "password":{
+						content = user.toString().replace("\"password\"","\"password");
+						break;
+					}
+					case "value_password":{
+						content = badPasswordValueToString(user);
+						break;
+					}
+					case "roles":{
+						content = user.toString().replace("\"roles\"","\"roles");
+						break;
+					}
+					case "nameRole":{
+						content = user.toString().replace("\"nameRole\"","\"nameRole");
+						break;
+					}
+					case "value_nameRole":{
+						content = badNameRoleValueToString(user);
+						break;
+					}
+					case "roleDescription":{
+						content = user.toString().replace("\"description\"","\"description");
+						break;
+					}
+					case "value_roleDescription":{
+						content = badNameDescriptionValueToString(user);
+						break;
+					}
+				}
+				if(warningsExpected.contains("[{\"warning\":\"User not necesarily has the number id given\"}]")){
+					content = content.replace("{","\"\":"+user.getId()+" ,");
+				}
+			}
+			if(endpoint.equals("http://localhost:8040/user/add")) {
+				if(method.equals("post")) {
+					result = mvc.perform(post(endpoint)
+									.header("Authorization", "Bearer " + token)
+									.contentType(MediaType.APPLICATION_JSON)
+									.content(content)
+									.accept(MediaType.APPLICATION_JSON))
+							.andExpect(rm).andReturn();
+				}
+				if(method.equals("put")) {
+					result = mvc.perform(put(endpoint)
+									.header("Authorization", "Bearer " + token)
+									.contentType(MediaType.APPLICATION_JSON)
+									.content(content)
+									.accept(MediaType.APPLICATION_JSON))
+							.andExpect(rm).andReturn();
+				}
+			}
+			else{
+				rm = status().isNotFound();
+				result = mvc.perform(post(endpoint)
+								.header("Authorization", "Bearer " + token)
+								.contentType(MediaType.APPLICATION_JSON)
+								.content(content)
+								.accept(MediaType.APPLICATION_JSON))
+						.andExpect(rm).andReturn();
+			}
+			if(result.getResponse()!= null && result.getResponse().getContentAsString() != null && !result.getResponse().getContentAsString().isEmpty()) {
+				String strResult = result.getResponse().getContentAsString();
+				JSONParser jp = new JSONParser();
+				JSONObject jo = (JSONObject) jp.parse(strResult);
+				if(jo.get("warnings") != null) {
+					Assert.assertEquals(warningsExpected, ((List<LinkedHashMap>) jo.get("warnings")).toString());
+				}
+				if(jo.get("warnings") == null) {
+					Assert.assertTrue(warningsExpected.trim().isEmpty());
+				}
+			}
+			else{
+				Assert.assertTrue(warningsExpected.trim().isEmpty());
+			}
 		}
-		Mockito.when(iUserDao.save(eq(sruser))).thenReturn(sruser);
-		Mockito.when(iUserDao.save(eq(suser))).thenReturn(suser);
-		mvc.perform(post("http://localhost:8040/user/add")
-						.header("Authorization", "Bearer " + token)
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(user.toString())
-						.accept(MediaType.APPLICATION_JSON))
-				.andExpect(status().isCreated());
 	}
 
 
 	@ParameterizedTest
-	public void updateUserOK(String oldName, int sizeRoles) throws Exception {
-		Set<EUser> users = loadInfoUser(1,sizeRoles,true);
+	public void updateUserOK(int sizeUsers, int sizeRoles, boolean idPresent, String endpoint) throws Exception {
+		Set<EUser> users = loadInfoUser(sizeUsers,sizeRoles,idPresent);
 		EUser authUser = new EUser();
 		authUser.setName("root");
 		authUser.setPassword("pass");
 		authUser.setRoles(new HashSet<>());
-		EUser user = users.iterator().next();
-		user.setName("usermodif");
-		user.setPassword("pass");
-		Optional<EUser> optionalUser = Optional.of(user);
-		optionalUser.get().setId(user.getId());
-		optionalUser.get().setName(oldName);
-		optionalUser.get().setPassword(user.getPassword());
-		EUser oldUser = new EUser();
-		oldUser.setName(oldName);
-		oldUser.setPassword(user.getPassword());
-		String passencode = internalCrypt.encode("pass");
-		EUser suser = new EUser();
-		suser.setId(user.getId());
-		suser.setName(user.getName());
-		suser.setPassword(passencode);
-		suser.setRoles(user.getRoles());
-		Mockito.when(encoder.encode(user.getPassword())).thenReturn(passencode);
-		Mockito.when(iUserDao.findById(user.getId())).thenReturn(optionalUser);
-		Mockito.when(iUserDao.findByName("root")).thenReturn(authUser);
-		Mockito.when(iUserDao.save(eq(suser))).thenReturn(suser);
-		for(ERole role: user.getRoles()){
-			Mockito.when(iRoleDao.findByNameRole(role.getNameRole())).thenReturn(role);
+		int i = 0;
+		for(EUser user : users) {
+			String passencode = internalCrypt.encode("pass");
+			String oldName = "name"+i;
+			user.setName("usermodif");
+			user.setPassword("pass");
+			Optional<EUser> optionalUser = Optional.of(user);
+			optionalUser.get().setId(user.getId());
+			optionalUser.get().setName(oldName);
+			optionalUser.get().setPassword(passencode);
+			EUser oldUser = new EUser();
+			oldUser.setName(oldName);
+			oldUser.setPassword(user.getPassword());
+			EUser suser = new EUser();
+			suser.setId(user.getId());
+			suser.setName(user.getName());
+			suser.setPassword(passencode);
+			suser.setRoles(user.getRoles());
+			Mockito.when(encoder.encode(user.getPassword())).thenReturn(passencode);
+			if(idPresent){
+				Mockito.when(iUserDao.findById(user.getId())).thenReturn(optionalUser);
+			}
+			else{
+				Mockito.when(iUserDao.findByName(oldName)).thenReturn(optionalUser.get());
+			}
+			Mockito.when(iUserDao.findByName("root")).thenReturn(authUser);
+			Mockito.when(iUserDao.save(eq(suser))).thenReturn(suser);
+			for (ERole role : user.getRoles()) {
+				Mockito.when(iRoleDao.findByNameRole(role.getNameRole())).thenReturn(role);
+			}
+			String token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
+			token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
+
+			if(endpoint.equals("http://localhost:8040/user/update")) {
+				mvc.perform(put(endpoint)
+								.header("Authorization", "Bearer " + token)
+								.contentType(MediaType.APPLICATION_JSON)
+								.content(user.toStringWithID())
+								.accept(MediaType.APPLICATION_JSON))
+						.andExpect(status().isOk());
+			}
+			else{
+				mvc.perform(put(endpoint)
+								.header("Authorization", "Bearer " + token)
+								.contentType(MediaType.APPLICATION_JSON)
+								.content(user.toStringWithID())
+								.accept(MediaType.APPLICATION_JSON))
+						.andExpect(status().isBadRequest());
+			}
 		}
-		String token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
-		token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
-		mvc.perform(put("http://localhost:8040/user/update")
-						.header("Authorization", "Bearer " + token)
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(user.toStringWithID())
-						.accept(MediaType.APPLICATION_JSON))
-				.andExpect(status().isOk());
 
 	}
 
+	@ParameterizedTest
+	public MvcResult updateUserOKWithoutExpect(EUser euser, boolean existUser) throws Exception {//no es un update donde se modifica el nombre de un user existente
+		String strAuth = "root";
+		EUser authUser = new EUser();
+		authUser.setName(strAuth);
+		authUser.setPassword("passroot");
+		authUser.setRoles(new HashSet<>());
+		String token = obtainAccessToken(strAuth,"passroot","idClient1","passClient1").getFirst();
+		JsonParser objectMapper = JsonParserFactory.create();
+		Map<String, Object> claims = objectMapper.parseMap(JwtHelper.decode(token).getClaims());
+		EUser oldUser = new EUser();
+		oldUser.setName(euser.getName());
+		oldUser.setPassword("passroot");
+		oldUser.setRoles(new HashSet<>());
+		oldUser.setWarning(new String(""));
+		EUser suser = new EUser();
+		suser.setName(euser.getName());
+		suser.setPassword(internalCrypt.encode("passroot"));
+		suser.setRoles(euser.getRoles());
+		suser.setWarning(euser.getWarning());
+		suser.setDate(euser.getDate());
+		Mockito.when(encoder.encode("passroot")).thenReturn(internalCrypt.encode("passroot"));
+		Mockito.when(iUserDao.findByName(strAuth)).thenReturn(authUser);
+		Mockito.when(iUserDao.save(eq(suser))).thenReturn(euser);
+		if(existUser) {
+			Mockito.when(iUserDao.save(eq(oldUser))).thenReturn(oldUser);
+			Mockito.when(iUserDao.findByName(euser.getName())).thenReturn(euser);
+		}
+		return mvc.perform(put("http://localhost:8040/user/update")
+				.header("Authorization", "Bearer " + token)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(euser.toString())
+				.accept(MediaType.APPLICATION_JSON)).andReturn();
 
-
-
+	}
 
 
 	/*
@@ -196,7 +350,7 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserOK1() throws Exception {
-		addUserOK("nameofuser1","pass",1);
+		addUser(false,maxUsers,1,false,"http://localhost:8040/user/add","post","","");
 	}
 
 
@@ -206,12 +360,194 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void updateUserOK1() throws Exception {
-		updateUserOK("nameofuser1",1);
+		updateUserOK(maxUsers,1, true,"http://localhost:8040/user/update");
+	}
+
+//---------------------------------------------------------------------------------------------
+
+
+	/*
+    Insertar usuario al momento inexistente, con todos los campos (salvo el campo id) y valores
+    sintácticamente correctos, definiendo dos roles sintácticamente correctos
+*/
+	@Test
+	public void addUserOK2() throws Exception {
+		addUser(false,maxUsers,2,false,"http://localhost:8040/user/add","post","","");
+	}
+
+	/*
+		Insertar usuario con los campos mínimos admisibles, sintácticamente correctos
+	*/
+	@Test
+	public void addUserOK3() throws Exception {
+		addUser(false,maxUsers,0,false,"http://localhost:8040/user/add","post","","");
 	}
 
 
+	/*
+            Insertar input NOT OK con endpoint incorrecto
+        */
+	@Test
+	public void addUserNOTOK1() throws Exception {
+		addUser(false,maxUsers,0,false,"http://localhost:8040/user/addd","post","","");
+	}
+
+	/*
+		Insertar input NOT OK con endpoint incorrecto
+	*/
+	@Test
+	public void addUserNOTOK2() throws Exception {
+		addUser(false,maxUsers,0,false,"http://localhost:8040/userr/add","post","","");
+	}
 
 
+	/*
+		Insertar input NOT OK metodo REST no soportado
+	*/
+	@Test
+	public void addUserNOTOK4() throws Exception {
+		addUser(false,maxUsers,0,false,"http://localhost:8040/user/add","put","","");
+	}
+
+	/*
+		Insertar usuario con los campos mínimos admisibles sintácticamente correctos, salvo el campo
+		nombre mal definido sintácticamente
+	*/
+	@Test
+	public void addUserNOTOK5() throws Exception {
+		addUser(false,maxUsers,0,false,"http://localhost:8040/user/add","post","name","");
+	}
+
+
+	/*
+		Insertar usuario con los campos mínimos admisibles sintácticamente correctos,
+		salvo el valor del campo nombre mal definido sintácticamente
+	*/
+	@Test
+	public void addUserNOTOK6() throws Exception {
+		addUser(false,maxUsers,0,false,"http://localhost:8040/user/add","post","value_username","");
+	}
+
+
+	/*
+		Insertar usuario con los campos mínimos admisibles sintácticamente correctos,
+		salvo el campo contraseña mal definido sintácticamente
+	*/
+	@Test
+	public void addUserNOTOK7() throws Exception {
+		addUser(false,maxUsers,0,false,"http://localhost:8040/user/add","post","password","");
+	}
+
+
+	/*
+		Insertar usuario con los campos mínimos admisibles sintácticamente correctos,
+		salvo el valor del campo contraseña mal definido sintácticamente
+	*/
+	@Test
+	public void addUserNOTOK8() throws Exception {
+		addUser(false,maxUsers,0,false,"http://localhost:8040/user/add","post","value_password","");
+	}
+
+
+	/*
+		Insertar usuario con los campos mínimos admisibles sintácticamente correctos,
+		salvo el campo roles mal definido sintácticamente
+	*/
+	@Test
+	public void addUserNOTOK9() throws Exception {
+		addUser(false,maxUsers,maxRoles,false,"http://localhost:8040/user/add","post","roles","");
+	}
+
+	/*
+		Insertar campo nombre de rol, mal definido sintácticamente
+	*/
+	@Test
+	public void addUserNOTOK11() throws Exception {
+		addUser(false,maxUsers,maxRoles,false,"http://localhost:8040/user/add","post","nameRole","");
+	}
+
+	/*
+		Insertar el valor del campo nombre de rol, mal definido sintácticamente
+	*/
+	@Test
+	public void addUserNOTOK12() throws Exception {
+		addUser(false,maxUsers,maxRoles,false,"http://localhost:8040/user/add","post","value_nameRole","");
+	}
+
+	/*
+		Insertar el nombre del campo descripción de rol, mal definido sintácticamente
+	*/
+	@Test
+	public void addUserNOTOK13() throws Exception {
+		addUser(false,maxUsers,maxRoles,false,"http://localhost:8040/user/add","post","roleDescription","");
+	}
+
+	/*
+		Insertar el valor del campo descripción de rol, mal definido sintácticamente
+	*/
+	@Test
+	public void addUserNOTOK14() throws Exception {
+		addUser(false,maxUsers,maxRoles,false,"http://localhost:8040/user/add","post","value_roleDescription","");
+	}
+
+	/*
+		Insertar usuario existente
+	*/
+	@Test
+	public void addUserNOTOK15() throws Exception {
+		addUser(true,maxUsers,maxRoles,false,"http://localhost:8040/user/add","post","","");
+	}
+
+	/*
+		Insertar usuario al momento inexistente con los campos minimos admisibles.
+		Se incluye el campo id de usuario que puede no corresponder con el id generado
+		desde el servidor asociado al usuario en cuestión
+	*/
+	@Test
+	public void addUserWARNING1() throws Exception {
+		addUser(false,maxUsers,0,true,"http://localhost:8040/user/add","post","","[{\"warning\":\"User not necesarily has the number id given\"}]");
+	}
+
+	/*
+		Insertar usuario con dos roles duplicados.
+		Persistir uno de ellos y dar aviso al cliente, de roles duplicados
+	*/
+	/*@Test
+	public void addUserWARNING2() throws Exception {
+		Set<EUser> users =  loadInfoUser(1,2,false);
+		EUser user = users.iterator().next();
+		String token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
+		MvcResult result = mvc.perform(put("http://localhost:8040/user/add")
+						.header("Authorization", "Bearer " + token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(user.toString())
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk())
+				.andReturn();
+		String content = result.getResponse().getContentAsString();
+		Assert.assertEquals(content, "{\"warnings\":[{\"warning\":\"There are duplicated roles\"}]}");
+	}*/
+
+	/*
+		Insertar usuario con un rol a agregar (nombre de rol hasta el momento inexistente).
+		Se incluye el campo id de rol que puede no corresponder con el id generado
+		desde el servidor asociado al rol en cuestión
+	*/
+	/*@Test
+	public void addUserWARNING3() throws Exception {
+		Set<EUser> users =  loadInfoUserWithIdRole(1,2,false);
+		EUser user = users.iterator().next();
+		String token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
+		MvcResult result = mvc.perform(put("http://localhost:8040/user/add")
+						.header("Authorization", "Bearer " + token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(user.toString())
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk())
+				.andReturn();
+		String content = result.getResponse().getContentAsString();
+		Assert.assertEquals(content, "{\"warnings\":[{\"warning\":\"There roles that not necesarily has registered with the number id given\"}]}\n");
+	}*/
 
 
 

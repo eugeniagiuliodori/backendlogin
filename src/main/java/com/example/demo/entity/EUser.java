@@ -100,7 +100,7 @@ public class EUser implements Serializable {
         if(getRoles() != null && !getRoles().isEmpty()){
             Iterator iterator = getRoles().iterator();
             for(ERole role : getRoles()) {
-                roles = roles + "{\"nameRole\":\""+((ERole)iterator.next()).getNameRole()+"\"}";
+                roles = roles + "{\"nameRole\":\""+((ERole)iterator.next()).getNameRole()+"\",\"description\":\""+role.getDescription()+"\"}";
                 if(iterator.hasNext()){
                     roles=roles+",";
                 }
@@ -114,7 +114,7 @@ public class EUser implements Serializable {
         if(getRoles() != null && !getRoles().isEmpty()){
             Iterator iterator = getRoles().iterator();
             for(ERole role : getRoles()) {
-                roles = roles + "{\"nameRole\":\""+((ERole)iterator.next()).getNameRole()+"\"}";
+                roles = roles + "{\"nameRole\":\""+((ERole)iterator.next()).getNameRole()+"\",\"description\":\""+role.getDescription()+"\"}";
             }
             if(iterator.hasNext()){
                 roles=roles+",";
