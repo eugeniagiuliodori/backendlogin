@@ -173,7 +173,7 @@ public class DemoApplicationTests{
 			JSONObject jo = (JSONObject) jp.parse(strResult);
 			if(jo.get("warnings") != null) {
 				if(definedDuplicateRoles){
-					Assert.assertEquals(warningsExpected, "There are duplicated roles");
+					Assert.assertEquals(warningsExpected,  ((List<LinkedHashMap>) jo.get("warnings")).toString());
 				}
 			}
 			if(jo.get("warnings") == null) {
@@ -186,8 +186,8 @@ public class DemoApplicationTests{
 	}
 
 	@ParameterizedTest
-	public void addUser(boolean isPresent, int sizeUsers, int sizeRoles, boolean idPresent, String endpoint, String method, String bad, String warningsExpected) throws Exception {
-		Set<EUser> users = loadInfoUser(sizeUsers,sizeRoles,idPresent);
+	public void addUser(boolean isPresent, int sizeUsers, int sizeRoles, boolean idPresent, boolean idRolePresent, String endpoint, String method, String bad, String warningsExpected) throws Exception {
+		Set<EUser> users = loadInfoUser(sizeUsers,sizeRoles,idPresent, idRolePresent);
 		Long id = new Long(0);
 		for(EUser user : users) {
 			String passencode = internalCrypt.encode(user.getPassword());
@@ -208,14 +208,11 @@ public class DemoApplicationTests{
 			Mockito.when(iUserDao.save(eq(sruser))).thenReturn(sruser);
 			Mockito.when(iUserDao.save(eq(suser))).thenReturn(suser);
 			ResultMatcher rm = status().isCreated();
-			if(isPresent){
+			if(isPresent) {
 				Mockito.when(iUserDao.findByName(user.getName())).thenReturn(user);
 				rm = status().isNotAcceptable();
 			}
-			String content = user.toString();
-			if(warningsExpected.equals("[{\"warning\":\"User not necesarily has the number id given\"}]")){
-				content = user.toStringWithID();
-			}
+			String content = user.toStringWithID_ifExist();
 			if(method.equals("put")){
 				rm = status().isMethodNotAllowed();
 			}
@@ -261,9 +258,6 @@ public class DemoApplicationTests{
 						content = badNameDescriptionValueToString(user);
 						break;
 					}
-				}
-				if(warningsExpected.contains("[{\"warning\":\"User not necesarily has the number id given\"}]")){
-					content = content.replace("{","\"\":"+user.getId()+" ,");
 				}
 			}
 			if(endpoint.equals("http://localhost:8040/user/add")) {
@@ -312,8 +306,8 @@ public class DemoApplicationTests{
 
 
 	@ParameterizedTest
-	public void updateUserOK(int sizeUsers, int sizeRoles, boolean idPresent, String endpoint) throws Exception {
-		Set<EUser> users = loadInfoUser(sizeUsers,sizeRoles,idPresent);
+	public void updateUser(int sizeUsers, int sizeRoles, boolean idPresent, boolean idRolePresent, String endpoint) throws Exception {
+		Set<EUser> users = loadInfoUser(sizeUsers,sizeRoles,idPresent, idRolePresent);
 		EUser authUser = new EUser();
 		authUser.setName("root");
 		authUser.setPassword("pass");
@@ -349,8 +343,6 @@ public class DemoApplicationTests{
 				Mockito.when(iRoleDao.findByNameRole(role.getNameRole())).thenReturn(role);
 			}
 			String token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
-			token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
-
 			if(endpoint.equals("http://localhost:8040/user/update")) {
 				mvc.perform(put(endpoint)
 								.header("Authorization", "Bearer " + token)
@@ -414,7 +406,7 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserOK1() throws Exception {
-		addUser(false,maxUsers,1,false,"http://localhost:8040/user/add","post","","");
+		addUser(false,maxUsers,1,false,false,"http://localhost:8040/user/add","post","","");
 	}
 
 
@@ -424,11 +416,8 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void updateUserOK1() throws Exception {
-		updateUserOK(maxUsers,1, true,"http://localhost:8040/user/update");
+		updateUser(maxUsers,1, true, false,"http://localhost:8040/user/update");
 	}
-
-//---------------------------------------------------------------------------------------------
-
 
 	/*
     Insertar usuario al momento inexistente, con todos los campos (salvo el campo id) y valores
@@ -436,7 +425,7 @@ public class DemoApplicationTests{
 */
 	@Test
 	public void addUserOK2() throws Exception {
-		addUser(false,maxUsers,2,false,"http://localhost:8040/user/add","post","","");
+		addUser(false,maxUsers,2,false, false,"http://localhost:8040/user/add","post","","");
 	}
 
 	/*
@@ -444,7 +433,7 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserOK3() throws Exception {
-		addUser(false,maxUsers,0,false,"http://localhost:8040/user/add","post","","");
+		addUser(false,maxUsers,0,false, false,"http://localhost:8040/user/add","post","","");
 	}
 
 
@@ -453,7 +442,7 @@ public class DemoApplicationTests{
         */
 	@Test
 	public void addUserNOTOK1() throws Exception {
-		addUser(false,maxUsers,0,false,"http://localhost:8040/user/addd","post","","");
+		addUser(false,maxUsers,0,false, false,"http://localhost:8040/user/addd","post","","");
 	}
 
 	/*
@@ -461,7 +450,7 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserNOTOK2() throws Exception {
-		addUser(false,maxUsers,0,false,"http://localhost:8040/userr/add","post","","");
+		addUser(false,maxUsers,0,false, false,"http://localhost:8040/userr/add","post","","");
 	}
 
 
@@ -470,7 +459,7 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserNOTOK4() throws Exception {
-		addUser(false,maxUsers,0,false,"http://localhost:8040/user/add","put","","");
+		addUser(false,maxUsers,0,false, false,"http://localhost:8040/user/add","put","","");
 	}
 
 	/*
@@ -479,7 +468,7 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserNOTOK5() throws Exception {
-		addUser(false,maxUsers,0,false,"http://localhost:8040/user/add","post","name","");
+		addUser(false,maxUsers,0,false, false,"http://localhost:8040/user/add","post","name","");
 	}
 
 
@@ -489,7 +478,7 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserNOTOK6() throws Exception {
-		addUser(false,maxUsers,0,false,"http://localhost:8040/user/add","post","value_username","");
+		addUser(false,maxUsers,0,false, false,"http://localhost:8040/user/add","post","value_username","");
 	}
 
 
@@ -499,7 +488,7 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserNOTOK7() throws Exception {
-		addUser(false,maxUsers,0,false,"http://localhost:8040/user/add","post","password","");
+		addUser(false,maxUsers,0,false, false,"http://localhost:8040/user/add","post","password","");
 	}
 
 
@@ -509,7 +498,7 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserNOTOK8() throws Exception {
-		addUser(false,maxUsers,0,false,"http://localhost:8040/user/add","post","value_password","");
+		addUser(false,maxUsers,0,false, false,"http://localhost:8040/user/add","post","value_password","");
 	}
 
 
@@ -519,7 +508,7 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserNOTOK9() throws Exception {
-		addUser(false,maxUsers,maxRoles,false,"http://localhost:8040/user/add","post","roles","");
+		addUser(false,maxUsers,maxRoles,false, false,"http://localhost:8040/user/add","post","roles","");
 	}
 
 	/*
@@ -527,7 +516,7 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserNOTOK11() throws Exception {
-		addUser(false,maxUsers,maxRoles,false,"http://localhost:8040/user/add","post","nameRole","");
+		addUser(false,maxUsers,maxRoles,false, false,"http://localhost:8040/user/add","post","nameRole","");
 	}
 
 	/*
@@ -535,7 +524,7 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserNOTOK12() throws Exception {
-		addUser(false,maxUsers,maxRoles,false,"http://localhost:8040/user/add","post","value_nameRole","");
+		addUser(false,maxUsers,maxRoles,false, false,"http://localhost:8040/user/add","post","value_nameRole","");
 	}
 
 	/*
@@ -543,7 +532,7 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserNOTOK13() throws Exception {
-		addUser(false,maxUsers,maxRoles,false,"http://localhost:8040/user/add","post","roleDescription","");
+		addUser(false,maxUsers,maxRoles,false, false,"http://localhost:8040/user/add","post","roleDescription","");
 	}
 
 	/*
@@ -551,7 +540,7 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserNOTOK14() throws Exception {
-		addUser(false,maxUsers,maxRoles,false,"http://localhost:8040/user/add","post","value_roleDescription","");
+		addUser(false,maxUsers,maxRoles,false, false,"http://localhost:8040/user/add","post","value_roleDescription","");
 	}
 
 	/*
@@ -559,7 +548,7 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserNOTOK15() throws Exception {
-		addUser(true,maxUsers,maxRoles,false,"http://localhost:8040/user/add","post","","");
+		addUser(true,maxUsers,maxRoles,false, false,"http://localhost:8040/user/add","post","","");
 	}
 
 	/*
@@ -569,7 +558,7 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserWARNING1() throws Exception {
-		addUser(false,maxUsers,0,true,"http://localhost:8040/user/add","post","","[{\"warning\":\"User not necesarily has the number id given\"}]");
+		addUser(false,maxUsers,0,true, false,"http://localhost:8040/user/add","post","","[{\"warning\":\"User not necesarily has the number id given\"}]");
 	}
 
 	/*
@@ -578,10 +567,10 @@ public class DemoApplicationTests{
 	*/
 	@Test
 	public void addUserWARNING2() throws Exception {
-		Set<EUser> users = loadInfoUser(maxUsers,maxRoles, false);
+		Set<EUser> users = loadInfoUser(maxUsers,maxRoles, false,false);
 		for(EUser user : users){
 			Set<ERole> newRoles = loadInfoDuplicateRoles(maxRoles);
-			addRolesAtUser(user, newRoles, "There are duplicated roles");
+			addRolesAtUser(user, newRoles, "[{\"warning\":\"There are duplicated roles\"}]");
 		}
 	}
 
@@ -590,21 +579,13 @@ public class DemoApplicationTests{
 		Se incluye el campo id de rol que puede no corresponder con el id generado
 		desde el servidor asociado al rol en cuestión
 	*/
-	/*@Test
+	@Test
 	public void addUserWARNING3() throws Exception {
-		Set<EUser> users =  loadInfoUserWithIdRole(1,2,false);
-		EUser user = users.iterator().next();
-		String token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
-		MvcResult result = mvc.perform(put("http://localhost:8040/user/add")
-						.header("Authorization", "Bearer " + token)
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(user.toString())
-						.accept(MediaType.APPLICATION_JSON))
-				.andExpect(status().isOk())
-				.andReturn();
-		String content = result.getResponse().getContentAsString();
-		Assert.assertEquals(content, "{\"warnings\":[{\"warning\":\"There roles that not necesarily has registered with the number id given\"}]}\n");
-	}*/
+		Set<EUser> users = loadInfoUser(maxUsers,maxRoles, false, true);
+		for(EUser user : users){
+			addUser(false, maxUsers, maxRoles, false, true, "http://localhost:8040/user/add", "post", "", "[{\"warning\":\"There roles that not necesarily has registered with the number id given\"}]");
+		}
+	}
 
 
 
@@ -627,13 +608,15 @@ public class DemoApplicationTests{
 		return "{\"name\":\""+user.getName()+"\",\"password\":\""+user.getPassword()+"\",\"nameRole\":\""+user.getRoles().iterator().next().getNameRole()+"\",\"description\":\""+user.getRoles().iterator().next().getDescription()+"}";
 	}
 
-	private Set<ERole> loadInfoRoles(int size){
+	private Set<ERole> loadInfoRoles(int size, boolean idRoleInfo){
 		Set<ERole> setRoles = new HashSet<>();
 		for(int i = 0; i < size; i++) {
 			ERole mockRole = new ERole();
+			if(idRoleInfo){
+				mockRole.setId(Long.valueOf(internalId));
+			}
 			mockRole.setNameRole("role"+ internalId);
 			mockRole.setDate(new Date());
-			mockRole.setId(Long.valueOf(internalId));
 			mockRole.setDescription("description role"+internalId);
 			internalId++;
 			setRoles.add(mockRole);
@@ -660,7 +643,7 @@ public class DemoApplicationTests{
 		return setRoles;
 	}
 
-	private Set<EUser>  loadInfoUser(int sizeUser,int sizeRoles, boolean idInfo){
+	private Set<EUser>  loadInfoUser(int sizeUser,int sizeRoles, boolean idInfo, boolean idRoleInfo){
 		Set<EUser> setUsers = new HashSet<>();
 		EUser mockUser = new EUser();
 		for(int i = 0; i < sizeUser; i++) {
@@ -670,7 +653,7 @@ public class DemoApplicationTests{
 				mockUser.setId(Long.valueOf(internalId));
 			}
 			if(sizeRoles > 0) {
-				mockUser.setRoles(loadInfoRoles(sizeRoles));
+				mockUser.setRoles(loadInfoRoles(sizeRoles, idRoleInfo));
 			}
 			else{
 				mockUser.setRoles(new HashSet<>());
@@ -679,35 +662,6 @@ public class DemoApplicationTests{
 			setUsers.add(mockUser);
 		}
 		return setUsers;
-	}
-
-	private Set<EUser> loadInfoUserWithIdRole(int sizeUser,int sizeRoles, boolean idInfo){
-		Set<EUser> users = loadInfoUser(sizeUser,sizeRoles,idInfo);
-		if(sizeRoles > 0) {
-			for (EUser user : users) {
-				for(ERole role: user.getRoles()){
-					long currentMilliseconds = new Date().getTime();
-					role.setId(Long.valueOf(currentMilliseconds));
-				}
-			}
-		}
-		return users;
-	}
-
-	private EUser  loadInfoExistingUser(){
-		EUser mockUser = new EUser();
-		mockUser.setName("root");
-		mockUser.setPassword("passroot");
-		return mockUser;
-	}
-
-	private void checkBadAccessToken(String username, String password, String clientId, String clientPass) throws Exception {
-		ResultActions result
-				= mvc.perform(post("http://localhost:8040/user/login")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content("{\"userName\":\""+username+"\",\"userPass\":\""+password+"\",\"clientId\":\""+clientId+"\",\"clientPass\":\""+clientPass+"\",\"\":\"\"}"))
-				.andExpect(status().isBadRequest());
-
 	}
 
 

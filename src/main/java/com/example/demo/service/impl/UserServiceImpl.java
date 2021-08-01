@@ -180,14 +180,15 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 if(iUserDao.findByName(user.getName())== null) {
                     euser.setName(user.getName());
                     euser.setPassword(encoder.encode(user.getPassword()));
-                    for (ERole role : getNotFoundUserRolesInBD(user)) {
-                        try {
-                            if(role.getId() != null){
+                    for(ERole role : user.getRoles()) {
+                        if (role.getId() != null) {
+                            if(!roleServiceImpl.findById(role.getId()).isPresent()) {
                                 warning = true;
                             }
-                            roleServiceImpl.save(role,new LinkedList<LinkedHashMap>());//new LinkedList<LinkedHashMap> es la lista de servicios (funcionalidades del servidor)
                         }
-                        catch(Exception ex){}
+                    }
+                    for (ERole role : getNotFoundUserRolesInBD(user)) {
+                        roleServiceImpl.save(role,new LinkedList<LinkedHashMap>());//new LinkedList<LinkedHashMap> es la lista de servicios (funcionalidades del servidor)
                     }
                     log.info(euser.toString());
                     euser = iUserDao.save(euser);//the assigment permit id value

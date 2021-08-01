@@ -132,7 +132,12 @@ public class UserController {
                 for(int i = 0; i<list.size();i++){
                     ERole role = new ERole();
                     LinkedHashMap map = (LinkedHashMap)list.get(i);
-                    role.setId((Long)map.get("id"));
+                    try {
+                        role.setId((Long)map.get("id"));
+                    }
+                    catch(Exception e){
+                        role.setId(Long.valueOf((String)map.get("id")));
+                    }
                     role.setNameRole((String)map.get("nameRole"));
                     role.setDescription((String)map.get("description"));
                     set.add(role);
