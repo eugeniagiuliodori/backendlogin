@@ -1,6 +1,6 @@
 package com.example.demo;
 
-import com.example.demo.controller.RoleController;
+
 import com.example.demo.controller.UserController;
 import com.example.demo.dao.IRoleDao;
 import com.example.demo.dao.IUserDao;
@@ -17,6 +17,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.runner.RunWith;
@@ -40,6 +41,7 @@ import org.springframework.security.oauth2.common.util.JsonParserFactory;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableOAuth2Client;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
+import org.springframework.security.oauth2.provider.token.ConsumerTokenServices;
 import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
 import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
@@ -87,8 +89,12 @@ public class DemoApplicationTests{
 
 	private final BCryptPasswordEncoder internalCrypt = new BCryptPasswordEncoder();
 
-	@Mock
+	@Autowired
 	private TokenStore tokenStore;
+
+	@Autowired
+	ConsumerTokenServices  consumerTokenServices;
+
 
 	@Autowired
 	private JwtAccessTokenConverter accessTokenConverter;
@@ -102,13 +108,23 @@ public class DemoApplicationTests{
 
 	private int internalId;
 
+
 	private int maxUsers;
 
 	private int maxRoles;
+
+	private OAuth2AccessToken accessToken;
+
+	private OAuth2Authentication auth;
+
+
 	@Before
 	public void setUp() {
 		userServiceImpl.setRoleServiceImpl(roleServiceImpl);
-		mvc = MockMvcBuilders.standaloneSetup(new UserController(userServiceImpl), SecurityMockMvcConfigurers.springSecurity()).build();
+		UserController userController = new UserController(userServiceImpl);
+		userController.setTokenStore(tokenStore);
+		userController.setConsumerTokenServices(consumerTokenServices);
+		mvc = MockMvcBuilders.standaloneSetup(userController, SecurityMockMvcConfigurers.springSecurity()).build();
 		internalId=0;
 		maxUsers=1;
 		maxRoles=2;
@@ -304,58 +320,175 @@ public class DemoApplicationTests{
 		}
 	}
 
+	private EUser getUser(Set<EUser> users, String name){
+		boolean present = false;
+		Iterator<EUser> it = users.iterator();
+		String pass = new String("");
+		EUser currUser = null;
+		while(it.hasNext() && !present){
+			currUser = new EUser();
+			EUser ref = it.next();
+			if(ref.getId() != null) {
+				currUser.setId(ref.getId());
+			}
+			currUser.setName(ref.getName());
+			currUser.setPassword(ref.getPassword());
+			currUser.setRoles(ref.getRoles());
+			present = currUser.getName().equals(name);
+		}
+		return currUser;
+	}
+
+	private ERole getRoleById(Set<ERole> roles, Long id){
+		boolean present = false;
+		Iterator<ERole> it = roles.iterator();
+		String pass = new String("");
+		ERole currRole = null;
+		while(it.hasNext() && !present){
+			currRole = new ERole();
+			ERole ref = it.next();
+			currRole.setId(ref.getId());
+			currRole.setNameRole(ref.getNameRole());
+			currRole.setDescription(currRole.getDescription());
+			present = currRole.getId().equals(id);
+		}
+		return currRole;
+	}
+
 
 	@ParameterizedTest
-	public void updateUser(int sizeUsers, int sizeRoles, boolean idPresent, boolean idRolePresent, String endpoint) throws Exception {
-		Set<EUser> users = loadInfoUser(sizeUsers,sizeRoles,idPresent, idRolePresent);
+	public void updateUser(boolean isAuthenticated, Set<EUser> oldUsers, Set<EUser> newUsers, boolean idPresent, boolean idRolePresent, String endpoint) throws Exception {
 		EUser authUser = new EUser();
-		authUser.setName("root");
-		authUser.setPassword("pass");
-		authUser.setRoles(new HashSet<>());
+		if(!isAuthenticated) {
+			authUser.setName("root");
+			authUser.setPassword("pass");
+			authUser.setRoles(new HashSet<>());
+		}
 		int i = 0;
-		for(EUser user : users) {
-			String passencode = internalCrypt.encode("pass");
-			String oldName = "name"+i;
-			user.setName("usermodif");
-			user.setPassword("pass");
-			Optional<EUser> optionalUser = Optional.of(user);
-			optionalUser.get().setId(user.getId());
-			optionalUser.get().setName(oldName);
-			optionalUser.get().setPassword(passencode);
-			EUser oldUser = new EUser();
-			oldUser.setName(oldName);
-			oldUser.setPassword(user.getPassword());
-			EUser suser = new EUser();
-			suser.setId(user.getId());
-			suser.setName(user.getName());
-			suser.setPassword(passencode);
-			suser.setRoles(user.getRoles());
-			Mockito.when(encoder.encode(user.getPassword())).thenReturn(passencode);
-			if(idPresent){
-				Mockito.when(iUserDao.findById(user.getId())).thenReturn(optionalUser);
+		for(EUser oldUser : oldUsers) {
+			String s1 = oldUser.getPassword();
+			if(isAuthenticated){
+				if(oldUser.getId() != null) {
+					authUser.setId(oldUser.getId());
+				}
+				else {
+					authUser.setId(Long.valueOf(internalId));
+					internalId++;
+				}
+				authUser.setName(oldUser.getName());
+				authUser.setPassword(oldUser.getPassword());
+				authUser.setRoles(new HashSet<>());
+				Mockito.when(iUserDao.findByName(authUser.getName())).thenReturn(authUser);
+			}
+			EUser currNewUser = getUser(newUsers, oldUser.getName());
+			String passencodenewuser = new String("");
+			String oldpassencoder = new String("");
+			if(currNewUser != null && !currNewUser.getPassword().trim().isEmpty()) {
+				passencodenewuser = internalCrypt.encode(currNewUser.getPassword());
+				if(oldUser.getPassword() != null && oldUser.getPassword().equals(currNewUser.getPassword())){
+					oldpassencoder=passencodenewuser;
+				}
+				else{
+					oldpassencoder= internalCrypt.encode(oldUser.getPassword());
+				}
+			}
+			EUser newOldRef = new EUser();
+			newOldRef.setName(oldUser.getName());
+			newOldRef.setPassword(oldUser.getPassword());
+			newOldRef.setRoles(oldUser.getRoles());
+			if(oldUser.getId() != null){
+				newOldRef.setId(oldUser.getId());
+			}
+			Optional<EUser> optionalUser = Optional.of(newOldRef);
+			if(currNewUser.getId() != null) {
+				optionalUser.get().setId(currNewUser.getId());
 			}
 			else{
-				Mockito.when(iUserDao.findByName(oldName)).thenReturn(optionalUser.get());
+				optionalUser.get().setId(Long.valueOf(internalId));
+				internalId++;
 			}
+			optionalUser.get().setPassword(oldpassencoder);
+			Mockito.when(encoder.encode(oldUser.getPassword())).thenReturn(oldpassencoder);
+			if(!oldUser.getPassword().equals(currNewUser.getPassword())){
+				Mockito.when(encoder.encode(currNewUser.getPassword())).thenReturn(passencodenewuser);
+			}
+			if(idPresent){
+				Mockito.when(iUserDao.findById(oldUser.getId())).thenReturn(optionalUser);
+			}
+			else{
+				Mockito.when(iUserDao.findByName(oldUser.getName())).thenReturn(optionalUser.get());
+			}
+			Set<ERole> newRoles = new HashSet<>();
+			if(idRolePresent){
+				for (ERole role : oldUser.getRoles()) {
+					Optional<ERole> optionalRole = Optional.of(role);
+					newRoles.add(optionalRole.get());
+					Mockito.when(iRoleDao.findById(role.getId())).thenReturn(optionalRole);
+				}
+				for (ERole role : currNewUser.getRoles()) {
+					ERole erole = getRoleById(newRoles, role.getId());
+					role.setId(erole.getId());
+				}
+				newRoles=currNewUser.getRoles();
+
+			}
+			else {
+				for (ERole role : oldUser.getRoles()) {
+					role.setId(Long.valueOf(internalId));
+					internalId++;
+					newRoles.add(role);
+					Mockito.when(iRoleDao.findByNameRole(role.getNameRole())).thenReturn(role);
+				}
+				for (ERole role : currNewUser.getRoles()) {
+					ERole erole = getRoleById(newRoles, role.getId());
+					role.setId(erole.getId());
+				}
+				newRoles=currNewUser.getRoles();
+			}
+			EUser suser = new EUser();
+			suser.setId(optionalUser.get().getId());
+			suser.setName(currNewUser.getName());
+			suser.setPassword(passencodenewuser);
+			suser.setRoles(newRoles);
+			Iterator<ERole> a = suser.getRoles().iterator();
+			log.info("PASS DESDE TEST:"+suser.toStringWithID_ifExist());
 			Mockito.when(iUserDao.findByName("root")).thenReturn(authUser);
 			Mockito.when(iUserDao.save(eq(suser))).thenReturn(suser);
-			for (ERole role : user.getRoles()) {
-				Mockito.when(iRoleDao.findByNameRole(role.getNameRole())).thenReturn(role);
-			}
-			String token = obtainAccessToken("root", "passroot", "idClient1", "passClient1").getFirst();
+			String token = obtainAccessToken(authUser.getName(), authUser.getPassword(), "idClient1", "passClient1").getFirst();
+			Collection<OAuth2AccessToken> tokens = new LinkedList<>();
+			tokenStore.storeAccessToken(accessToken,auth);
 			if(endpoint.equals("http://localhost:8040/user/update")) {
-				mvc.perform(put(endpoint)
+				MvcResult result = mvc.perform(put(endpoint)
 								.header("Authorization", "Bearer " + token)
 								.contentType(MediaType.APPLICATION_JSON)
-								.content(user.toStringWithID())
+								.content(currNewUser.toStringWithID_ifExist())
 								.accept(MediaType.APPLICATION_JSON))
-						.andExpect(status().isOk());
+						.andExpect(status().isOk()).andReturn();
+				IteratorOfSet it = new IteratorOfSet(oldUser.getRoles());
+				IteratorOfSet itNew = new IteratorOfSet(currNewUser.getRoles());
+				boolean changesNameRole = false;
+				boolean equalsCount = it.size() == itNew.size();
+				while (itNew.hasNext() && equalsCount && !changesNameRole) {
+					if (!it.contains((itNew.next()))) {//compara solo por nombre
+						changesNameRole = true;
+					}
+				}
+				if(isAuthenticated &&
+						((!oldUser.getName().equals(currNewUser.getName()))||
+								(!oldUser.getPassword().equals(currNewUser.getPassword()))||
+								changesNameRole)){
+					Assert.assertTrue(result.getResponse().getContentAsString().contains("\"access_token\"")
+							&& result.getResponse().getContentAsString().contains("\"refresh_token\""));
+				}
+				else{
+					Assert.assertEquals("",result.getResponse().getContentAsString().trim());
+				}
 			}
 			else{
 				mvc.perform(put(endpoint)
 								.header("Authorization", "Bearer " + token)
 								.contentType(MediaType.APPLICATION_JSON)
-								.content(user.toStringWithID())
+								.content(currNewUser.toStringWithID_ifExist())
 								.accept(MediaType.APPLICATION_JSON))
 						.andExpect(status().isBadRequest());
 			}
@@ -386,6 +519,7 @@ public class DemoApplicationTests{
 		suser.setDate(euser.getDate());
 		Mockito.when(encoder.encode("passroot")).thenReturn(internalCrypt.encode("passroot"));
 		Mockito.when(iUserDao.findByName(strAuth)).thenReturn(authUser);
+
 		Mockito.when(iUserDao.save(eq(suser))).thenReturn(euser);
 		if(existUser) {
 			Mockito.when(iUserDao.save(eq(oldUser))).thenReturn(oldUser);
@@ -409,15 +543,6 @@ public class DemoApplicationTests{
 		addUser(false,maxUsers,1,false,false,"http://localhost:8040/user/add","post","","");
 	}
 
-
-	/*
-		Modificar de usuario existente  (distinto al nombre de usuario autenticado por
-		medio del cliente), nombre de usuario con campo y valor sintácticamente correcto
-	*/
-	@Test
-	public void updateUserOK1() throws Exception {
-		updateUser(maxUsers,1, true, false,"http://localhost:8040/user/update");
-	}
 
 	/*
     Insertar usuario al momento inexistente, con todos los campos (salvo el campo id) y valores
@@ -587,6 +712,29 @@ public class DemoApplicationTests{
 		}
 	}
 
+	/*
+            Modificar de usuario existente autenticado, nombre de usuario con campo y valor sintácticamente
+            correcto
+        */
+	@Test
+	public void updateUserOK5() throws Exception {
+		Set<EUser> oldUsers = loadInfoUser(maxUsers,0,true, false);
+		Set<EUser> newUsers = null;
+		for(EUser user : oldUsers){
+			EUser currUser = new EUser();
+			if(user.getId() != null){
+				currUser.setId(user.getId());
+			}
+			currUser.setName(user.getName()+"modif");
+			currUser.setPassword(user.getPassword());
+			currUser.setRoles(new HashSet<>());
+			if(newUsers == null){
+				newUsers = new HashSet<>();
+			}
+			newUsers.add(currUser);
+		}
+		updateUser(true, oldUsers, newUsers,true, false, "http://localhost:8040/user/update");
+	}
 
 
 
@@ -608,6 +756,7 @@ public class DemoApplicationTests{
 		return "{\"name\":\""+user.getName()+"\",\"password\":\""+user.getPassword()+"\",\"nameRole\":\""+user.getRoles().iterator().next().getNameRole()+"\",\"description\":\""+user.getRoles().iterator().next().getDescription()+"}";
 	}
 
+
 	private Set<ERole> loadInfoRoles(int size, boolean idRoleInfo){
 		Set<ERole> setRoles = new HashSet<>();
 		for(int i = 0; i < size; i++) {
@@ -616,7 +765,7 @@ public class DemoApplicationTests{
 				mockRole.setId(Long.valueOf(internalId));
 			}
 			mockRole.setNameRole("role"+ internalId);
-			mockRole.setDate(new Date());
+			//mockRole.setDate(new Date());
 			mockRole.setDescription("description role"+internalId);
 			internalId++;
 			setRoles.add(mockRole);
@@ -634,7 +783,7 @@ public class DemoApplicationTests{
 			else {
 				mockRole.setNameRole("role" + internalId);
 			}
-			mockRole.setDate(new Date());
+			//mockRole.setDate(new Date());
 			mockRole.setId(Long.valueOf(internalId));
 			mockRole.setDescription("description role"+internalId);
 			internalId++;
@@ -686,12 +835,12 @@ public class DemoApplicationTests{
 		Map<String, Serializable> extensionProperties = Collections.emptyMap();
 		OAuth2Request oAuth2Request = new OAuth2Request(requestParameters, "idClient1", grantAuthorities,
 				approved, scopes, resourceIds, redirectUrl, responseTypes, extensionProperties);
-		User userPrincipal = new User("root", "passroot", true, true,
+		User userPrincipal = new User(username, password, true, true,
 				true, true, grantAuthorities);
 		UsernamePasswordAuthenticationToken authenticationToken =
 				new UsernamePasswordAuthenticationToken(userPrincipal, null, grantAuthorities);
-		OAuth2Authentication auth = new OAuth2Authentication(oAuth2Request, authenticationToken);
-		OAuth2AccessToken accessToken = tokenService.createAccessToken(auth);
+		auth = new OAuth2Authentication(oAuth2Request, authenticationToken);
+		accessToken = tokenService.createAccessToken(auth);
 		OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
 		String rt = refreshToken.getValue();
 		Map<String, Object> claims = new HashMap<>();

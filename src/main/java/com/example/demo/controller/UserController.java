@@ -199,7 +199,12 @@ public class UserController {
                 for(int i = 0; i<list.size();i++){
                     ERole role = new ERole();
                     LinkedHashMap map = (LinkedHashMap)list.get(i);
-                    role.setId((Long)map.get("id"));
+                    try {
+                        role.setId((Long) map.get("id"));
+                    }
+                    catch(Exception e){
+                        role.setId(Long.valueOf((String)map.get("id")));
+                    }
                     role.setNameRole((String)map.get("nameRole"));
                     role.setDescription((String)map.get("description"));
                     set.add(role);
@@ -267,6 +272,11 @@ public class UserController {
                                 euser = userServiceImpl.findById(user.getId());
                                 if (euser.isPresent()) {
                                     oldRoles = RolesMapper.translate(euser.get().getRoles());
+                                    oldUser = new EUser();
+                                    oldUser.setName(euser.get().getName());
+                                    oldUser.setPassword(euser.get().getPassword());
+                                    oldUser.setId(euser.get().getId());
+                                    oldUser.setRoles(euser.get().getRoles());
                                 }
                             }
                             else{
@@ -284,7 +294,7 @@ public class UserController {
                         boolean equalsContentRoles = true;
                         if (!changesCountRoles) {
                             while (iteratorUpdate.hasNext() && equalsContentRoles) {
-                                if (!iteratorOld.contains(((Role) iteratorUpdate.next()))) {
+                                if (!iteratorOld.contains((iteratorUpdate.next()))) {
                                     equalsContentRoles = false;
                                 }
                             }
@@ -294,7 +304,8 @@ public class UserController {
                                 (bodyPassUser != null && !authuser.getPassword().equals(bodyPassUser)) ||
                                 (changesRoles)) {
                             //RevokeTokenEndpoint managerRevokes = new RevokeTokenEndpoint();
-                            String new_token_refreshToken = revoquesTokensAndGenerateNew(usermod.getName(), user.getPassword(), tokenValue, "idClient1", "passClient1");
+                            String o = oldUser.getName();
+                            String new_token_refreshToken = revoquesTokensAndGenerateNew(oldUser.getName(),usermod.getName(),usermod.getPassword(), tokenValue, "idClient1", "passClient1");
                             if (new_token_refreshToken.contains("error")) {
                                 new_token_refreshToken = "{\"error\":\"" + new_token_refreshToken + "\"}";
                             }
@@ -526,15 +537,14 @@ public class UserController {
     }
 
 
-    public String revoquesTokensAndGenerateNew(String userName, String userPass, String tokenValue, String idClient,String passClient) {
+    public String revoquesTokensAndGenerateNew(String oldUserName,String userName, String userPass, String tokenValue, String idClient,String passClient) {
         //  final OAuth2Authentication auth = (OAuth2Authentication) SecurityContextHolder
         //        .getContext().getAuthentication();
         //final String token = tokenStore.getAccessToken(auth).getValue();
         //tokenServices.revokeToken(token);
-
         Collection<OAuth2AccessToken> tokens = tokenStore.findTokensByClientIdAndUserName(
                 idClient,
-                userName);
+                oldUserName);
         for (OAuth2AccessToken token : tokens) {
             consumerTokenServices.revokeToken(token.getValue());
         }
@@ -554,11 +564,25 @@ public class UserController {
         RestTemplate restTemplate = new RestTemplate();
         String access_token_url = "http://localhost:8040/oauth/token";
         ResponseEntity<String> response = restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
+        String s = response.getBody();
         return response.getBody();
     }
 
+    public TokenStore getTokenStore() {
+        return tokenStore;
+    }
 
+    public void setTokenStore(TokenStore tokenStore) {
+        this.tokenStore = tokenStore;
+    }
 
+    public ConsumerTokenServices getConsumerTokenServices() {
+        return consumerTokenServices;
+    }
+
+    public void setConsumerTokenServices(ConsumerTokenServices consumerTokenServices) {
+        this.consumerTokenServices = consumerTokenServices;
+    }
 
 /*
     private String revoquesToken(String userName, String userPass, String tokenValue, String idClient,String passClient) {

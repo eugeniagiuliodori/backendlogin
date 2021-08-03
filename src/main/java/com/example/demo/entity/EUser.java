@@ -165,8 +165,9 @@ public class EUser implements Serializable {
         }
         if(this.getRoles() != null && eUser.getRoles() != null && !eUser.getRoles().isEmpty()) {
             Iterator<ERole> it = eUser.getRoles().iterator();
+            IteratorOfSet itRoles = new IteratorOfSet(this.getRoles());
             while (it.hasNext() && equalRoles) {
-                equalRoles = this.getRoles().contains(it.next());//solo pregunta por nomeRole
+                equalRoles = itRoles.contains(it.next());//solo pregunta por nomeRole
             }
         }
         if(this.getRoles() != null && eUser.getRoles() != null && eUser.getRoles().isEmpty()) {

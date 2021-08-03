@@ -54,7 +54,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     private BCryptPasswordEncoder encoder;
 
     @Autowired
-    private AuthorizationServerConfig auth;
+    private AuthorizationServerConfig authorizationServerConfig;
 
     @Autowired
     private AuthorizationServerTokenServices authorizationServerTokenServices;
@@ -314,7 +314,6 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 else{
                     euser.setName(user.getName());
                 }
-
                 if(user.getPassword()==null ){
                     euser.setPassword(oldUser.getPassword());
                 }
@@ -332,18 +331,18 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                     for (ERole role : rolesUpdate) {
                         String roleName = role.getNameRole();
                         ERole currRole = null;
-                        try {
-                            currRole = roleServiceImpl.findByRoleName(roleName);
+                        currRole = roleServiceImpl.findByRoleName(roleName);
+                        if(currRole == null) {
+                            currRole = roleServiceImpl.findById(role.getId()).get();
                         }
-                        catch(Exception e){
-                            try {
-                                currRole = roleServiceImpl.findById(role.getId()).get();
+                        if(currRole==null){
+                            if (roleName == null && role.getId() == null) {
+                                throw new CustomException("Invalid data", "Empty id and name role");
                             }
-                            catch(Exception ex){
-                                if(roleName == null && role.getId() == null) {
-                                    throw new CustomException("Invalid data", "Empty id and name role");
-                                }
+                            else{
+                                throw new CustomException("Invalid data", "Invalid id and/or name role");
                             }
+
                         }
                         String d = role.getDescription();
                         if(currRole != null) {
@@ -364,11 +363,11 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                             roleServiceImpl.save(role, new LinkedList<LinkedHashMap>());//new LinkedList<LinkedHashMap> es la lista de servicios (funcionalidades del servidor));
                         }
                     }
-                    Set<ERole> rolesWithID = getRolesWithID(rolesUpdate);
                     euser.setRoles(getRolesWithID(rolesUpdate));
-                    //euser = iUserDao.save(euser);
-
                 }
+                Iterator<ERole> a = euser.getRoles().iterator();
+                log.info("PASS DESDE IMPL:"+euser.toStringWithID_ifExist());
+                EUser e = euser;
                 EUser suser = iUserDao.save(euser);
                 if(suser == null){
                     String s = "";
@@ -494,6 +493,14 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         this.listRoles = listRoles;
     }
 
+    public AuthorizationServerConfig getAuthorizationServerConfig() {
+        return authorizationServerConfig;
+    }
+
+    public void setAuthorizationServerConfig(AuthorizationServerConfig authorizationServerConfig) {
+        this.authorizationServerConfig = authorizationServerConfig;
+    }
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         log.info("USERNAME:"+username);
@@ -516,7 +523,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
             arrayRoles[i]=currAuth;
         }
         try {
-            auth.configure(auth.getClients());
+            authorizationServerConfig.configure(authorizationServerConfig.getClients());
         }
         catch(Exception e){
             return null;
@@ -607,12 +614,15 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         Set<ERole> rolesWithID = new HashSet<>();
         if(roles != null && !roles.isEmpty()) {
             for (ERole role : roles) {
-                ERole frole = roleServiceImpl.findByRoleName(role.getNameRole());
-                frole.setDescription(role.getDescription());
-                frole.setDate(role.getDate());
-                rolesWithID.add(frole);
-                Long l = frole.getId();
-                String strs="";
+                if(role.getId() == null) {
+                    ERole frole = roleServiceImpl.findByRoleName(role.getNameRole());
+                    frole.setDescription(role.getDescription());
+                    frole.setDate(role.getDate());
+                    rolesWithID.add(frole);
+                }
+                else{
+                    rolesWithID.add(role);
+                }
             }
         }
         return rolesWithID;
