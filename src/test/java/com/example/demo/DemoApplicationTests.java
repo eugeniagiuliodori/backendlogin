@@ -21,9 +21,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -55,6 +58,7 @@ import org.springframework.web.context.WebApplicationContext;
 import java.io.Serializable;
 import java.util.*;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.times;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -80,6 +84,7 @@ public class DemoApplicationTests{
 
 	@Mock
 	private IUserDao iUserDao;
+
 
 	@Mock
 	private IRoleDao iRoleDao;
@@ -355,7 +360,6 @@ public class DemoApplicationTests{
 		return currRole;
 	}
 
-
 	@ParameterizedTest
 	public void updateUser(boolean isAuthenticated, Set<EUser> oldUsers, Set<EUser> newUsers, boolean idPresent, boolean idRolePresent, String endpoint) throws Exception {
 		EUser authUser = new EUser();
@@ -409,6 +413,8 @@ public class DemoApplicationTests{
 			}
 			optionalUser.get().setPassword(oldpassencoder);
 			Mockito.when(encoder.encode(oldUser.getPassword())).thenReturn(oldpassencoder);
+			String o = oldUser.getPassword();
+			String n = currNewUser.getPassword();
 			if(!oldUser.getPassword().equals(currNewUser.getPassword())){
 				Mockito.when(encoder.encode(currNewUser.getPassword())).thenReturn(passencodenewuser);
 			}
@@ -450,9 +456,14 @@ public class DemoApplicationTests{
 			suser.setName(currNewUser.getName());
 			suser.setPassword(passencodenewuser);
 			suser.setRoles(newRoles);
-			Iterator<ERole> a = suser.getRoles().iterator();
-			log.info("PASS DESDE TEST:"+suser.toStringWithID_ifExist());
-			Mockito.when(iUserDao.findByName("root")).thenReturn(authUser);
+
+			EUser userContent = new EUser();
+			userContent.setId(suser.getId());
+			userContent.setName(suser.getName());
+			userContent.setPassword(currNewUser.getPassword());
+			userContent.setRoles(suser.getRoles());
+			Mockito.when(iUserDao.findByName(authUser.getName())).thenReturn(authUser);
+			Mockito.when(iUserDao.findByName(suser.getName())).thenReturn(null,null,suser);
 			Mockito.when(iUserDao.save(eq(suser))).thenReturn(suser);
 			String token = obtainAccessToken(authUser.getName(), authUser.getPassword(), "idClient1", "passClient1").getFirst();
 			Collection<OAuth2AccessToken> tokens = new LinkedList<>();
@@ -461,7 +472,7 @@ public class DemoApplicationTests{
 				MvcResult result = mvc.perform(put(endpoint)
 								.header("Authorization", "Bearer " + token)
 								.contentType(MediaType.APPLICATION_JSON)
-								.content(currNewUser.toStringWithID_ifExist())
+								.content(userContent.toStringWithID_ifExist())
 								.accept(MediaType.APPLICATION_JSON))
 						.andExpect(status().isOk()).andReturn();
 				IteratorOfSet it = new IteratorOfSet(oldUser.getRoles());
