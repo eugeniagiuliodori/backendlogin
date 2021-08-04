@@ -87,6 +87,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     public EUser findByUserName(String name)throws Exception{
         EUser user;
         try {
+            String s = name;
             user = iUserDao.findByName(name);
             if(user == null){
                 throw new CustomException("Not found","User name not found");
@@ -288,18 +289,10 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
             }
             EUser oldUser = null;
             try {
-                oldUser = findByUserName(user.getName());
+                oldUser = findByUserName(user.getLogname());
             }
             catch(Exception e){}
-            Optional<EUser> oldUserId = Optional.empty();
-            if(oldUser == null && user.getId() != null) {
-                oldUserId = findById(user.getId());
-            }
-            //Long s = oldUserId.get().getId();
-            if((oldUser != null)||(oldUserId.isPresent())) {
-                if(oldUser == null){
-                    oldUser = oldUserId.get();
-                }
+            if(oldUser != null) {
                 EUser euser = new EUser();
                 euser.setId(oldUser.getId());
                 if(user.getDate()==null){
@@ -313,6 +306,12 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 }
                 else{
                     euser.setName(user.getName());
+                }
+                if(user.getLogname()==null ){
+                    euser.setLogname(oldUser.getLogname());
+                }
+                else{
+                    euser.setLogname(user.getLogname());
                 }
                 if(user.getPassword()==null ){
                     euser.setPassword(oldUser.getPassword());
@@ -366,15 +365,9 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                     euser.setRoles(getRolesWithID(rolesUpdate));
                 }
                 Iterator<ERole> a = euser.getRoles().iterator();
-                log.info("PASS DESDE IMPL:"+euser.toStringWithID_ifExist());
-                EUser e = euser;
                 EUser suser = iUserDao.save(euser);
-                if(suser == null){
-                    String s = "";
-                }
                 suser.setWarning(strWarnings);
                 return suser;
-
             }
             else{
                 throw new CustomException("User not found","Null or incorrect ID user");
@@ -508,6 +501,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         authenticatedPassUser=new String("");
         EUser user;
         try {
+            String s = username;
             user = findByUserName(username);
             authenticatedPassUser=user.getPassword();
         }
@@ -523,6 +517,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
             arrayRoles[i]=currAuth;
         }
         try {
+            authorizationServerConfig.setUserName(username);
             authorizationServerConfig.configure(authorizationServerConfig.getClients());
         }
         catch(Exception e){

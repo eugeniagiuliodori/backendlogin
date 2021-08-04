@@ -29,6 +29,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.util.Pair;
 import org.springframework.http.MediaType;
@@ -36,6 +37,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.common.*;
@@ -58,7 +60,7 @@ import org.springframework.web.context.WebApplicationContext;
 import java.io.Serializable;
 import java.util.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -81,6 +83,9 @@ public class DemoApplicationTests{
 
 	@InjectMocks
 	private RoleServiceImpl roleServiceImpl;
+
+	@Autowired
+	private AuthorizationServerConfig authorizationServerConfig;
 
 	@Mock
 	private IUserDao iUserDao;
@@ -463,7 +468,7 @@ public class DemoApplicationTests{
 			userContent.setPassword(currNewUser.getPassword());
 			userContent.setRoles(suser.getRoles());
 			Mockito.when(iUserDao.findByName(authUser.getName())).thenReturn(authUser);
-			Mockito.when(iUserDao.findByName(suser.getName())).thenReturn(null,null,suser);
+			String s = suser.getName();
 			Mockito.when(iUserDao.save(eq(suser))).thenReturn(suser);
 			String token = obtainAccessToken(authUser.getName(), authUser.getPassword(), "idClient1", "passClient1").getFirst();
 			Collection<OAuth2AccessToken> tokens = new LinkedList<>();
@@ -505,6 +510,149 @@ public class DemoApplicationTests{
 			}
 		}
 
+	}
+
+
+	@ParameterizedTest
+	public void updateUser2(boolean isAuthenticated, EUser oldUser, EUser newUser, boolean idPresent, boolean idRolePresent, String endpoint) throws Exception {
+		EUser authUser = new EUser();
+		if(!isAuthenticated) {
+			authUser.setName("root");
+			authUser.setPassword("pass");
+			authUser.setRoles(new HashSet<>());
+		}
+		String s1 = oldUser.getPassword();
+		if(isAuthenticated){
+			if(oldUser.getId() != null) {
+				authUser.setId(oldUser.getId());
+			}
+			else {
+				authUser.setId(Long.valueOf(internalId));
+				internalId++;
+			}
+			authUser.setName(oldUser.getName());
+			authUser.setPassword(oldUser.getPassword());
+			authUser.setRoles(new HashSet<>());
+			Mockito.when(iUserDao.findByName(authUser.getName())).thenReturn(authUser);
+		}
+		String passencodenewuser = new String("");
+		String oldpassencoder = new String("");
+		if(newUser != null && !newUser.getPassword().trim().isEmpty()) {
+			passencodenewuser = internalCrypt.encode(newUser.getPassword());
+			if(oldUser.getPassword() != null && oldUser.getPassword().equals(newUser.getPassword())){
+				oldpassencoder=passencodenewuser;
+			}
+			else{
+				oldpassencoder= internalCrypt.encode(oldUser.getPassword());
+			}
+		}
+		EUser newOldRef = new EUser();
+		newOldRef.setName(oldUser.getName());
+		newOldRef.setPassword(oldUser.getPassword());
+		newOldRef.setRoles(oldUser.getRoles());
+		if(oldUser.getId() != null){
+			newOldRef.setId(oldUser.getId());
+		}
+		Optional<EUser> optionalUser = Optional.of(newOldRef);
+		if(newUser.getId() != null) {
+			optionalUser.get().setId(newUser.getId());
+		}
+		else{
+			optionalUser.get().setId(Long.valueOf(internalId));
+			internalId++;
+		}
+		optionalUser.get().setPassword(oldpassencoder);
+		Mockito.when(encoder.encode(oldUser.getPassword())).thenReturn(oldpassencoder);
+		String o = oldUser.getPassword();
+		String n = newUser.getPassword();
+		if(!oldUser.getPassword().equals(newUser.getPassword())){
+			Mockito.when(encoder.encode(newUser.getPassword())).thenReturn(passencodenewuser);
+		}
+		if(idPresent){
+			Mockito.when(iUserDao.findById(oldUser.getId())).thenReturn(optionalUser);
+		}
+		else{
+			Mockito.when(iUserDao.findByName(oldUser.getName())).thenReturn(optionalUser.get());
+		}
+		Set<ERole> newRoles = new HashSet<>();
+		if(idRolePresent){
+			for (ERole role : oldUser.getRoles()) {
+				Optional<ERole> optionalRole = Optional.of(role);
+				newRoles.add(optionalRole.get());
+				Mockito.when(iRoleDao.findById(role.getId())).thenReturn(optionalRole);
+			}
+			for (ERole role : newUser.getRoles()) {
+				ERole erole = getRoleById(newRoles, role.getId());
+				role.setId(erole.getId());
+			}
+			newRoles=newUser.getRoles();
+
+		}
+		else {
+			for (ERole role : oldUser.getRoles()) {
+				role.setId(Long.valueOf(internalId));
+				internalId++;
+				newRoles.add(role);
+				Mockito.when(iRoleDao.findByNameRole(role.getNameRole())).thenReturn(role);
+			}
+			for (ERole role : newUser.getRoles()) {
+				ERole erole = getRoleById(newRoles, role.getId());
+				role.setId(erole.getId());
+			}
+			newRoles=newUser.getRoles();
+		}
+		EUser suser = new EUser();
+		suser.setId(optionalUser.get().getId());
+		suser.setName(newUser.getName());
+		suser.setPassword(passencodenewuser);
+		suser.setRoles(newRoles);
+
+		EUser userContent = new EUser();
+		userContent.setId(suser.getId());
+		userContent.setName(suser.getName());
+		userContent.setPassword(newUser.getPassword());
+		userContent.setRoles(suser.getRoles());
+		Mockito.when(iUserDao.findByName(authUser.getName())).thenReturn(authUser);
+		String s = suser.getName();
+		Mockito.when(iUserDao.save(eq(suser))).thenReturn(suser);
+		String token = obtainAccessToken(authUser.getName(), authUser.getPassword(), "idClient1", "passClient1").getFirst();
+		Collection<OAuth2AccessToken> tokens = new LinkedList<>();
+		tokenStore.storeAccessToken(accessToken,auth);
+		if(endpoint.equals("http://localhost:8040/user/update")) {
+			MvcResult result = mvc.perform(put(endpoint)
+							.header("Authorization", "Bearer " + token)
+							.contentType(MediaType.APPLICATION_JSON)
+							.content(userContent.toStringWithID_ifExist())
+							.accept(MediaType.APPLICATION_JSON))
+					.andExpect(status().isOk()).andReturn();
+			IteratorOfSet it = new IteratorOfSet(oldUser.getRoles());
+			IteratorOfSet itNew = new IteratorOfSet(newUser.getRoles());
+			boolean changesNameRole = false;
+			boolean equalsCount = it.size() == itNew.size();
+			while (itNew.hasNext() && equalsCount && !changesNameRole) {
+				if (!it.contains((itNew.next()))) {//compara solo por nombre
+					changesNameRole = true;
+				}
+			}
+			if(isAuthenticated &&
+					((!oldUser.getName().equals(newUser.getName()))||
+							(!oldUser.getPassword().equals(newUser.getPassword()))||
+							changesNameRole)){
+				Assert.assertTrue(result.getResponse().getContentAsString().contains("\"access_token\"")
+						&& result.getResponse().getContentAsString().contains("\"refresh_token\""));
+			}
+			else{
+				Assert.assertEquals("",result.getResponse().getContentAsString().trim());
+			}
+		}
+		else{
+			mvc.perform(put(endpoint)
+							.header("Authorization", "Bearer " + token)
+							.contentType(MediaType.APPLICATION_JSON)
+							.content(newUser.toStringWithID_ifExist())
+							.accept(MediaType.APPLICATION_JSON))
+					.andExpect(status().isBadRequest());
+		}
 	}
 
 	@ParameterizedTest
@@ -729,7 +877,7 @@ public class DemoApplicationTests{
         */
 	@Test
 	public void updateUserOK5() throws Exception {
-		Set<EUser> oldUsers = loadInfoUser(maxUsers,0,true, false);
+		Set<EUser> oldUsers = loadInfoUser(1,0,true, false);
 		Set<EUser> newUsers = null;
 		for(EUser user : oldUsers){
 			EUser currUser = new EUser();
@@ -744,7 +892,16 @@ public class DemoApplicationTests{
 			}
 			newUsers.add(currUser);
 		}
-		updateUser(true, oldUsers, newUsers,true, false, "http://localhost:8040/user/update");
+		EUser oldUser = new EUser();
+		oldUser.setName("oldName");
+		oldUser.setId(Long.valueOf(1));
+		oldUser.setRoles(new HashSet<>());
+
+		EUser newUser = new EUser();
+		newUser.setName("oldNamemodif");
+		newUser.setId(Long.valueOf(1));
+		newUser.setRoles(new HashSet<>());
+		updateUser2(true, oldUser, newUser,true, false, "http://localhost:8040/user/update");
 	}
 
 

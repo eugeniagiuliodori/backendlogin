@@ -22,6 +22,9 @@ public class EUser implements Serializable {
     @Temporal(TemporalType.DATE)
     private Date date;
 
+    @Column(name="logname", unique = true, nullable=false)
+    private String logname;
+
     @Column(name="name", unique = true, nullable=false)
     private String name;
 
@@ -182,4 +185,12 @@ public class EUser implements Serializable {
     }
 
     private static final long serialVersionUID = 1L;
+
+    public String getLogname() {
+        return logname;
+    }
+
+    public void setLogname(String logname) {
+        this.logname = logname;
+    }
 }

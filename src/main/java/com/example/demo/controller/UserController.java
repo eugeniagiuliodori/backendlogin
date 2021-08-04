@@ -102,6 +102,9 @@ public class UserController {
     @Autowired
     private OAuth2RestTemplate oAuth2RestTemplate;
 
+    @Autowired
+    private BCryptPasswordEncoder encoder;
+
     @PreAuthorize("hasRole('add')")
     @PostMapping("/add")
     public ResponseEntity<?> addUser(@RequestBody Map<String, Object> request) {
@@ -184,9 +187,12 @@ public class UserController {
         Iterator it = request.keySet().iterator();
         EUser user = new EUser();
         boolean badRequest = false;
-        List<LinkedHashMap> list = new LinkedList<LinkedHashMap>();
+        List<LinkedHashMap> list = new LinkedList<>();
         while(it.hasNext() && !badRequest){
             String key = (String)it.next();
+            if(key.equals("logname")){
+                user.setLogname((String)request.get("logname"));
+            }
             if(key.equals("name")){
                 user.setName((String)request.get("name"));
             }
@@ -211,15 +217,8 @@ public class UserController {
                 }
                 user.setRoles(set);
             }
-            if(key.equals("id")){
-                try {
-                    user.setId((Long) request.get("id"));
-                }
-                catch (Exception e){
-                    user.setId(Long.valueOf((String)request.get("id")));
-                }
-            }
-            if(!key.equals("name")&&!key.equals("password")&&!key.equals("roles")&&!key.equals("id")){
+
+            if(!key.equals("name")&&!key.equals("password")&&!key.equals("roles")&&!key.equals("logname")){
                 badRequest=true;
             }
         }
@@ -235,58 +234,38 @@ public class UserController {
                 String authenticatedUser = (String)claims.get("user_name");//userServiceImpl.getAuthenticatedUser();
                 EUser authuser = userServiceImpl.findByUserName(authenticatedUser);
                 Long authenticatedUserId = authuser.getId();
-                Long bodyUserId = user.getId();
                 String bodyUser = user.getName();
                 String bodyPassUser = user.getPassword();
                 boolean existBodyRoles = user.getRoles() != null && !user.getRoles().isEmpty();
-                if (bodyUserId != null || bodyUser != null) {
+                if (user.getLogname() != null) {
                     EUser oldUser = null;
                     try {
-                        EUser old = userServiceImpl.findByUserName(user.getName());
+                        EUser old = userServiceImpl.findByUserName(user.getLogname());
                         oldUser = new EUser();
                         oldUser.setId(old.getId());
                         oldUser.setName(old.getName());
+                        oldUser.setLogname(old.getLogname());
                         oldUser.setDate(old.getDate());
                         oldUser.setPassword(old.getPassword());
-                        oldUser.setRoles(new HashSet<>(old.getRoles()));//si no pongo un new EUser para oldUser, me da problema de aliasing cuando hace el update (no entiendo donde)
-                    }
-                    catch (Exception e) {
-                        if(user.getId() != null) {
-                            Optional<EUser> euser = null;
-                            euser = userServiceImpl.findById(user.getId());
-                            if(!euser.isPresent()) {
-                                return new ResponseEntity<>("{\"error\":\"User not found\"}", HttpStatus.NOT_FOUND);
-                            }
+                        if(old.getRoles() != null) {
+                            oldUser.setRoles(new HashSet<>(old.getRoles()));//si no pongo un new EUser para oldUser, me da problema de aliasing cuando hace el update (no entiendo donde)
                         }
                         else{
-                            return new ResponseEntity<>("{\"error\":\"User not found\"}", HttpStatus.NOT_FOUND);
+                            oldUser.setRoles(new HashSet<>());
                         }
                     }
-                    EUser usermod = userServiceImpl.updateUser(user, existBodyRoles,list);
-                    if ((bodyUserId != null && bodyUserId.equals(authenticatedUserId)) ||
-                            (bodyUser != null && bodyUser.equals(authenticatedUser))) {//if update is of authenticated user
-                        Optional<EUser> euser = null;
-                        Set<Role> oldRoles = null;
-                        if (oldUser == null) {
-                            if(user.getId() != null) {
-                                euser = userServiceImpl.findById(user.getId());
-                                if (euser.isPresent()) {
-                                    oldRoles = RolesMapper.translate(euser.get().getRoles());
-                                    oldUser = new EUser();
-                                    oldUser.setName(euser.get().getName());
-                                    oldUser.setPassword(euser.get().getPassword());
-                                    oldUser.setId(euser.get().getId());
-                                    oldUser.setRoles(euser.get().getRoles());
-                                }
-                            }
-                            else{
-                                return new ResponseEntity<>("{\"error\":\"User not found\"}", HttpStatus.NOT_FOUND);
-                            }
-                        }
-                        else {
-                            oldRoles = RolesMapper.translate(oldUser.getRoles());
-                        }
-
+                    catch (Exception e) {
+                        return new ResponseEntity<>("{\"error\":\"User not found\"}", HttpStatus.NOT_FOUND);
+                    }
+                    EUser usermod=null;
+                    try {
+                        usermod = userServiceImpl.updateUser(user, existBodyRoles, list);
+                    }
+                    catch(Exception a){
+                        a.printStackTrace();
+                    }
+                    if (authenticatedUser != null && user.getLogname() != null && user.getLogname().equals(authenticatedUser)){//if update is of authenticated user
+                        Set<Role> oldRoles = RolesMapper.translate(oldUser.getRoles());
                         Set<Role> updateRoles = RolesMapper.translate(usermod.getRoles());
                         IteratorOfSet iteratorOld = new IteratorOfSet(oldRoles);
                         IteratorOfSet iteratorUpdate = new IteratorOfSet(updateRoles);
@@ -300,24 +279,25 @@ public class UserController {
                             }
                         }
                         boolean changesRoles = changesCountRoles || !equalsContentRoles;
-                        if ((bodyUser != null && !authenticatedUser.equals(bodyUser)) ||
-                                (bodyPassUser != null && !authuser.getPassword().equals(bodyPassUser)) ||
+                        if (( !authenticatedUser.equals(user.getName())) ||
+                                (oldUser.getPassword() != null && !encoder.matches(user.getPassword(),oldUser.getPassword())) ||
                                 (changesRoles)) {
-                            //RevokeTokenEndpoint managerRevokes = new RevokeTokenEndpoint();
-                            String o = oldUser.getName();
+
                             String new_token_refreshToken = revoquesTokensAndGenerateNew(oldUser.getName(),usermod.getName(),usermod.getPassword(), tokenValue, "idClient1", "passClient1");
                             if (new_token_refreshToken.contains("error")) {
                                 new_token_refreshToken = "{\"error\":\"" + new_token_refreshToken + "\"}";
                             }
                             return new ResponseEntity<>(new_token_refreshToken, HttpStatus.OK);
-                        } else {
+                        }
+                        else {
                             if (!usermod.getWarning().isEmpty()) {
                                 return new ResponseEntity<>("{\"warnings\":[" + usermod.getWarning() + "]}", HttpStatus.CREATED);
                             } else {
                                 return new ResponseEntity<Void>(HttpStatus.OK);
                             }
                         }
-                    } else {
+                    }
+                    else {
                         if (!usermod.getWarning().isEmpty()) {
                             return new ResponseEntity<>("{\"warnings\":[" + usermod.getWarning() + "]}", HttpStatus.OK);
                         } else {
@@ -327,7 +307,8 @@ public class UserController {
                 } else {
                     return new ResponseEntity<>("{\"error\":\"insuficient information\"}", HttpStatus.NOT_ACCEPTABLE);
                 }
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 e.printStackTrace();
                 e.printStackTrace();
                 if (e instanceof CustomException) {
@@ -339,8 +320,6 @@ public class UserController {
         else{
             return new ResponseEntity<>("{\"error\":\"Misspelled field/s\"}", HttpStatus.BAD_REQUEST);
         }
-
-
     }
 
 
@@ -388,18 +367,6 @@ public class UserController {
 
 
     @PreAuthorize("hasRole('delete')")
-    @DeleteMapping("/delete/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable(value="id") Long idUser){
-        try{
-            EUser delUser = userServiceImpl.deleteUser(idUser);
-            return new ResponseEntity<>(HttpStatus.OK);
-        }
-        catch(Exception e){
-            return new ResponseEntity<>("{\"error\":\""+e.toString()+"\"}",HttpStatus.NOT_ACCEPTABLE);
-        }
-    }
-
-    @PreAuthorize("hasRole('delete')")
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteUser(@RequestBody Map<String, Object> request){
         Iterator it = request.keySet().iterator();
@@ -407,28 +374,17 @@ public class UserController {
         boolean badRequest = false;
         while(it.hasNext() && !badRequest){
             String key = (String)it.next();
-            if(key.equals("id")){
-                user.setId((Long)request.get("id"));
+            if(key.equals("name")){
+                user.setName((String)request.get("name"));
             }
-            if(!key.equals("id")){
+            if(!key.equals("name")){
                 badRequest=true;
             }
         }
         if(!badRequest) {
             try {
-                if (user.getId() == null) {
-                     return deleteUser(user.getName());
-                }
-                else {
-                    ResponseEntity<?> response = deleteUser(user.getId());
-                    HttpStatus status =  response.getStatusCode() ;//id not store in BD
-                    if(status.isError()){
-                        return deleteUser(user.getName());
-                    }
-                    else{
-                        return response;
-                    }
-                }
+                userServiceImpl.deleteUser(user.getName());
+                return new ResponseEntity<Void>(HttpStatus.OK);
             }
             catch(Exception e){
                 if(e instanceof CustomException){
