@@ -150,6 +150,30 @@ public class EUser implements Serializable {
         }
     }
 
+    public String toStringWithID_ifExist_update() {
+        String roles = new String("");
+        if(getRoles() != null && !getRoles().isEmpty()){
+            Iterator iterator = getRoles().iterator();
+            for(ERole role : getRoles()) {
+                if (role.getId() == null) {
+                    roles = roles + "{\"nameRole\":\"" + ((ERole) iterator.next()).getNameRole() + "\",\"description\":\"" + role.getDescription() + "\"}";
+                }
+                else{
+                    roles = roles + "{\"id\":\""+role.getId()+"\",\"nameRole\":\"" + ((ERole) iterator.next()).getNameRole() + "\",\"description\":\"" + role.getDescription() + "\"}";
+                }
+                if(iterator.hasNext()){
+                    roles=roles+",";
+                }
+            }
+        }
+        if(getId() != null) {
+            return new String("{\"id\":\"" + getId().toString() + "\",\"name\":\"" + getName() + "\",\"logname\":\""+getLogname()+"\",\"password\":\"" + getPassword() + "\",\"roles\":[" + roles + "]}");
+        }
+        else{
+            return new String("{\"name\":\"" + getName() + "\",\"logname\":\""+getLogname()+"\",\"password\":\"" + getPassword() + "\",\"roles\":[" + roles + "]}");
+        }
+    }
+
 
     @Override
     public boolean equals(Object o) {
