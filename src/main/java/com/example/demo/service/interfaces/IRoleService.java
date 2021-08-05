@@ -10,6 +10,8 @@ public interface IRoleService {
 
     public ERole findByRoleName(String nameRole);
 
+    public ERole findByLognameRole(String lognameRole);
+
     public List<ERole> findAll();
 
     public Optional<ERole> findById(Long id);

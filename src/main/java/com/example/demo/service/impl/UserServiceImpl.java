@@ -173,49 +173,28 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
     @Modifying(clearAutomatically=true, flushAutomatically=true)
     @Transactional(rollbackFor = Exception.class)
     public EUser addUser(EUser user, List<LinkedHashMap> list) throws Exception{
-        boolean warning = false;
         if(user !=null){
+            String s = user.getLogname();
             EUser euser = new EUser();
-            //minimal parameters to add: name and password
-            if(user.getName()!=null && user.getPassword() != null && !user.getName().isEmpty() && !user.getPassword().isEmpty() ) {
-                if(iUserDao.findByName(user.getName())== null) {
+            if(user.getName()!=null && user.getLogname() != null && user.getPassword() != null && !user.getName().isEmpty() && !user.getPassword().isEmpty() ) {
+                if(iUserDao.findByLogname(user.getLogname())== null) {
                     euser.setName(user.getName());
+                    euser.setLogname(user.getLogname());
                     euser.setPassword(encoder.encode(user.getPassword()));
-                    for(ERole role : user.getRoles()) {
-                        if (role.getId() != null) {
-                            if(!roleServiceImpl.findById(role.getId()).isPresent()) {
-                                warning = true;
-                            }
-                        }
-                    }
                     for (ERole role : getNotFoundUserRolesInBD(user)) {
                         roleServiceImpl.save(role,new LinkedList<LinkedHashMap>());//new LinkedList<LinkedHashMap> es la lista de servicios (funcionalidades del servidor)
                     }
-                    log.info(euser.toString());
                     euser = iUserDao.save(euser);//the assigment permit id value
                     euser.setRoles(getRolesWithID(user.getRoles()));//aca puede reescribirse una relacion user-rol pero eso no es problema
                     euser = iUserDao.save(euser);
                     String strWarnings = new String("");
-                    if(user.getId() != null){
-                        strWarnings = "{\"warning\":\"User not necesarily has the number id given\"}";
-                        //throw new CustomException("warning","User not necesarily has the number id given");
-                    }
-                   // List<ERole> distinctRoles = (List<ERole>)ListManager.hasDuplicates(list);
                     if(ListManager.hasDuplicates(list)){
                         if(!strWarnings.isEmpty()){
                             strWarnings = strWarnings + ",";
                         }
                         strWarnings = strWarnings + "{\"warning\":\"There are duplicated roles\"}";
                     }
-
-                    if(warning){
-                        if(!strWarnings.isEmpty()){
-                            strWarnings = strWarnings + ",";
-                        }
-                        strWarnings = strWarnings + "{\"warning\":\"There roles that not necesarily has registered with the number id given\"}";
-                    }
                     euser.setWarning(strWarnings);
-
                     return euser;
                 }
                 else{
@@ -224,19 +203,14 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
             }
             else{
                 String str = new String("");
-                boolean b=false;
                 if(user.getName()==null  || user.getName().isEmpty()) {
-                    str="Excepted name user (possible misspelled field)";
-                    b=true;
+                    str="*) Excepted name user (possible misspelled field);";
+                }
+                if(user.getLogname()==null  || user.getLogname().isEmpty()) {
+                    str = str + "*) Excepted logname user (possible misspelled field);";
                 }
                 if(user.getPassword()==null  || user.getPassword().isEmpty()) {
-                    if(b){
-                        str=" and excepted password user (possible misspelled field)";
-                    }
-                    else{
-                        str="Excepted password user (possible misspelled field)";
-                    }
-
+                    str = str + "*) Excepted password user (possible misspelled field)";
                 }
                 throw new CustomException("Missing mandatory info",str);
             }
@@ -244,6 +218,12 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         else{
             throw new CustomException("User not found","user is null");
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true, rollbackFor = Exception.class)
+    public EUser findByLogname(String logname)throws Exception{
+        return iUserDao.findByLogname(logname);
     }
 
     @Override
@@ -289,7 +269,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
             }
             EUser oldUser = null;
             try {
-                oldUser = findByUserName(user.getLogname());
+                oldUser = findByLogname(user.getLogname());
             }
             catch(Exception e){}
             if(oldUser != null) {
@@ -328,22 +308,20 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                 else{
                     Set<ERole>  rolesUpdate = new HashSet<>(user.getRoles());//si no pongo new, hay problema de alisaing
                     for (ERole role : rolesUpdate) {
-                        String roleName = role.getNameRole();
                         ERole currRole = null;
-                        currRole = roleServiceImpl.findByRoleName(roleName);
+                        currRole = roleServiceImpl.findByLognameRole(role.getLognameRole());
                         if(currRole == null) {
                             currRole = roleServiceImpl.findById(role.getId()).get();
                         }
                         if(currRole==null){
-                            if (roleName == null && role.getId() == null) {
-                                throw new CustomException("Invalid data", "Empty id and name role");
+                            if (role.getLognameRole() == null) {
+                                throw new CustomException("Invalid data", "Empty logname role");
                             }
                             else{
-                                throw new CustomException("Invalid data", "Invalid id and/or name role");
+                                throw new CustomException("Invalid data", "Invalid logname role");
                             }
 
                         }
-                        String d = role.getDescription();
                         if(currRole != null) {
                             if (role.getNameRole() == null) {
                                 role.setNameRole(currRole.getNameRole());
@@ -364,7 +342,6 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
                     }
                     euser.setRoles(getRolesWithID(rolesUpdate));
                 }
-                Iterator<ERole> a = euser.getRoles().iterator();
                 EUser suser = iUserDao.save(euser);
                 suser.setWarning(strWarnings);
                 return suser;
@@ -584,19 +561,11 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
             Iterator iterator = new IteratorOfSet(user.getRoles());
             while (iterator.hasNext()) {
                 ERole currRole = (ERole) iterator.next();
-                if ((currRole.getId() == null) && (currRole.getNameRole() == null)) {
-                    throw new CustomException("Missing mandatory info", "Missing id and name of role");
-                } else {
-                    boolean present = true;
-                    if ((currRole.getId() != null) && !roleServiceImpl.findById(currRole.getId()).isPresent()) {
-                        present = false;
-                    }
-                    if ((currRole.getNameRole() != null) && roleServiceImpl.findByRoleName(currRole.getNameRole()) == null) {
-                        present = false;
-                    } else {
-                        present = true;
-                    }
-                    if (!present) {
+                if (currRole.getLognameRole() == null || currRole.getNameRole() == null) {
+                    throw new CustomException("Missing mandatory info", "Missing logname and/or name of role");
+                }
+                else {
+                    if ((currRole.getLognameRole() != null) && roleServiceImpl.findByLognameRole(currRole.getLognameRole()) == null) {
                         rolesNotExisting.add(currRole);
                     }
                 }
@@ -609,15 +578,10 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         Set<ERole> rolesWithID = new HashSet<>();
         if(roles != null && !roles.isEmpty()) {
             for (ERole role : roles) {
-                if(role.getId() == null) {
-                    ERole frole = roleServiceImpl.findByRoleName(role.getNameRole());
-                    frole.setDescription(role.getDescription());
-                    frole.setDate(role.getDate());
-                    rolesWithID.add(frole);
-                }
-                else{
-                    rolesWithID.add(role);
-                }
+                ERole frole = roleServiceImpl.findByLognameRole(role.getLognameRole());
+                frole.setDescription(role.getDescription());
+                frole.setDate(role.getDate());
+                rolesWithID.add(frole);
             }
         }
         return rolesWithID;

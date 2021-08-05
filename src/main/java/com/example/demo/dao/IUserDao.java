@@ -14,6 +14,8 @@ public interface IUserDao extends JpaRepository<EUser,Long> {
 
     public EUser findByName(String name);
 
+    public EUser findByLogname(String logname);
+
     public EUser findByPassword(String password);
 
     public List<EUser> findAll();

@@ -9,6 +9,8 @@ public class Role {
 
     private String name;
 
+    private String logname;
+
     private String description;
 
     private Date date;
@@ -17,7 +19,8 @@ public class Role {
 
     private Set<User> users;
 
-    public Role(String name, String description, Date date, ServiceList services, Set<User> users) {
+    public Role(String logname, String name, String description, Date date, ServiceList services, Set<User> users) {
+        this.logname = logname;
         this.name = name;
         this.description = description;
         this.date = date;
@@ -72,6 +75,7 @@ public class Role {
     @Override
     public String toString() {
         return "{" +
+                "\"lognameRole\":\""+logname+"\""+
                 "\"nameRole\":\"" + name + "\"" +
                 ", \"description\":\"" + description + "\"" +
                 ", \"date\":\"" + date + "\""+
@@ -100,7 +104,7 @@ public class Role {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Role role = (Role) o;
-        return name.equals(role.name) && description.equals(role.description) && date.equals(role.date) && services.equals(role.getServices()) ;
+        return name.equals(role.name) && logname.equals(role.logname) && description.equals(role.description) && date.equals(role.date) && services.equals(role.getServices()) ;
     }
 
 
@@ -108,7 +112,7 @@ public class Role {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Role role = (Role) o;
-        return name.equals(role.name) && Objects.equals(description, role.description) && date.equals(role.date) && services.equalsOnlyName(role.getServices());
+        return name.equals(role.name)  && logname.equals(role.logname) && Objects.equals(description, role.description) && date.equals(role.date) && services.equalsOnlyName(role.getServices());
     }
 
 
@@ -116,11 +120,17 @@ public class Role {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Role role = (Role) o;
-        return name.equals(role.name);
+        return logname.equals(role.logname);
     }
 
 
+    public String getLogname() {
+        return logname;
+    }
 
+    public void setLogname(String logname) {
+        this.logname = logname;
+    }
 
     @Override
     public int hashCode() {

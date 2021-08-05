@@ -10,7 +10,7 @@ public class RoleMapper {
 
 
     public static Role translate(ERole erole){
-        return new Role(erole.getNameRole(), erole.getDescription(), erole.getDate(),new ServiceList(erole.getServices()),UsersMapper.translate(erole.getUsers()));
+        return new Role(erole.getLognameRole(),erole.getNameRole(), erole.getDescription(), erole.getDate(),new ServiceList(erole.getServices()),UsersMapper.translate(erole.getUsers()));
     }
 
 }

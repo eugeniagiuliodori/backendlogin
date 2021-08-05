@@ -17,6 +17,8 @@ public interface IRoleDao extends JpaRepository<ERole,Long> {
 
     public ERole findByNameRole(String nameRole);
 
+    public ERole findByLognameRole(String lognameRole);
+
     public List<ERole> findAll();
 
     public Optional<ERole> findById(Long id);

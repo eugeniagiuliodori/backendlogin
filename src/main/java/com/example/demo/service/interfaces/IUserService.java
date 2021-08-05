@@ -15,6 +15,8 @@ public interface IUserService {
 
     public EUser findByUserName(String name)throws Exception;
 
+    public EUser findByLogname(String logname)throws Exception;
+
     public EUser findByPassword(String password)throws Exception;
 
     public List<EUser> findAll()throws Exception;

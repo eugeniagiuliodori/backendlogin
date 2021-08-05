@@ -103,76 +103,31 @@ public class EUser implements Serializable {
         if(getRoles() != null && !getRoles().isEmpty()){
             Iterator iterator = getRoles().iterator();
             for(ERole role : getRoles()) {
-                roles = roles + "{\"nameRole\":\""+((ERole)iterator.next()).getNameRole()+"\",\"description\":\""+role.getDescription()+"\"}";
+                roles = roles + "{\"lognameRole\":\""+role.getLognameRole()+"\",\"nameRole\":\""+((ERole)iterator.next()).getNameRole()+"\",\"description\":\""+role.getDescription()+"\"}";
                 if(iterator.hasNext()){
                     roles=roles+",";
                 }
             }
         }
-        return new String( "{\"name\":\""+getName()+"\",\"password\":\""+getPassword()+"\",\"roles\":["+roles+"]}");
+        return new String( "{\"logname\":\""+getLogname()+"\",\"name\":\""+getName()+"\",\"password\":\""+getPassword()+"\",\"roles\":["+roles+"]}");
     }
 
-    public String toStringWithID() {
+    public String toString_update() {
         String roles = new String("");
         if(getRoles() != null && !getRoles().isEmpty()){
             Iterator iterator = getRoles().iterator();
             for(ERole role : getRoles()) {
-                roles = roles + "{\"nameRole\":\""+((ERole)iterator.next()).getNameRole()+"\",\"description\":\""+role.getDescription()+"\"}";
-            }
-            if(iterator.hasNext()){
-                roles=roles+",";
-            }
-        }
-        return new String( "{\"id\":\""+getId().toString()+"\",\"name\":\""+getName()+"\",\"password\":\""+getPassword()+"\",\"roles\":["+roles+"]}");
-    }
-
-    public String toStringWithID_ifExist() {
-        String roles = new String("");
-        if(getRoles() != null && !getRoles().isEmpty()){
-            Iterator iterator = getRoles().iterator();
-            for(ERole role : getRoles()) {
-                if (role.getId() == null) {
-                    roles = roles + "{\"nameRole\":\"" + ((ERole) iterator.next()).getNameRole() + "\",\"description\":\"" + role.getDescription() + "\"}";
-                }
-                else{
-                    roles = roles + "{\"id\":\""+role.getId()+"\",\"nameRole\":\"" + ((ERole) iterator.next()).getNameRole() + "\",\"description\":\"" + role.getDescription() + "\"}";
-                }
+                roles = roles + "{\"lognameRole\":\""+role.getLognameRole()+"\",\"nameRole\":\"" + role.getNameRole() + "\",\"description\":\"" + role.getDescription() + "\"}";
                 if(iterator.hasNext()){
                     roles=roles+",";
                 }
             }
         }
-        if(getId() != null) {
-            return new String("{\"id\":\"" + getId().toString() + "\",\"name\":\"" + getName() + "\",\"password\":\"" + getPassword() + "\",\"roles\":[" + roles + "]}");
-        }
-        else{
-            return new String("{\"name\":\"" + getName() + "\",\"password\":\"" + getPassword() + "\",\"roles\":[" + roles + "]}");
-        }
+        return new String("{\"logname\":\""+getLogname()+"\",\"name\":\"" + getName() + "\",\"password\":\"" + getPassword() + "\",\"roles\":[" + roles + "]}");
+
     }
 
-    public String toStringWithID_ifExist_update() {
-        String roles = new String("");
-        if(getRoles() != null && !getRoles().isEmpty()){
-            Iterator iterator = getRoles().iterator();
-            for(ERole role : getRoles()) {
-                if (role.getId() == null) {
-                    roles = roles + "{\"nameRole\":\"" + ((ERole) iterator.next()).getNameRole() + "\",\"description\":\"" + role.getDescription() + "\"}";
-                }
-                else{
-                    roles = roles + "{\"id\":\""+role.getId()+"\",\"nameRole\":\"" + ((ERole) iterator.next()).getNameRole() + "\",\"description\":\"" + role.getDescription() + "\"}";
-                }
-                if(iterator.hasNext()){
-                    roles=roles+",";
-                }
-            }
-        }
-        if(getId() != null) {
-            return new String("{\"id\":\"" + getId().toString() + "\",\"name\":\"" + getName() + "\",\"logname\":\""+getLogname()+"\",\"password\":\"" + getPassword() + "\",\"roles\":[" + roles + "]}");
-        }
-        else{
-            return new String("{\"name\":\"" + getName() + "\",\"logname\":\""+getLogname()+"\",\"password\":\"" + getPassword() + "\",\"roles\":[" + roles + "]}");
-        }
-    }
+
 
 
     @Override

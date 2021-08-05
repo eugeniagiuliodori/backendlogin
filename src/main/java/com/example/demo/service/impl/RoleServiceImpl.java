@@ -41,9 +41,16 @@ public class RoleServiceImpl implements IRoleService {
 
     @Override
     @Transactional(readOnly=true)
+    public ERole findByLognameRole(String lognameRole){
+        return iRoleDao.findByLognameRole(lognameRole);
+    }
+
+    @Override
+    @Transactional(readOnly=true)
     public Optional<ERole> findById(Long id){
         return iRoleDao.findById(id);
     }
+
 
     @Override
     @Transactional(rollbackFor = Exception.class)

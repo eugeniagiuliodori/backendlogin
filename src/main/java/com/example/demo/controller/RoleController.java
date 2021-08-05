@@ -53,8 +53,8 @@ public class RoleController {
         List<LinkedHashMap> servicesList = new LinkedList<LinkedHashMap>();
         while(it.hasNext() && !badRequest){
             String key = (String)it.next();
-            if(key.equals("id")){
-                role.setId((Long)request.get("id"));
+            if(key.equals("lognameRole")){
+                role.setLognameRole((String)request.get("lognameRole"));
             }
             if(key.equals("nameRole")){
                 role.setNameRole((String)request.get("nameRole"));
@@ -62,7 +62,7 @@ public class RoleController {
             if(key.equals("description")){
                 role.setDescription((String)request.get("description"));
             }
-            if(!key.equals("nameRole")&&!key.equals("id")&&(!key.equals("description"))){
+            if(!key.equals("lognameRole")&&!key.equals("nameRole")&&!key.equals("id")&&(!key.equals("description"))){
                 badRequest=true;
             }
             //falta capturar lista de servicios (funcionalidades del servidor). lista de usuarios no estaria bien que se defina aca

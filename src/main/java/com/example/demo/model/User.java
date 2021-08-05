@@ -8,6 +8,8 @@ public class User {
 
     private String name;
 
+    private String logname;
+
     private Date date;
 
     private Set<Role> roles;
@@ -18,6 +20,13 @@ public class User {
         this.roles = roles;
     }
 
+    public String getLogname() {
+        return logname;
+    }
+
+    public void setLogname(String logname) {
+        this.logname = logname;
+    }
 
     public User(String name) {
         this.name = name;
@@ -52,11 +61,11 @@ public class User {
         String date = new String("");
         String roles = new String("");
         if(getDate() != null){
-            date = ",\"" + date + "\":\""+ getDate().toString() + "\",";
+            date = ",\"date\":\""+ getDate().toString() + "\",";
         }
         if(getRoles() != null){
             roles = "\"roles\":"+ getRoles().toString();
         }
-        return "{"+"\"name\":\""+getName()+"\"" + date + roles+"}";
+        return "{\"logname\":\""+getLogname()+"\"\"name\":\""+getName()+"\"" + date + roles+"}";
     }
 }

@@ -22,6 +22,9 @@ public class ERole implements Serializable {
     @Temporal(TemporalType.DATE)
     private Date date;
 
+    @Column(name="lognameRole", unique = true, nullable = false)
+    private String lognameRole;
+
     @Column(name="role", unique = true, nullable = false)
     private String nameRole;
 
@@ -58,6 +61,13 @@ public class ERole implements Serializable {
         date = new Date();
     }
 
+    public String getLognameRole() {
+        return lognameRole;
+    }
+
+    public void setLognameRole(String lognameRole) {
+        this.lognameRole = lognameRole;
+    }
 
     public Long getId() {
         return id;
@@ -111,7 +121,7 @@ public class ERole implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ERole role = (ERole) o;
-        return nameRole.equals(role.nameRole);
+        return lognameRole.equals(role.lognameRole);
     }
 
     @Override
@@ -119,6 +129,6 @@ public class ERole implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ERole role = (ERole) o;
-        return nameRole.equals(role.nameRole);
+        return lognameRole.equals(role.lognameRole);
     }
 }

@@ -114,15 +114,9 @@ public class UserController {
         List<LinkedHashMap> list = new LinkedList<LinkedHashMap>();
         while(it.hasNext() && !badRequest){
             String key = (String)it.next();
-            if(key.equals("id")){
-                try {
-                    user.setId((Long) request.get("id"));
-                }
-                catch(Exception e){
-                    user.setId(Long.valueOf((String)request.get("id")));
-                }
+            if(key.equals("logname")){
+                user.setLogname((String)request.get("logname"));
             }
-            Long l = user.getId();
             if(key.equals("name")){
                 user.setName((String)request.get("name"));
             }
@@ -135,31 +129,28 @@ public class UserController {
                 for(int i = 0; i<list.size();i++){
                     ERole role = new ERole();
                     LinkedHashMap map = (LinkedHashMap)list.get(i);
-                    try {
-                        role.setId((Long)map.get("id"));
-                    }
-                    catch(Exception e){
-                        role.setId(Long.valueOf((String)map.get("id")));
-                    }
+                    role.setLognameRole((String)map.get("lognameRole"));
                     role.setNameRole((String)map.get("nameRole"));
                     role.setDescription((String)map.get("description"));
+                    for(String keyr : (Set<String>)map.keySet()){
+                        if(!keyr.equals("lognameRole")&&!keyr.equals("nameRole")&&!keyr.equals("description")){
+                            badRequest=true;
+                        }
+                    }
                     set.add(role);
                 }
                 user.setRoles(set);
             }
-            if(!key.equals("id") && !key.equals("name")&&!key.equals("password")&&!key.equals("roles")){
+            else{
+                user.setRoles(new HashSet<>());
+            }
+            if(!badRequest && !key.equals("logname") &&!key.equals("name")&&!key.equals("password")&&!key.equals("roles")){
                 badRequest=true;
             }
         }
         if(!badRequest) {
             try {
                 EUser euser = userServiceImpl.addUser(user,list);
-                Long i = user.getId();
-                String n = user.getName();
-                String p = user.getPassword();
-                int r = user.getRoles().size();
-                String w = user.getWarning();
-                Date d = user.getDate();
                 if (!euser.getWarning().isEmpty()) {
                     return new ResponseEntity<>("{\"warnings\":[" + euser.getWarning() + "]}", HttpStatus.CREATED);
                 } else {
@@ -205,20 +196,19 @@ public class UserController {
                 for(int i = 0; i<list.size();i++){
                     ERole role = new ERole();
                     LinkedHashMap map = (LinkedHashMap)list.get(i);
-                    try {
-                        role.setId((Long) map.get("id"));
-                    }
-                    catch(Exception e){
-                        role.setId(Long.valueOf((String)map.get("id")));
-                    }
+                    role.setLognameRole((String)map.get("lognameRole"));
                     role.setNameRole((String)map.get("nameRole"));
                     role.setDescription((String)map.get("description"));
+                    for(String keyr : (Set<String>)map.keySet()){
+                        if(!keyr.equals("lognameRole")&&!keyr.equals("nameRole")&&!keyr.equals("description")){
+                            badRequest=true;
+                        }
+                    }
                     set.add(role);
                 }
                 user.setRoles(set);
             }
-
-            if(!key.equals("name")&&!key.equals("password")&&!key.equals("roles")&&!key.equals("logname")){
+            if(!badRequest && !key.equals("name")&&!key.equals("password")&&!key.equals("roles")&&!key.equals("logname")){
                 badRequest=true;
             }
         }
@@ -229,25 +219,18 @@ public class UserController {
                 tokenValue = authHeader.replace("Bearer", "").trim();
                 JsonParser objectMapper = JsonParserFactory.create();
                 Map<String, Object> claims = objectMapper.parseMap(JwtHelper.decode(tokenValue).getClaims());
-               String sss = JwtHelper.decode(tokenValue).toString();
-                String c = claims.toString();
                 String authenticatedUser = (String)claims.get("user_name");//userServiceImpl.getAuthenticatedUser();
-                EUser authuser = userServiceImpl.findByUserName(authenticatedUser);
-                Long authenticatedUserId = authuser.getId();
-                String bodyUser = user.getName();
-                String bodyPassUser = user.getPassword();
                 boolean existBodyRoles = user.getRoles() != null && !user.getRoles().isEmpty();
                 if (user.getLogname() != null) {
                     EUser oldUser = null;
                     try {
-                        EUser old = userServiceImpl.findByUserName(user.getLogname());
+                        EUser old = userServiceImpl.findByLogname(user.getLogname());
                         oldUser = new EUser();
-                        oldUser.setId(old.getId());
                         oldUser.setName(old.getName());
                         oldUser.setLogname(old.getLogname());
                         oldUser.setDate(old.getDate());
                         oldUser.setPassword(old.getPassword());
-                        if(old.getRoles() != null) {
+                        if(old.getRoles() != null && !old.getRoles().isEmpty()) {
                             oldUser.setRoles(new HashSet<>(old.getRoles()));//si no pongo un new EUser para oldUser, me da problema de aliasing cuando hace el update (no entiendo donde)
                         }
                         else{
@@ -257,13 +240,7 @@ public class UserController {
                     catch (Exception e) {
                         return new ResponseEntity<>("{\"error\":\"User not found\"}", HttpStatus.NOT_FOUND);
                     }
-                    EUser usermod=null;
-                    try {
-                        usermod = userServiceImpl.updateUser(user, existBodyRoles, list);
-                    }
-                    catch(Exception a){
-                        a.printStackTrace();
-                    }
+                    EUser usermod = userServiceImpl.updateUser(user, existBodyRoles, list);
                     if (authenticatedUser != null && user.getLogname() != null && user.getLogname().equals(authenticatedUser)){//if update is of authenticated user
                         Set<Role> oldRoles = RolesMapper.translate(oldUser.getRoles());
                         Set<Role> updateRoles = RolesMapper.translate(usermod.getRoles());
@@ -279,7 +256,7 @@ public class UserController {
                             }
                         }
                         boolean changesRoles = changesCountRoles || !equalsContentRoles;
-                        if (( !authenticatedUser.equals(user.getName())) ||
+                        if (( !authenticatedUser.equals(user.getLogname())) ||
                                 (oldUser.getPassword() != null && !encoder.matches(user.getPassword(),oldUser.getPassword())) ||
                                 (changesRoles)) {
 
@@ -323,37 +300,6 @@ public class UserController {
     }
 
 
-
-    private ResourceOwnerPasswordResourceDetails packPasswordResourceDetails(String clientId, String clientSecret, String username, String password, String... scopes){
-        ResourceOwnerPasswordResourceDetails details = new ResourceOwnerPasswordResourceDetails();
-        //String cryptPsw = base64Encoder.encodeToString(password.getBytes());
-        //Set the address of the server requesting authentication and authorization
-        details.setAccessTokenUri("http://localhost:8040/oauth/token");
-        //The following are all authentication information: the permissions possessed, the authenticated client, and the specific user
-        details.setScope(Arrays.asList(scopes));
-        details.setClientId(clientId);
-        details.setClientSecret(clientSecret);
-        details.setUsername(username);
-        details.setPassword(password);
-        return details;
-
-    }
-
-    private String generateToken(String username, String password, String clientId, String clientPass) throws ParseException {
-        String credentials = clientId + ":" + clientPass;
-        String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Content-Type","application/x-www-form-urlencoded");
-        headers.set("Accept","application/json");
-        headers.set("Accept-Encoding","gzip, deflate, br");
-        headers.set("Authorization", "Basic "+encodedCredentials);
-        String tokenUri = "http://localhost:8040/oauth/token";
-        String parameters = "username="+username+"&password="+password+"&grant_type=password&client_id="+clientId+"&client_secret="+clientPass;
-        HttpEntity<String> request = new HttpEntity<String>(parameters,headers);
-        HttpEntity<String> token = oAuth2RestTemplate.postForEntity(tokenUri,request, String.class);
-        return token.getBody();
-    }
-
     @PostMapping ("/login")
     public ResponseEntity<?> login(@RequestBody final Login login) {
         try {
@@ -364,7 +310,6 @@ public class UserController {
         }
 
     }
-
 
     @PreAuthorize("hasRole('delete')")
     @DeleteMapping("/delete")
@@ -493,11 +438,36 @@ public class UserController {
     }
 
 
-    public String revoquesTokensAndGenerateNew(String oldUserName,String userName, String userPass, String tokenValue, String idClient,String passClient) {
-        //  final OAuth2Authentication auth = (OAuth2Authentication) SecurityContextHolder
-        //        .getContext().getAuthentication();
-        //final String token = tokenStore.getAccessToken(auth).getValue();
-        //tokenServices.revokeToken(token);
+
+    private ResourceOwnerPasswordResourceDetails packPasswordResourceDetails(String clientId, String clientSecret, String username, String password, String... scopes){
+        ResourceOwnerPasswordResourceDetails details = new ResourceOwnerPasswordResourceDetails();
+        details.setAccessTokenUri("http://localhost:8040/oauth/token");
+        details.setScope(Arrays.asList(scopes));
+        details.setClientId(clientId);
+        details.setClientSecret(clientSecret);
+        details.setUsername(username);
+        details.setPassword(password);
+        return details;
+
+    }
+
+    private String generateToken(String username, String password, String clientId, String clientPass) throws ParseException {
+        String credentials = clientId + ":" + clientPass;
+        String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Content-Type","application/x-www-form-urlencoded");
+        headers.set("Accept","application/json");
+        headers.set("Accept-Encoding","gzip, deflate, br");
+        headers.set("Authorization", "Basic "+encodedCredentials);
+        String tokenUri = "http://localhost:8040/oauth/token";
+        String parameters = "username="+username+"&password="+password+"&grant_type=password&client_id="+clientId+"&client_secret="+clientPass;
+        HttpEntity<String> request = new HttpEntity<String>(parameters,headers);
+        HttpEntity<String> token = oAuth2RestTemplate.postForEntity(tokenUri,request, String.class);
+        return token.getBody();
+    }
+
+
+    private String revoquesTokensAndGenerateNew(String oldUserName,String userName, String userPass, String tokenValue, String idClient,String passClient) {
         Collection<OAuth2AccessToken> tokens = tokenStore.findTokensByClientIdAndUserName(
                 idClient,
                 oldUserName);
@@ -539,39 +509,5 @@ public class UserController {
     public void setConsumerTokenServices(ConsumerTokenServices consumerTokenServices) {
         this.consumerTokenServices = consumerTokenServices;
     }
-
-/*
-    private String revoquesToken(String userName, String userPass, String tokenValue, String idClient,String passClient) {
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-        headers.add("Authorization", "Bearer " + tokenValue);
-        MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<String, String>();
-        HttpEntity formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
-        RestTemplate restTemplate = new RestTemplate();
-        String access_token_url = "http://localhost:8040/user/logout";
-        restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
-        String credentials = idClient + ":" + passClient;
-            String encodedCredentials = new String(Base64.encodeBase64(credentials.getBytes()));
-            headers = new HttpHeaders();
-            headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-            headers.add("Authorization", "Basic " + encodedCredentials);
-            requestBody = new LinkedMultiValueMap<String, String>();
-            requestBody.add("Content-Type", "application/x-www-form-urlencoded");
-            requestBody.add("username", userName);
-            requestBody.add("password", userPass);
-            requestBody.add("grant_type", "password");
-            formEntity = new HttpEntity<MultiValueMap<String, String>>(requestBody, headers);
-            HttpEntity<String> request = new HttpEntity<String>(headers);
-            restTemplate = new RestTemplate();
-            access_token_url = "http://localhost:8040/oauth/token";
-            ResponseEntity<String> response = restTemplate.exchange(access_token_url, HttpMethod.POST, formEntity, String.class);
-            return response.getBody();
-    }
-
-
-*/
-
-
 
 }
