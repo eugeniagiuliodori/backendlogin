@@ -105,6 +105,14 @@ public class UserController {
     @Autowired
     private BCryptPasswordEncoder encoder;
 
+    public BCryptPasswordEncoder getEncoder() {
+        return encoder;
+    }
+
+    public void setEncoder(BCryptPasswordEncoder encoder) {
+        this.encoder = encoder;
+    }
+
     @PreAuthorize("hasRole('add')")
     @PostMapping("/add")
     public ResponseEntity<?> addUser(@RequestBody Map<String, Object> request) {

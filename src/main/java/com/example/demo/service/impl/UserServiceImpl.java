@@ -479,7 +479,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService {
         EUser user;
         try {
             String s = username;
-            user = findByUserName(username);
+            user = findByLogname(username);
             authenticatedPassUser=user.getPassword();
         }
         catch(Exception e){

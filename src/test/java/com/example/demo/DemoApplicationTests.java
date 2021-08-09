@@ -132,6 +132,7 @@ public class DemoApplicationTests{
 	public void setUp() {
 		userServiceImpl.setRoleServiceImpl(roleServiceImpl);
 		UserController userController = new UserController(userServiceImpl);
+		userController.setEncoder(encoder);
 		userController.setTokenStore(tokenStore);
 		userController.setConsumerTokenServices(consumerTokenServices);
 		mvc = MockMvcBuilders.standaloneSetup(userController, SecurityMockMvcConfigurers.springSecurity()).build();
@@ -383,6 +384,7 @@ public class DemoApplicationTests{
 		Mockito.when(iUserDao.findByLogname(authUser.getLogname())).thenReturn(authUser);
 		Mockito.when(iUserDao.findByLogname(newUser.getLogname())).thenReturn(oldUserCryp);
 		Mockito.when(iUserDao.save(eq(suser))).thenReturn(suser);
+
 		String token = obtainAccessToken(authUser.getName(), authUser.getPassword(), "idClient1", "passClient1").getFirst();
 		Collection<OAuth2AccessToken> tokens = new LinkedList<>();
 		tokenStore.storeAccessToken(accessToken,auth);
